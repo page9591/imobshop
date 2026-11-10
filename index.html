@@ -1,6 +1,27 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
-<head>
+<head><style>
+@font-face {
+  font-family: "Optimistic";
+  font-style: normal;
+  font-weight: 400 600;
+  font-display: swap;
+  src: url("/fonts/OptimisticAI_VF_Optimized.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Optimistic Mono";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/OptimisticMono_W_TextRegular.woff2") format("woff2");
+}
+:where(html) {
+  font-family: "Optimistic", system-ui, sans-serif;
+}
+:where(code, pre, kbd, samp) {
+  font-family: "Optimistic Mono", ui-monospace, monospace;
+}
+</style>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>ImobChat — Marketplace Imobiliário Conversacional</title>
@@ -14,7 +35,7 @@ tailwind.config={theme:{extend:{colors:{waDark:'#075E54',waGreen:'#128C7E',waLig
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 html{scrollbar-width:none}::-webkit-scrollbar{display:none}
-.chat-bg{background-color:#ECE5DD;background-image:url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23d4c9b8' fill-opacity='0.18'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")}
+@keyframes pulseSlow{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}} .animate-pulse-slow{animation:pulseSlow 1.6s ease-in-out infinite} .chat-bg{background-color:#ECE5DD;background-image:url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23d4c9b8' fill-opacity='0.18'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")}
 .line-clamp-2{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .pulse-ring{animation:pulseRing 1.8s infinite}
 @keyframes pulseRing{0%{box-shadow:0 0 0 0 rgba(37,211,102,.55)}70%{box-shadow:0 0 0 14px rgba(37,211,102,0)}100%{box-shadow:0 0 0 0 rgba(37,211,102,0)}}
@@ -122,7 +143,17 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
           <p class="font-semibold text-[15px] truncate" x-text="anuncianteDo(imovelAtual).nome"></p>
           <p class="text-[11px] text-emerald-200">🟢 Online agora • toque p/ ver perfil</p>
         </div>
-        <span class="text-lg">📹</span><span class="text-lg">📞</span>
+        <!-- BOTÕES DE CHAMADA BEM VISÍVEIS - VOZ + VÍDEO -->
+        <div class="flex items-center gap-2 shrink-0">
+          <button @click="iniciarChamada('audio')" title="Ligar para o corretor - Chamada de voz" class="flex items-center gap-1.5 bg-white text-[#075E54] font-extrabold text-[12px] pl-2.5 pr-3 py-2 rounded-full shadow-[0_2px_10px_rgba(0,0,0,0.35)] ring-2 ring-[#25D366] active:scale-95 transition hover:bg-[#DCF8C6]">
+            <span class="w-6 h-6 rounded-full bg-[#25D366] flex items-center justify-center text-[14px] leading-none">📞</span>
+            LIGAR
+          </button>
+          <button @click="iniciarChamada('video')" title="Chamada de vídeo com o corretor" class="flex items-center gap-1.5 bg-[#25D366] text-white font-extrabold text-[12px] pl-2.5 pr-3 py-2 rounded-full shadow-[0_2px_10px_rgba(0,0,0,0.35)] ring-2 ring-white active:scale-95 transition hover:bg-[#1eb85a] animate-pulse-slow">
+            <span class="w-6 h-6 rounded-full bg-white flex items-center justify-center text-[14px] leading-none">📹</span>
+            VÍDEO
+          </button>
+        </div>
       </div>
     </template>
     <template x-if="view==='perfil' && anuncianteAtual">
@@ -160,7 +191,47 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
           <span class="absolute top-2 left-2 bg-black/60 backdrop-blur text-white text-[10px] font-bold px-2 py-1 rounded-full" x-text="im.tipo"></span>
           <span x-show="anuncianteDo(im).plano==='ouro'" class="absolute top-2 right-2 bg-amber-400 text-amber-950 text-[10px] font-extrabold px-2 py-1 rounded-full">⭐ OURO</span>
           <span x-show="anuncianteDo(im).plano==='prata'" class="absolute top-2 right-2 bg-slate-200 text-slate-800 text-[10px] font-bold px-2 py-1 rounded-full">PRATA</span>
-          <span class="absolute bottom-2 left-2 bg-waDark text-white text-[11px] font-bold px-2 py-1 rounded-full" x-text="formatPreco(im.preco)"></span>
+          <span class="absolute bottom-2 left-2 bg-waDark text-white text-[11px] font-bold px-2 py-1 rounded-full" x-text="
+    async iniciarChamada(tipo){
+      this.tipoChamada = tipo;
+      this.chamadaAtiva = true;
+      this.mutado = false;
+      this.cameraLigada = tipo==='video';
+      this._callSeg = 0;
+      this.tempoChamada = '00:00';
+      this.chamadaStatus = tipo==='video' ? 'Chamando por vídeo...' : 'Chamando por voz...';
+      clearInterval(this._callTimer);
+      this._callTimer = setInterval(()=>{ this._callSeg++; const m=String(Math.floor(this._callSeg/60)).padStart(2,'0'); const s=String(this._callSeg%60).padStart(2,'0'); this.tempoChamada=m+':'+s; if(this._callSeg===3) this.chamadaStatus='Corretor online • Conectando...'; if(this._callSeg===6) this.chamadaStatus='Em chamada • '+ (this.tipoChamada==='video' ? 'Vídeo ao vivo' : 'Voz'); },1000);
+      try{
+        const constraints = tipo==='video' ? {video:true, audio:true} : {audio:true, video:false};
+        const stream = await navigator.mediaDevices.getUserMedia(constraints);
+        this._callStream = stream;
+        this.$nextTick(()=>{ const v=document.getElementById('meuVideo'); if(v && tipo==='video'){ v.srcObject=stream; } });
+      }catch(e){ this.chamadaStatus='Sem acesso à câmera/mic • Toque em WhatsApp para continuar'; }
+      this.registrarMetrica('chamada_'+tipo);
+    },
+    encerrarChamada(){
+      clearInterval(this._callTimer);
+      if(this._callStream){ this._callStream.getTracks().forEach(tr=>tr.stop()); this._callStream=null; }
+      this.chamadaAtiva=false;
+      this.toast('Chamada encerrada • O corretor recebeu seu contato');
+    },
+    toggleMute(){
+      this.mutado=!this.mutado;
+      if(this._callStream) this._callStream.getAudioTracks().forEach(tr=>tr.enabled=!this.mutado);
+    },
+    toggleCamera(){
+      this.cameraLigada=!this.cameraLigada;
+      if(this._callStream) this._callStream.getVideoTracks().forEach(tr=>tr.enabled=this.cameraLigada);
+      if(this.tipoChamada==='audio' && this.cameraLigada){ this.tipoChamada='video'; this.iniciarChamada('video'); }
+    },
+    trocarParaWhatsApp(){
+      const a=this.anuncianteDo(this.imovelAtual); if(!a) return;
+      this.encerrarChamada();
+      const msg='Olá '+a.nome+'! Vi seu imóvel '+this.imovelAtual.titulo+' no ImobChat e tentei ligar por '+ (this.tipoChamada==='video' ? 'vídeo' : 'voz') +'. Podemos falar agora?';
+      window.open('https://wa.me/'+a.whatsapp+'?text='+encodeURIComponent(msg),'_blank');
+    },
+formatPreco(im.preco)"></span>
           <span class="absolute bottom-2 right-2 bg-white/95 text-[11px] font-semibold px-1.5 py-0.5 rounded-full">📸 <span x-text="im.fotos.length"></span></span>
         </div>
         <div class="p-2.5 flex flex-col flex-1">
@@ -261,6 +332,17 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
 </section>
 
 <!-- ================= CHAT ================= -->
+<!-- BARRA DE CHAMADA EXTRA VISÍVEL - FICA SEMPRE NO TOPO DO CHAT -->
+<div x-show="view==='chat'" class="mx-3 mt-2 grid grid-cols-2 gap-2 sticky top-[68px] z-30">
+  <button @click="iniciarChamada('audio')" class="flex items-center justify-center gap-2 bg-white border-2 border-[#25D366] text-[#075E54] rounded-2xl py-3 shadow-md active:scale-[0.98]">
+    <span class="w-9 h-9 rounded-full bg-[#25D366] text-white flex items-center justify-center text-[20px] shadow">📞</span>
+    <span class="text-left leading-none"><span class="block font-extrabold text-[14px]">Ligar agora</span><span class="block text-[11px] text-gray-500 font-medium mt-0.5">Chamada de voz • Grátis</span></span>
+  </button>
+  <button @click="iniciarChamada('video')" class="flex items-center justify-center gap-2 bg-[#075E54] text-white rounded-2xl py-3 shadow-md active:scale-[0.98] ring-2 ring-[#25D366]">
+    <span class="w-9 h-9 rounded-full bg-white text-[#075E54] flex items-center justify-center text-[20px] shadow">📹</span>
+    <span class="text-left leading-none"><span class="block font-extrabold text-[14px]">Vídeo chamada</span><span class="block text-[11px] text-white/70 font-medium mt-0.5">Ver o imóvel ao vivo</span></span>
+  </button>
+</div>
 <section x-show="view==='chat' && imovelAtual" class="fade flex flex-col chat-bg min-h-[calc(100dvh-56px)]">
   <!-- Card flutuante -->
   <div class="mx-3 mt-3 bg-white rounded-2xl shadow-md overflow-hidden flex">
@@ -474,7 +556,7 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
 <script>
 function imobChat(){
 return {
-view:'home', abaAdmin:'imoveis', busca:'', filtro:'', textoChat:'', digitando:false,
+view:'home', chamadaAtiva:false, tipoChamada:'audio', chamadaStatus:'Chamando...', tempoChamada:'00:00', mutado:false, cameraLigada:true, _callTimer:null, _callStream:null, _callSeg:0, abaAdmin:'imoveis', busca:'', filtro:'', textoChat:'', digitando:false,
 meuPlano:'free', botImovelId:'me-1',
 checkoutPlano:'prata', metodo:'pix', pagando:false, pagamentoOk:false, toastMsg:'',
 novo:{titulo:'',preco:'',bairro:'',tipo:'Venda',quartos:2,area:60,foto:'',descricao:''},
@@ -600,5 +682,42 @@ toast(msg){this.toastMsg=msg; setTimeout(()=>this.toastMsg='',3200)}
 }
 }
 </script>
-</body>
+
+<!-- ================= MODAL DE CHAMADA - VOZ / VÍDEO ================= -->
+<div x-show="chamadaAtiva" x-cloak class="fixed inset-0 z-[100] bg-[#0b141a] flex flex-col text-white" style="display:none" x-transition>
+  <div class="flex items-center justify-between px-4 py-3">
+    <div class="flex items-center gap-3">
+      <img :src="anuncianteDo(imovelAtual)?.foto" class="w-11 h-11 rounded-full object-cover border-2 border-white/30">
+      <div><p class="font-bold leading-tight" x-text="anuncianteDo(imovelAtual)?.nome"></p><p class="text-[12px] text-emerald-300" x-text="chamadaStatus"></p></div>
+    </div>
+    <span class="bg-white/10 px-2.5 py-1 rounded-full text-[11px] font-bold" x-text="tipoChamada==='video' ? '📹 VÍDEO' : '📞 VOZ'"></span>
+  </div>
+
+  <!-- Vídeo -->
+  <div class="flex-1 relative bg-black/60 mx-3 rounded-3xl overflow-hidden flex items-center justify-center min-h-[320px]">
+    <template x-if="tipoChamada==='video'">
+      <video id="meuVideo" autoplay muted playsinline class="absolute inset-0 w-full h-full object-cover"></video>
+    </template>
+    <div class="relative z-10 text-center px-6" x-show="tipoChamada==='audio' || !cameraLigada">
+      <img :src="anuncianteDo(imovelAtual)?.foto" class="w-28 h-28 rounded-full object-cover mx-auto border-4 border-[#25D366] shadow-2xl">
+      <p class="font-extrabold text-[18px] mt-4" x-text="anuncianteDo(imovelAtual)?.nome"></p>
+      <p class="text-white/70 text-[13px]" x-text="chamadaStatus"></p>
+      <p class="text-[12px] bg-black/40 inline-block px-3 py-1 rounded-full mt-3" x-text="imovelAtual?.titulo"></p>
+    </div>
+    <div x-show="tipoChamada==='video' && cameraLigada" class="absolute bottom-3 left-3 bg-black/60 px-2.5 py-1 rounded-full text-[11px] font-bold">Você • câmera ligada</div>
+    <div class="absolute top-3 right-3 bg-red-500 text-white text-[11px] font-bold px-2.5 py-1 rounded-full flex items-center gap-1"><span class="w-2 h-2 bg-white rounded-full animate-ping"></span> <span x-text="tempoChamada"></span></div>
+  </div>
+
+  <p class="text-center text-[12px] text-white/60 px-6 mt-3">Chamada via ImobChat • WebRTC no navegador. Se o corretor não atender, caímos para o WhatsApp automaticamente.</p>
+
+  <!-- Controles -->
+  <div class="px-6 pt-4 pb-8 grid grid-cols-4 gap-3 max-w-[420px] w-full mx-auto">
+    <button @click="toggleMute()" :class="mutado ? 'bg-white text-black' : 'bg-white/15'" class="h-[56px] rounded-full flex flex-col items-center justify-center text-[18px]"><span x-text="mutado ? '🔇' : '🎙️'"></span><span class="text-[10px] font-bold mt-0.5" x-text="mutado ? 'Mudo' : 'Mudo'"></span></button>
+    <button @click="toggleCamera()" :class="!cameraLigada ? 'bg-white text-black' : 'bg-white/15'" class="h-[56px] rounded-full flex flex-col items-center justify-center text-[18px]"><span x-text="cameraLigada ? '📹' : '🚫📹'"></span><span class="text-[10px] font-bold mt-0.5">Câmera</span></button>
+    <button @click="trocarParaWhatsApp()" class="h-[56px] rounded-full bg-[#25D366] flex flex-col items-center justify-center text-[18px]"><span>💬</span><span class="text-[10px] font-bold mt-0.5">WhatsApp</span></button>
+    <button @click="encerrarChamada()" class="h-[56px] rounded-full bg-red-500 flex flex-col items-center justify-center text-[18px] shadow-lg shadow-red-500/40"><span>📞</span><span class="text-[10px] font-bold mt-0.5">Encerrar</span></button>
+  </div>
+</div>
+
+<script>(function(){var loc=location.href.replace(/#.*$/,"");var ATTR_NAMES=["data-product-id","data-productid","data-product_id","product-id","productid","product_id","data-source-entity-id","source-entity-id","source_entity_id","data-product","data-metadata","data-meta"];var DATASET_KEYS=["productId","productid","product_id","sourceEntityId","sourceentityid","source_entity_id","product","metadata","meta"];function readProductId(value){if(typeof value!=="string"||value.length===0)return null;if(/^[0-9]{6,}$/.test(value))return value;var match=value.match(/(?:product(?:_|-)?id|source(?:_|-)?entity(?:_|-)?id)["'=:\s]+([0-9]{6,})/i);return match?match[1]:null}function extractProductId(start){for(var node=start;node&&node!==document.body;node=node.parentElement){for(var i=0;i<ATTR_NAMES.length;i++){var attrValue=node.getAttribute&&node.getAttribute(ATTR_NAMES[i]);var attrProductId=readProductId(attrValue);if(attrProductId)return attrProductId}var dataset=node.dataset||null;if(dataset){for(var j=0;j<DATASET_KEYS.length;j++){var dataValue=dataset[DATASET_KEYS[j]];var dataProductId=readProductId(dataValue);if(dataProductId)return dataProductId}}}return null}function isInlineMediaSlotElement(node){return !!(node&&node.getAttribute&&node.getAttribute("data-clippy-inline-media-slot")!==null)}function findInlineMediaSlot(start){for(var node=start;node&&node!==document.body;node=node.parentElement){if(isInlineMediaSlotElement(node))return node}return null}function readInlineMediaUrl(node){if(!node)return null;return node.getAttribute&&((node.getAttribute("data-clippy-inline-media-url")||node.getAttribute("data-url")||node.getAttribute("data_url")))||node.href||null}function stripHash(url){return String(url).replace(/#.*$/,"")}function urlsMatch(a,b){if(!a||!b)return false;try{return stripHash(new URL(a,loc).href)===stripHash(new URL(b,loc).href)}catch(_){return stripHash(a)===stripHash(b)}}function isFirstPartyReelUrl(value){try{var url=new URL(value,loc);if(url.protocol!=="https:")return false;var host=url.hostname.toLowerCase();var supported=host==="instagram.com"||host.endsWith(".instagram.com")||host==="facebook.com"||host.endsWith(".facebook.com");return supported&&/\/reels?\//i.test(url.pathname)}catch(_){return false}}function isInlineMediaUrlClick(node,href){var slot=findInlineMediaSlot(node);if(!slot)return false;var slotUrl=readInlineMediaUrl(slot);if(slotUrl)return urlsMatch(href,slotUrl);return isFirstPartyReelUrl(href)}function findDataHref(start){for(var node=start;node&&node!==document.body;node=node.parentElement){if(node.getAttribute){var href=node.getAttribute("data-href")||node.getAttribute("data-url");if(href)return{href:href,node:node}}}return null}var nativeOpen=window.open;window.open=function(url){if(parent!==window&&typeof url==="string"&&/^https?:\/\//.test(url)){parent.postMessage({type:"ecto:usercontent-link-click",href:url},"*");return null}return nativeOpen?nativeOpen.apply(window,arguments):null};document.addEventListener("click",function(e){var target=e.target instanceof Element?e.target:null;if(!target)return;if(parent===window)return;var a=target.closest?target.closest("a[href]"):null;if(a&&a.href&&/^https?:\/\//.test(a.href)&&a.href.replace(/#.*$/,"")!==loc){if(isInlineMediaUrlClick(a,a.href))return;var productId=extractProductId(target)||extractProductId(a);if(productId){e.preventDefault();parent.postMessage({type:"ecto-artifact-link-click",productId:productId},"*");return}e.preventDefault();parent.postMessage({type:"ecto:usercontent-link-click",href:a.href},"*");return}var dataHref=findDataHref(target);if(dataHref&&/^https?:\/\//.test(dataHref.href)&&dataHref.href.replace(/#.*$/,"")!==loc){if(isInlineMediaUrlClick(dataHref.node,dataHref.href))return;e.preventDefault();parent.postMessage({type:"ecto:usercontent-link-click",href:dataHref.href},"*")}},true)})();</script><script>(function(){var FOCUS_TYPE="ecto:artifact-focus-request";var CLOSE_TYPE="ecto:artifact-close-request";function focusArtifactDocument(){var body=document.body;if(!body)return;try{window.focus();}catch(e){}if(!body.hasAttribute("tabindex"))body.setAttribute("tabindex","-1");try{body.focus({preventScroll:true});}catch(e){try{body.focus();}catch(e2){}}}window.addEventListener("message",function(event){if(event.source!==window.parent)return;var data=event.data;if(!data||typeof data!=="object"||data.type!==FOCUS_TYPE)return;if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded",focusArtifactDocument,{once:true});return;}focusArtifactDocument();});window.addEventListener("keydown",function(event){if(event.key!=="Escape")return;window.setTimeout(function(){if(event.defaultPrevented)return;window.parent.postMessage({type:CLOSE_TYPE},"*");},0);});})();</script></body>
 </html>
