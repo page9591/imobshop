@@ -144,7 +144,7 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
           <p class="font-semibold text-[15px] truncate" x-text="anuncianteDo(imovelAtual).nome"></p>
           <p class="text-[11px] text-emerald-200">🟢 Online agora • toque p/ ver perfil</p>
         </div>
-        <!-- TOPO: TELEFONE + CÂMERA + MICROFONE — BEM VISÍVEL, COLORIDO, CLICÁVEL -->
+        <!-- TOPO: SÓ LIGAÇÃO DE ÁUDIO + LIGAÇÃO DE VÍDEO -->
         <div class="flex items-center gap-1.5 shrink-0">
           <button @click="iniciarChamada('audio')" title="Ligar para o corretor - Chamada de voz" class="flex items-center gap-1 bg-white text-[#075E54] font-extrabold text-[11px] pl-1 pr-2 py-1.5 rounded-full shadow-[0_2px_10px_rgba(0,0,0,0.35)] ring-2 ring-[#25D366] active:scale-95 transition">
             <span class="w-[22px] h-[22px] rounded-full bg-[#25D366] flex items-center justify-center text-[13px] leading-none">📞</span>
@@ -153,10 +153,6 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
           <button @click="iniciarChamada('video')" title="Chamada de vídeo com o corretor" class="flex items-center gap-1 bg-[#2563EB] text-white font-extrabold text-[11px] pl-1 pr-2 py-1.5 rounded-full shadow-[0_2px_10px_rgba(0,0,0,0.35)] ring-2 ring-white active:scale-95 transition">
             <span class="w-[22px] h-[22px] rounded-full bg-white flex items-center justify-center text-[13px] leading-none">📹</span>
             VÍDEO
-          </button>
-          <button @click="iniciarChamada('mic')" title="Chamada de voz com microfone" class="flex items-center gap-1 bg-[#FF8A00] text-white font-extrabold text-[11px] pl-1 pr-2 py-1.5 rounded-full shadow-[0_2px_10px_rgba(0,0,0,0.35)] ring-2 ring-white active:scale-95 transition">
-            <span class="w-[22px] h-[22px] rounded-full bg-white flex items-center justify-center text-[13px] leading-none">🎙️</span>
-            MIC
           </button>
         </div>
       </div>
@@ -170,28 +166,6 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
     <button x-show="view==='perfil'" @click="compartilharPerfil()" class="bg-white/15 px-3 py-1.5 rounded-full text-[12px] font-semibold">🔗 Compartilhar</button>
   </div>
 </header>
-
-<!-- BARRA DE CHAMADA NO TOPO DO CHAT — TELEFONE + CÂMERA + MICROFONE BEM NÍTIDOS -->
-<div x-show="view==='chat' && imovelAtual" class="bg-[#075E54] px-3 pb-3 pt-1 sticky top-[57px] z-20">
-  <div class="grid grid-cols-3 gap-2">
-    <button @click="iniciarChamada('audio')" class="flex flex-col items-center justify-center gap-1 bg-white rounded-2xl py-2.5 shadow-lg ring-2 ring-[#25D366] active:scale-[0.98] transition">
-      <span class="w-10 h-10 rounded-full bg-[#25D366] text-white flex items-center justify-center text-[21px] shadow">📞</span>
-      <span class="font-extrabold text-[13px] text-[#075E54] leading-none">Telefone</span>
-      <span class="text-[10px] text-gray-500 font-semibold leading-none">Ligar • Voz</span>
-    </button>
-    <button @click="iniciarChamada('video')" class="flex flex-col items-center justify-center gap-1 bg-[#2563EB] rounded-2xl py-2.5 shadow-lg ring-2 ring-white active:scale-[0.98] transition">
-      <span class="w-10 h-10 rounded-full bg-white text-[#2563EB] flex items-center justify-center text-[21px] shadow">📹</span>
-      <span class="font-extrabold text-[13px] text-white leading-none">Câmera</span>
-      <span class="text-[10px] text-white/80 font-semibold leading-none">Vídeo • Ao vivo</span>
-    </button>
-    <button @click="iniciarChamada('mic')" class="flex flex-col items-center justify-center gap-1 bg-[#FF8A00] rounded-2xl py-2.5 shadow-lg ring-2 ring-white active:scale-[0.98] transition">
-      <span class="w-10 h-10 rounded-full bg-white text-[#FF8A00] flex items-center justify-center text-[21px] shadow">🎙️</span>
-      <span class="font-extrabold text-[13px] text-white leading-none">Microfone</span>
-      <span class="text-[10px] text-white/80 font-semibold leading-none">Falar • Voz alta</span>
-    </button>
-  </div>
-  <p class="text-center text-[11px] text-white/80 font-medium mt-2">Toque em Telefone, Câmera ou Microfone para falar com o corretor agora</p>
-</div>
 
 <main class="flex-1 overflow-y-auto pb-24 relative">
 
@@ -339,6 +313,7 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
       <div :class="m.de==='bot' ? 'flex justify-start' : 'flex justify-end'">
         <div :class="m.de==='bot' ? 'bg-white rounded-2xl rounded-tl-md' : 'bg-waBubble rounded-2xl rounded-tr-md'" class="max-w-[82%] px-3 py-2 shadow-sm">
           <p class="text-[13.5px] leading-snug whitespace-pre-line" x-text="m.texto"></p>
+          <template x-if="m.audioUrl"><audio :src="m.audioUrl" controls class="w-full mt-1 h-8"></audio></template>
           <p class="text-[10px] text-gray-400 text-right mt-0.5"><span x-text="m.hora"></span> <span x-show="m.de==='eu'">✓✓</span></p>
         </div>
       </div>
@@ -353,15 +328,20 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
     </template>
   </div>
 
-  <!-- Input -->
-  <div class="px-3 pb-3 flex items-center gap-2">
+  <!-- Input estilo WhatsApp: digitar + microfone + enviar -->
+  <div class="px-3 pb-2 flex items-center gap-2">
     <div class="flex-1 bg-white rounded-full flex items-center px-3 py-1 shadow-sm">
       <span class="text-lg">😊</span>
-      <input x-model="textoChat" @keydown.enter="enviarTexto()" placeholder="Digite sua dúvida..." class="flex-1 px-2 py-2 text-[14px] outline-none">
+      <input x-model="textoChat" @keydown.enter="enviarTexto()" :placeholder="gravandoAudio ? 'Gravando áudio... toque no microfone para parar' : 'Digite sua dúvida...'" class="flex-1 px-2 py-2 text-[14px] outline-none">
       <span class="text-lg">📎</span>
     </div>
-    <button @click="enviarTexto()" class="w-11 h-11 bg-waGreen text-white rounded-full flex items-center justify-center text-lg shadow">➤</button>
+    <!-- BOTÃO DE ÁUDIO igual WhatsApp: do lado de enviar, clica pra falar -->
+    <button @click="alternarGravacaoAudio()" :title="gravandoAudio ? 'Parar gravação' : 'Segure / clique para falar - enviar áudio'" :class="gravandoAudio ? 'bg-red-500 scale-110 animate-pulse' : 'bg-waGreen'" class="w-11 h-11 text-white rounded-full flex items-center justify-center text-[19px] shadow shrink-0 transition active:scale-95">
+      <span x-text="gravandoAudio ? '⏹️' : '🎙️'"></span>
+    </button>
+    <button @click="enviarTexto()" class="w-11 h-11 bg-waGreen text-white rounded-full flex items-center justify-center text-lg shadow shrink-0">➤</button>
   </div>
+  <p x-show="gravandoAudio" class="text-center text-[12px] font-bold text-red-600 pb-1">🔴 Gravando áudio <span x-text="tempoAudio"></span> • toque no microfone de novo para enviar</p>
   <p class="text-center text-[11px] text-gray-500 pb-1 px-4">Respostas automáticas configuradas por <span x-text="anuncianteDo(imovelAtual).nome"></span>. Para falar com humano, use o botão verde.</p>
 
   <!-- BOTÃO FLUTUANTE WHATSAPP -->
@@ -564,7 +544,7 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
 <script>
 function imobChat(){
 return {
-view:'home', chamadaAtiva:false, tipoChamada:'audio', chamadaStatus:'Chamando...', tempoChamada:'00:00', mutado:false, cameraLigada:true, _callTimer:null, _callStream:null, _callSeg:0, abaAdmin:'imoveis', busca:'', filtro:'', textoChat:'', digitando:false,
+view:'home', chamadaAtiva:false, gravandoAudio:false, tempoAudio:'00:00', _audioTimer:null, _audioSeg:0, _mediaRecorder:null, _audioChunks:[], tipoChamada:'audio', chamadaStatus:'Chamando...', tempoChamada:'00:00', mutado:false, cameraLigada:true, _callTimer:null, _callStream:null, _callSeg:0, abaAdmin:'imoveis', busca:'', filtro:'', textoChat:'', digitando:false,
 meuPlano:'free', botImovelId:'me-1',
 checkoutPlano:'prata', metodo:'pix', pagando:false, pagamentoOk:false, toastMsg:'',
 novo:{titulo:'',preco:'',bairro:'',tipo:'Venda',quartos:2,area:60,foto:'',descricao:''},
@@ -726,6 +706,36 @@ this.toast('🎉 Webhook Mercado Pago confirmado! Plano '+this.checkoutPlano.toU
       this.encerrarChamada();
       const msg='Olá '+a.nome+'! Vi seu imóvel '+this.imovelAtual.titulo+' no ImobChat e tentei ligar por '+label+'. Podemos falar agora?';
       window.open('https://wa.me/'+a.whatsapp+'?text='+encodeURIComponent(msg),'_blank');
+    },
+
+    async alternarGravacaoAudio(){
+      if(!this.gravandoAudio){
+        try{
+          const stream = await navigator.mediaDevices.getUserMedia({audio:true});
+          this._audioChunks = [];
+          this._mediaRecorder = new MediaRecorder(stream);
+          this._mediaRecorder.ondataavailable = e=>{ if(e.data.size>0) this._audioChunks.push(e.data); };
+          this._mediaRecorder.onstop = ()=>{
+            stream.getTracks().forEach(tr=>tr.stop());
+            const blob = new Blob(this._audioChunks, {type:'audio/webm'});
+            const url = URL.createObjectURL(blob);
+            const dur = this.tempoAudio;
+            this.mensagens.push({id:Date.now(), de:'eu', texto:'🎙️ Áudio enviado • '+dur, hora:this.horaAgora(), audioUrl:url});
+            this.$nextTick(()=>{let el=document.getElementById('chatScroll'); if(el) el.scrollTop=el.scrollHeight});
+            setTimeout(()=>{ this.digitando=true; setTimeout(()=>{ this.digitando=false; this.mensagens.push({id:Date.now()+1, de:'bot', texto:'Ouvi seu áudio! Obrigado. Quer que eu agende uma visita ou te passe para o corretor no WhatsApp?', hora:this.horaAgora()}); },900); },600);
+          };
+          this._mediaRecorder.start();
+          this.gravandoAudio = true; this._audioSeg = 0; this.tempoAudio='00:00';
+          clearInterval(this._audioTimer);
+          this._audioTimer = setInterval(()=>{ this._audioSeg++; const mm=String(Math.floor(this._audioSeg/60)).padStart(2,'0'); const ss=String(this._audioSeg%60).padStart(2,'0'); this.tempoAudio=mm+':'+ss; },1000);
+          this.toast('🎙️ Gravando áudio... fale agora');
+        }catch(e){ this.toast('Permita o microfone para enviar áudio'); }
+      } else {
+        clearInterval(this._audioTimer);
+        this.gravandoAudio = false;
+        if(this._mediaRecorder && this._mediaRecorder.state!=='inactive') this._mediaRecorder.stop();
+        this.toast('✅ Áudio enviado!');
+      }
     },
 toast(msg){this.toastMsg=msg; setTimeout(()=>this.toastMsg='',3200)}
 }
