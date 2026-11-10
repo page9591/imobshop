@@ -1,0 +1,20 @@
+name = "imobchat"
+compatibility_date = "2026-11-10"
+pages_build_output_dir = "."
+# --- Cloudflare Pages + Workers + D1 + R2 ---
+# Deploy: npx wrangler pages deploy . --project-name imobchat
+# D1: npx wrangler d1 create imobchat-db
+# Depois copie o database_id abaixo
+
+[[d1_databases]]
+binding = "DB"
+database_name = "imobchat-db"
+database_id = "COLE-AQUI-O-ID-DO-SEU-D1"
+
+[[r2_buckets]]
+binding = "IMAGENS"
+bucket_name = "imobchat-imagens"
+
+[vars]
+PUBLIC_BASE_URL = "https://imobchat.pages.dev"
+MP_WEBHOOK_SECRET = "troque-por-uma-senha-forte"
