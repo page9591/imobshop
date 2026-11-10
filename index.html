@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>ImobChat — Marketplace Imobiliário Conversacional</title>
+<meta name="theme-color" content="#075E54">
+<meta name="description" content="ImobChat — Encontre seu imóvel conversando. Chatbot por anúncio, catálogo do corretor e WhatsApp direto.">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config={theme:{extend:{colors:{waDark:'#075E54',waGreen:'#128C7E',waLight:'#25D366',waChat:'#ECE5DD',waBubble:'#DCF8C6',waTeal:'#00A884'},fontFamily:{sans:['Inter','system-ui','sans-serif']}}}}
+</script>
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+html{scrollbar-width:none}::-webkit-scrollbar{display:none}
+.chat-bg{background-color:#ECE5DD;background-image:url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23d4c9b8' fill-opacity='0.18'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")}
+.line-clamp-2{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.pulse-ring{animation:pulseRing 1.8s infinite}
+@keyframes pulseRing{0%{box-shadow:0 0 0 0 rgba(37,211,102,.55)}70%{box-shadow:0 0 0 14px rgba(37,211,102,0)}100%{box-shadow:0 0 0 0 rgba(37,211,102,0)}}
+.typing span{width:6px;height:6px;background:#8696a0;border-radius:9999px;display:inline-block;animation:blink 1.2s infinite}
+.typing span:nth-child(2){animation-delay:.2s}.typing span:nth-child(3){animation-delay:.4s}
+@keyframes blink{0%,80%,100%{opacity:.3;transform:translateY(0)}40%{opacity:1;transform:translateY(-3px)}}
+.fade{animation:fade .25s ease}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+</style>
+<!--
+================================================================================
+IMOBCHAT — ARQUITETURA CLOUDFLARE (PRODUÇÃO)
+Hospedagem: Cloudflare Pages — repo: jeanaguiar636 / Branch: main / Build: index.html
+Banco: Cloudflare D1 (SQLite na borda) | Mídia: Cloudflare R2 (public bucket)
+Pagamentos: Mercado Pago (Assinaturas / Checkout) + Webhook -> Cloudflare Worker -> D1
+
+--- D1 SCHEMA (rodar em: wrangler d1 execute imobchat-db --file=./schema.sql) ---
+CREATE TABLE IF NOT EXISTS anunciantes (
+  id TEXT PRIMARY KEY, slug TEXT UNIQUE NOT NULL, nome TEXT NOT NULL,
+  whatsapp TEXT NOT NULL, plano TEXT NOT NULL DEFAULT 'free' CHECK(plano IN ('free','prata','ouro')),
+  bio TEXT DEFAULT '', foto_perfil TEXT DEFAULT '', capa_url TEXT DEFAULT '',
+  links_extras_json TEXT DEFAULT '[]', palavras_chave_seo TEXT DEFAULT '',
+  titulo_seo TEXT DEFAULT '', descricao_seo TEXT DEFAULT '',
+  mp_customer_id TEXT, mp_subscription_id TEXT, status_assinatura TEXT DEFAULT 'inactive',
+  criado_em TEXT DEFAULT (datetime('now'))
+);
+CREATE TABLE IF NOT EXISTS imoveis (
+  id TEXT PRIMARY KEY, anunciante_id TEXT NOT NULL REFERENCES anunciantes(id),
+  titulo TEXT NOT NULL, preco REAL NOT NULL, tipo TEXT DEFAULT 'Venda',
+  bairro TEXT NOT NULL, cidade TEXT DEFAULT 'São Paulo - SP',
+  quartos INTEGER DEFAULT 2, banheiros INTEGER DEFAULT 1, area_m2 INTEGER DEFAULT 60,
+  fotos_json TEXT DEFAULT '[]', descricao TEXT DEFAULT '',
+  criado_em TEXT DEFAULT (datetime('now'))
+);
+CREATE TABLE IF NOT EXISTS chat_bot_regras (
+  id TEXT PRIMARY KEY, imovel_id TEXT NOT NULL REFERENCES imoveis(id),
+  pergunta TEXT NOT NULL, resposta TEXT NOT NULL, ordem INTEGER DEFAULT 0
+);
+CREATE TABLE IF NOT EXISTS metricas_cliques (
+  id TEXT PRIMARY KEY, imovel_id TEXT NOT NULL, tipo TEXT DEFAULT 'view',
+  ip_origem TEXT, origem TEXT DEFAULT 'whatsapp', data TEXT DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_imoveis_criado ON imoveis(criado_em ASC);
+CREATE INDEX IF NOT EXISTS idx_metricas_imovel ON metricas_cliques(imovel_id);
+
+--- wrangler.toml ---
+name = "imobchat"
+pages_build_output_dir = "."
+[[d1_databases]] binding="DB" database_name="imobchat-db" database_id="SEU_D1_ID"
+[[r2_buckets]] binding="R2" bucket_name="imobchat-fotos"
+[vars] MP_ACCESS_TOKEN = "SEU_TOKEN_MP"  # usar Secrets: wrangler secret put MP_ACCESS_TOKEN
+
+--- R2 ---
+Fotos: https://pub-SEU-R2.r2.dev/imoveis/{id}/foto-1.jpg  | Capa: .../perfil/{slug}/capa.jpg
+Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
+
+--- MERCADO PAGO — WEBHOOK (Worker: functions/api/mp-webhook.js) ---
+1) Front chama POST /api/checkout {plano} -> Worker cria PreApproval no MP (Pix/Cartão) e retorna init_point / qr_code
+2) Usuário paga no MP
+3) MP envia POST /api/mp-webhook {type: payment, data.id} -> Worker busca pagamento na API do MP
+4) Se status == 'approved': UPDATE anunciantes SET plano=?, status_assinatura='active', mp_subscription_id=? WHERE id=?
+5) Front faz polling em GET /api/me e libera Métricas/Capa/SEO instantaneamente
+================================================================================
+-->
+</head>
+<body class="bg-[#0b141a] font-sans text-[#111b21] antialiased">
+<div x-data="imobChat()" x-init="init()" class="max-w-[430px] mx-auto min-h-[100dvh] bg-white relative shadow-2xl flex flex-col overflow-hidden">
+
+<!-- ============ HEADER HOME ============ -->
+<header x-show="view==='home'" class="bg-waDark text-white sticky top-0 z-30">
+  <div class="flex items-center gap-3 px-3 pt-3 pb-2">
+    <div class="relative">
+      <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&q=80" class="w-10 h-10 rounded-full object-cover border-2 border-white/20" alt="Ana ImobChat">
+      <span class="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-waLight border-2 border-waDark rounded-full"></span>
+    </div>
+    <div class="flex-1 min-w-0">
+      <p class="font-bold leading-tight">Ana • ImobChat</p>
+      <p class="text-[12px] text-white/85 flex items-center gap-1"><span class="w-2 h-2 bg-emerald-400 rounded-full inline-block"></span> 🟢 Online • responde na hora</p>
+    </div>
+    <button @click="view='planos'" class="bg-white/15 hover:bg-white/25 px-2.5 py-1.5 rounded-full text-[12px] font-semibold">✨ Planos</button>
+    <button @click="view='admin'" class="w-9 h-9 rounded-full bg-white/15 flex items-center justify-center text-lg">👤</button>
+  </div>
+  <div class="px-3 pb-3">
+    <div class="bg-white rounded-full flex items-center gap-2 px-3 py-2">
+      <span>🔍</span>
+      <input x-model="busca" placeholder="Buscar bairro, imóvel ou corretor..." class="flex-1 text-[14px] text-gray-800 outline-none placeholder:text-gray-400">
+      <span x-show="busca" @click="busca=''" class="text-gray-400 cursor-pointer">✕</span>
+    </div>
+    <div class="flex gap-2 mt-2.5 overflow-x-auto pb-0.5">
+      <template x-for="f in ['Todos','Venda','Aluguel','Apartamento','Casa','Studio']" :key="f">
+        <button @click="filtro=f==='Todos'?'':f; $event.target.scrollIntoView({inline:'center',behavior:'smooth'})" :class=" (filtro===''&&f==='Todos')||filtro===f ? 'bg-white text-waDark font-bold' : 'bg-black/20 text-white'" class="shrink-0 px-3.5 py-1.5 rounded-full text-[13px]" x-text="f"></button>
+      </template>
+    </div>
+  </div>
+</header>
+
+<!-- ============ HEADER CHAT / PERFIL / ADMIN ============ -->
+<header x-show="view!=='home'" class="bg-waDark text-white sticky top-0 z-30">
+  <div class="flex items-center gap-2 px-2 py-2.5">
+    <button @click="voltar()" class="w-9 h-9 flex items-center justify-center text-xl">←</button>
+    <template x-if="view==='chat' && imovelAtual">
+      <div class="flex items-center gap-2.5 flex-1 min-w-0">
+        <img :src="anuncianteDo(imovelAtual).foto" class="w-9 h-9 rounded-full object-cover cursor-pointer" @click="abrirPerfil(anuncianteDo(imovelAtual))" alt="Corretor">
+        <div class="min-w-0 flex-1 cursor-pointer" @click="abrirPerfil(anuncianteDo(imovelAtual))">
+          <p class="font-semibold text-[15px] truncate" x-text="anuncianteDo(imovelAtual).nome"></p>
+          <p class="text-[11px] text-emerald-200">🟢 Online agora • toque p/ ver perfil</p>
+        </div>
+        <span class="text-lg">📹</span><span class="text-lg">📞</span>
+      </div>
+    </template>
+    <template x-if="view==='perfil' && anuncianteAtual">
+      <div class="flex-1 min-w-0"><p class="font-bold truncate" x-text="'@'+anuncianteAtual.slug"></p><p class="text-[12px] text-white/80">imobchat.com.br/corretor/<span x-text="anuncianteAtual.slug"></span></p></div>
+    </template>
+    <template x-if="view==='admin'"><div class="flex-1"><p class="font-bold">Painel do Anunciante</p><p class="text-[12px] text-white/80">Jean Aguiar • <span x-text="meuPlanoLabel()"></span></p></div></template>
+    <template x-if="view==='planos'"><div class="flex-1"><p class="font-bold">Planos & Mercado Pago</p><p class="text-[12px] text-white/80">Ative Prata ou Ouro em segundos</p></div></template>
+    <template x-if="view==='checkout'"><div class="flex-1"><p class="font-bold">Checkout Seguro</p><p class="text-[12px] text-white/80">Mercado Pago • Pix ou Cartão</p></div></template>
+    <button x-show="view==='perfil'" @click="compartilharPerfil()" class="bg-white/15 px-3 py-1.5 rounded-full text-[12px] font-semibold">🔗 Compartilhar</button>
+  </div>
+</header>
+
+<main class="flex-1 overflow-y-auto pb-24 relative">
+
+<!-- ================= HOME ================= -->
+<section x-show="view==='home'" class="fade">
+  <div class="px-3 pt-3 flex items-center justify-between">
+    <div><h1 class="font-extrabold text-[18px] leading-tight">Imóveis perto de você</h1><p class="text-[12px] text-gray-500"><span x-text="imoveisFiltrados.length"></span> anúncios • ordem de chegada (FIFO) • São Paulo</p></div>
+    <span class="bg-emerald-50 text-emerald-700 text-[11px] font-bold px-2 py-1 rounded-full border border-emerald-100">⚡ NOVOS HOJE</span>
+  </div>
+
+  <!-- Banner Ana -->
+  <div class="mx-3 mt-3 bg-[#DCF8C6] rounded-2xl p-3 flex gap-3 items-center border border-[#c8e6a8]">
+    <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&q=80" class="w-12 h-12 rounded-full object-cover" alt="Ana">
+    <div class="flex-1"><p class="font-bold text-[14px]">Oi! Eu sou a Ana 👋</p><p class="text-[12.5px] leading-snug text-gray-700">Toque em qualquer imóvel e converse com o chatbot do corretor. Sem cadastro, sem espera.</p></div>
+    <span class="text-xl">💬</span>
+  </div>
+
+  <!-- GRID 2 COLUNAS -->
+  <div class="grid grid-cols-2 gap-3 p-3">
+    <template x-for="im in imoveisFiltrados" :key="im.id">
+      <article class="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 flex flex-col">
+        <div class="relative cursor-pointer" @click="abrirChat(im)">
+          <img :src="im.foto" class="w-full h-[132px] object-cover" :alt="im.titulo" loading="lazy">
+          <span class="absolute top-2 left-2 bg-black/60 backdrop-blur text-white text-[10px] font-bold px-2 py-1 rounded-full" x-text="im.tipo"></span>
+          <span x-show="anuncianteDo(im).plano==='ouro'" class="absolute top-2 right-2 bg-amber-400 text-amber-950 text-[10px] font-extrabold px-2 py-1 rounded-full">⭐ OURO</span>
+          <span x-show="anuncianteDo(im).plano==='prata'" class="absolute top-2 right-2 bg-slate-200 text-slate-800 text-[10px] font-bold px-2 py-1 rounded-full">PRATA</span>
+          <span class="absolute bottom-2 left-2 bg-waDark text-white text-[11px] font-bold px-2 py-1 rounded-full" x-text="formatPreco(im.preco)"></span>
+          <span class="absolute bottom-2 right-2 bg-white/95 text-[11px] font-semibold px-1.5 py-0.5 rounded-full">📸 <span x-text="im.fotos.length"></span></span>
+        </div>
+        <div class="p-2.5 flex flex-col flex-1">
+          <h3 class="font-bold text-[13px] leading-tight line-clamp-2 cursor-pointer" @click="abrirChat(im)" x-text="im.titulo"></h3>
+          <p class="text-[12px] text-gray-500 mt-0.5">📍 <span x-text="im.bairro"></span> • <span x-text="im.area"></span>m²</p>
+          <p class="text-[11px] text-gray-500">🛏️ <span x-text="im.quartos"></span> quartos • 🛁 <span x-text="im.banheiros"></span> • 🚗 vaga</p>
+          <div class="flex items-center gap-1.5 mt-2 pt-2 border-t border-gray-100 cursor-pointer" @click="abrirPerfil(anuncianteDo(im))">
+            <img :src="anuncianteDo(im).foto" class="w-6 h-6 rounded-full object-cover" alt="">
+            <div class="min-w-0 flex-1"><p class="text-[11px] font-semibold truncate" x-text="anuncianteDo(im).nome"></p><p class="text-[10px] text-waGreen font-semibold">Ver perfil / catálogo →</p></div>
+            <span class="text-[11px]">›</span>
+          </div>
+          <button @click="abrirChat(im)" class="mt-2 w-full bg-waGreen hover:bg-waDark text-white text-[12.5px] font-bold py-2 rounded-full">💬 Conversar agora</button>
+        </div>
+      </article>
+    </template>
+  </div>
+  <div x-show="imoveisFiltrados.length===0" class="px-6 py-10 text-center"><p class="text-4xl">🏠</p><p class="font-bold mt-2">Nenhum imóvel encontrado</p><p class="text-sm text-gray-500">Tente outro bairro ou limpe a busca.</p><button @click="busca='';filtro=''" class="mt-3 bg-waDark text-white px-4 py-2 rounded-full text-sm font-semibold">Limpar filtros</button></div>
+
+  <!-- Planos teaser -->
+  <div class="mx-3 mb-3 bg-waDark rounded-2xl p-4 text-white">
+    <p class="font-extrabold">Você é corretor? Anuncie aqui 🚀</p>
+    <p class="text-[13px] text-white/85 mt-1">Comece grátis com até 15 anúncios + chatbot por anúncio. Upgrade para Prata e Ouro com Mercado Pago.</p>
+    <div class="flex gap-2 mt-3"><button @click="view='admin'" class="flex-1 bg-white text-waDark font-bold py-2 rounded-full text-[13px]">Criar anúncio grátis</button><button @click="view='planos'" class="flex-1 bg-waLight text-white font-bold py-2 rounded-full text-[13px]">Ver Planos</button></div>
+  </div>
+  <p class="text-center text-[11px] text-gray-400 px-4 pb-2">ImobChat • Cloudflare Pages + D1 + R2 • Pagamentos via Mercado Pago • Feito para mobile</p>
+</section>
+
+<!-- ================= PERFIL / CATÁLOGO ================= -->
+<section x-show="view==='perfil' && anuncianteAtual" class="fade">
+  <!-- CAPA: só Prata/Ouro. Free = sem capa -->
+  <template x-if="anuncianteAtual.plano!=='free'">
+    <div class="relative">
+      <img :src="anuncianteAtual.capa" class="w-full h-[168px] object-cover" alt="Capa do perfil">
+      <div class="absolute inset-0 bg-gradient-to-t from-black/55 to-transparent"></div>
+      <span class="absolute top-3 right-3 bg-white/90 text-[11px] font-bold px-2.5 py-1 rounded-full" x-text="anuncianteAtual.plano==='ouro' ? '⭐ PLANO OURO' : '✦ PLANO PRATA'"></span>
+      <div class="absolute bottom-2 left-3 right-3 text-white"><p class="font-extrabold text-[17px] leading-tight" x-text="anuncianteAtual.nome"></p><p class="text-[12px] text-white/90">Corretor • São Paulo • <span x-text="meusImoveis(anuncianteAtual.id).length"></span> imóveis ativos</p></div>
+    </div>
+  </template>
+  <template x-if="anuncianteAtual.plano==='free'">
+    <div class="bg-[#f0f2f5] px-4 py-3 flex items-center gap-2"><span class="bg-gray-200 text-gray-700 text-[11px] font-bold px-2 py-1 rounded-full">PLANO FREE</span><p class="text-[12px] text-gray-600">Este perfil ainda não tem capa personalizada. <button @click="view='planos'" class="text-waGreen font-bold underline">Desbloquear capa</button></p></div>
+  </template>
+
+  <div class="px-4 relative">
+    <div class="flex items-end justify-between -mt-8 relative z-10">
+      <img :src="anuncianteAtual.foto" class="w-[88px] h-[88px] rounded-full object-cover border-4 border-white shadow-md bg-white" alt="Foto perfil">
+      <div class="flex gap-2 pb-1">
+        <button @click="abrirWhatsAppPerfil(anuncianteAtual)" class="bg-waLight text-white font-bold px-3.5 py-2 rounded-full text-[13px] shadow">💬 WhatsApp</button>
+        <button @click="compartilharPerfil()" class="bg-gray-100 font-semibold px-3 py-2 rounded-full text-[13px]">↗️</button>
+      </div>
+    </div>
+    <h2 class="font-extrabold text-[19px] mt-2" x-text="anuncianteAtual.nome"></h2>
+    <p class="text-[13px] text-gray-500">@<span x-text="anuncianteAtual.slug"></span> • ⭐ 4.9 • 128 avaliações • Responde em ~2 min</p>
+    <p class="text-[14px] leading-relaxed mt-2" x-text="anuncianteAtual.bio"></p>
+    <div class="flex flex-wrap gap-1.5 mt-3">
+      <span class="bg-emerald-50 text-emerald-700 text-[11px] font-semibold px-2 py-1 rounded-full border border-emerald-100">✓ CRECI-SP verificado</span>
+      <span class="bg-blue-50 text-blue-700 text-[11px] font-semibold px-2 py-1 rounded-full border border-blue-100">🏠 <span x-text="meusImoveis(anuncianteAtual.id).length"></span> imóveis</span>
+      <span x-show="anuncianteAtual.plano==='ouro'" class="bg-amber-50 text-amber-700 text-[11px] font-semibold px-2 py-1 rounded-full border border-amber-100">🔍 SEO Otimizado</span>
+    </div>
+
+    <!-- Links extras: Prata/Ouro. Free cai para catálogo/WhatsApp -->
+    <div class="mt-4">
+      <p class="font-bold text-[14px] mb-2">Links do corretor</p>
+      <template x-if="anuncianteAtual.plano!=='free' && anuncianteAtual.links.length">
+        <div class="grid grid-cols-2 gap-2">
+          <template x-for="l in anuncianteAtual.links" :key="l.label">
+            <a :href="l.url" target="_blank" class="bg-white border border-gray-200 rounded-xl p-3 flex items-center gap-2"><span class="text-lg" x-text="l.icon"></span><span class="text-[13px] font-semibold leading-tight" x-text="l.label"></span></a>
+          </template>
+        </div>
+      </template>
+      <template x-if="anuncianteAtual.plano==='free' || !anuncianteAtual.links.length">
+        <div class="flex gap-2">
+          <button @click="document.getElementById('catalogo').scrollIntoView({behavior:'smooth'})" class="flex-1 bg-waDark text-white font-bold py-2.5 rounded-full text-[13px]">🏠 Ver catálogo abaixo</button>
+          <button @click="abrirWhatsAppPerfil(anuncianteAtual)" class="flex-1 bg-waLight text-white font-bold py-2.5 rounded-full text-[13px]">💬 Falar no WhatsApp</button>
+        </div>
+        <p x-show="anuncianteAtual.plano==='free'" class="text-[11px] text-gray-400 mt-1.5">Perfil Free: sem links externos personalizados. Os botões levam ao catálogo e ao WhatsApp.</p>
+      </template>
+    </div>
+
+    <!-- SEO Ouro -->
+    <div x-show="anuncianteAtual.plano==='ouro'" class="mt-4 bg-amber-50 border border-amber-200 rounded-2xl p-3">
+      <p class="font-bold text-[13px]">🔍 SEO • Encontrado no Google</p>
+      <p class="text-[12px] text-gray-600 mt-1">Palavras-chave: <span class="font-semibold text-gray-800" x-text="anuncianteAtual.seo"></span></p>
+      <p class="text-[12px] text-gray-600">URL amigável: imobchat.com.br/corretor/<span x-text="anuncianteAtual.slug"></span></p>
+    </div>
+  </div>
+
+  <div id="catalogo" class="p-3">
+    <h3 class="font-extrabold px-1 pt-3 pb-2">Catálogo de <span x-text="anuncianteAtual.nome.split(' ')[0]"></span> • <span x-text="meusImoveis(anuncianteAtual.id).length"></span> imóveis</h3>
+    <div class="grid grid-cols-2 gap-3">
+      <template x-for="im in meusImoveis(anuncianteAtual.id)" :key="im.id">
+        <article class="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 cursor-pointer" @click="abrirChat(im)">
+          <img :src="im.foto" class="w-full h-[120px] object-cover" :alt="im.titulo">
+          <div class="p-2.5"><p class="font-bold text-[13px]" x-text="formatPreco(im.preco)"></p><p class="text-[12px] leading-tight line-clamp-2" x-text="im.titulo"></p><p class="text-[11px] text-gray-500 mt-0.5">📍 <span x-text="im.bairro"></span></p><p class="text-[11px] text-waGreen font-bold mt-1">💬 Conversar →</p></div>
+        </article>
+      </template>
+    </div>
+  </div>
+</section>
+
+<!-- ================= CHAT ================= -->
+<section x-show="view==='chat' && imovelAtual" class="fade flex flex-col chat-bg min-h-[calc(100dvh-56px)]">
+  <!-- Card flutuante -->
+  <div class="mx-3 mt-3 bg-white rounded-2xl shadow-md overflow-hidden flex">
+    <img :src="imovelAtual.foto" class="w-[92px] h-[92px] object-cover" :alt="imovelAtual.titulo">
+    <div class="p-3 flex-1 min-w-0">
+      <p class="font-extrabold text-[15px] text-waDark" x-text="formatPreco(imovelAtual.preco)"></p>
+      <p class="text-[13px] font-semibold leading-tight line-clamp-2" x-text="imovelAtual.titulo"></p>
+      <p class="text-[11.5px] text-gray-500">📍 <span x-text="imovelAtual.bairro"></span> • <span x-text="imovelAtual.area"></span>m² • 🛏️ <span x-text="imovelAtual.quartos"></span></p>
+      <button @click="abrirPerfil(anuncianteDo(imovelAtual))" class="text-[11px] text-waGreen font-bold mt-0.5">👤 Ver perfil do corretor →</button>
+    </div>
+    <button @click="abrirWhatsAppChat()" class="bg-waLight text-white px-2 flex flex-col items-center justify-center gap-0.5 text-[10px] font-bold leading-tight"><span class="text-[20px]">💬</span>Whats<br>App</button>
+  </div>
+
+  <!-- Mensagens -->
+  <div class="flex-1 px-3 py-3 space-y-2 overflow-y-auto" id="chatScroll">
+    <div class="flex justify-center"><span class="bg-[#fdf3c6] text-[11px] px-3 py-1 rounded-lg shadow-sm">🔒 Conversa protegida • Chatbot do anunciante • Hoje</span></div>
+    <template x-for="m in mensagens" :key="m.id">
+      <div :class="m.de==='bot' ? 'flex justify-start' : 'flex justify-end'">
+        <div :class="m.de==='bot' ? 'bg-white rounded-2xl rounded-tl-md' : 'bg-waBubble rounded-2xl rounded-tr-md'" class="max-w-[82%] px-3 py-2 shadow-sm">
+          <p class="text-[13.5px] leading-snug whitespace-pre-line" x-text="m.texto"></p>
+          <p class="text-[10px] text-gray-400 text-right mt-0.5"><span x-text="m.hora"></span> <span x-show="m.de==='eu'">✓✓</span></p>
+        </div>
+      </div>
+    </template>
+    <div x-show="digitando" class="flex justify-start"><div class="bg-white rounded-2xl rounded-tl-md px-3 py-2.5 shadow-sm typing"><span></span> <span></span> <span></span></div></div>
+  </div>
+
+  <!-- Perguntas rápidas -->
+  <div class="px-3 pb-2 flex gap-2 overflow-x-auto">
+    <template x-for="r in imovelAtual.regras" :key="r.pergunta">
+      <button @click="perguntar(r)" class="shrink-0 bg-white border border-waGreen/40 text-waDark text-[12.5px] font-semibold px-3.5 py-2 rounded-full shadow-sm" x-text="r.pergunta"></button>
+    </template>
+  </div>
+
+  <!-- Input -->
+  <div class="px-3 pb-3 flex items-center gap-2">
+    <div class="flex-1 bg-white rounded-full flex items-center px-3 py-1 shadow-sm">
+      <span class="text-lg">😊</span>
+      <input x-model="textoChat" @keydown.enter="enviarTexto()" placeholder="Digite sua dúvida..." class="flex-1 px-2 py-2 text-[14px] outline-none">
+      <span class="text-lg">📎</span>
+    </div>
+    <button @click="enviarTexto()" class="w-11 h-11 bg-waGreen text-white rounded-full flex items-center justify-center text-lg shadow">➤</button>
+  </div>
+  <p class="text-center text-[11px] text-gray-500 pb-1 px-4">Respostas automáticas configuradas por <span x-text="anuncianteDo(imovelAtual).nome"></span>. Para falar com humano, use o botão verde.</p>
+
+  <!-- BOTÃO FLUTUANTE WHATSAPP -->
+  <button @click="abrirWhatsAppChat()" class="pulse-ring fixed bottom-[92px] right-[calc(50%-215px+16px)] sm:right-6 z-40 w-[60px] h-[60px] bg-[#25D366] rounded-full shadow-2xl flex flex-col items-center justify-center text-white border-4 border-white" aria-label="Falar no WhatsApp">
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="white"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5.1-1.3A10 10 0 1 0 12 2zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.6-6.1c-.3-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1-.2.3-.7.8-.9 1-.1.2-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4 0-.6.1-.8l.4-.5c.1-.2.1-.3 0-.5l-.8-1.9c-.2-.5-.4-.4-.6-.4h-.5c-.2 0-.5.1-.7.3-.2.3-.9.9-.9 2.2s.9 2.5 1.1 2.7c.1.2 1.9 2.9 4.6 4 .6.3 1.1.4 1.5.6.6.2 1.2.2 1.6.1.5-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.2-1.2-.1-.1-.2-.2-.5-.3z"/></svg>
+    <span class="text-[8px] font-extrabold leading-none mt-0.5">WHATSAPP</span>
+  </button>
+</section>
+
+<!-- ================= ADMIN ================= -->
+<section x-show="view==='admin'" class="fade bg-[#f0f2f5] min-h-full">
+  <div class="p-3 space-y-3">
+    <div class="bg-white rounded-2xl p-4 shadow-sm flex gap-3">
+      <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&q=80" class="w-14 h-14 rounded-full object-cover" alt="Jean Aguiar">
+      <div class="flex-1"><p class="font-extrabold">Jean Aguiar</p><p class="text-[12px] text-gray-500">jean.aguiar • imobchat.com.br/corretor/jean-aguiar</p><span :class="meuPlano==='free'?'bg-gray-100 text-gray-700':'bg-amber-100 text-amber-800'" class="inline-block mt-1 text-[11px] font-bold px-2 py-0.5 rounded-full" x-text="meuPlanoLabel()+' • '+meusImoveis('me').length+' / '+(meuPlano==='free'?'15':'∞')+' anúncios'"></span></div>
+      <button @click="view='planos'" class="bg-waDark text-white text-[12px] font-bold px-3 py-2 rounded-full h-fit">⬆️ Upgrade</button>
+    </div>
+
+    <!-- Abas -->
+    <div class="flex gap-2 overflow-x-auto">
+      <template x-for="t in [{id:'imoveis',label:'🏠 Meus Imóveis'},{id:'novo',label:'➕ Novo Anúncio'},{id:'bot',label:'🤖 Chatbot'},{id:'perfil',label:'🖼️ Perfil & Capa'},{id:'seo',label:'🔍 SEO & Portais'},{id:'metricas',label:'📊 Métricas'}]" :key="t.id">
+        <button @click="abaAdmin=t.id" :class="abaAdmin===t.id?'bg-waDark text-white':'bg-white'" class="shrink-0 px-3.5 py-2 rounded-full text-[13px] font-semibold shadow-sm" x-text="t.label"></button>
+      </template>
+    </div>
+
+    <!-- Meus imóveis -->
+    <div x-show="abaAdmin==='imoveis'" class="space-y-2">
+      <template x-for="im in meusImoveis('me')" :key="im.id">
+        <div class="bg-white rounded-2xl p-3 flex gap-3 shadow-sm">
+          <img :src="im.foto" class="w-[72px] h-[72px] rounded-xl object-cover">
+          <div class="flex-1 min-w-0"><p class="font-bold text-[14px] truncate" x-text="im.titulo"></p><p class="text-[12px] text-gray-500" x-text="im.bairro+' • '+formatPreco(im.preco)"></p><p class="text-[11px] text-waGreen font-semibold">🤖 <span x-text="im.regras.length"></span> perguntas configuradas</p></div>
+          <div class="flex flex-col gap-1.5"><button @click="abrirChat(im)" class="bg-waGreen text-white text-[11px] font-bold px-2.5 py-1.5 rounded-full">Testar chat</button><button @click="removerImovel(im.id)" class="bg-red-50 text-red-600 text-[11px] font-bold px-2.5 py-1.5 rounded-full">Excluir</button></div>
+        </div>
+      </template>
+      <button @click="abaAdmin='novo'" class="w-full bg-white border-2 border-dashed border-gray-300 rounded-2xl py-3 font-bold text-gray-500">+ Adicionar novo imóvel</button>
+    </div>
+
+    <!-- Novo anúncio -->
+    <div x-show="abaAdmin==='novo'" class="bg-white rounded-2xl p-4 space-y-3 shadow-sm">
+      <h3 class="font-extrabold">Novo anúncio</h3>
+      <input x-model="novo.titulo" placeholder="Ex: Apto 2 quartos Vila Mariana" class="w-full border rounded-xl px-3 py-2.5 text-[14px] outline-none focus:border-waGreen">
+      <div class="grid grid-cols-2 gap-2"><input x-model="novo.preco" type="number" placeholder="Preço R$" class="border rounded-xl px-3 py-2.5"><input x-model="novo.bairro" placeholder="Bairro" class="border rounded-xl px-3 py-2.5"></div>
+      <div class="grid grid-cols-3 gap-2"><select x-model="novo.tipo" class="border rounded-xl px-2 py-2.5 text-[13px]"><option>Venda</option><option>Aluguel</option></select><input x-model="novo.quartos" type="number" placeholder="Quartos" class="border rounded-xl px-3 py-2.5"><input x-model="novo.area" type="number" placeholder="Área m²" class="border rounded-xl px-3 py-2.5"></div>
+      <input x-model="novo.foto" placeholder="Foto (URL R2) — ex: https://pub.../foto.jpg" class="w-full border rounded-xl px-3 py-2.5 text-[13px]">
+      <img x-show="novo.foto" :src="novo.foto" class="w-full h-36 object-cover rounded-xl">
+      <textarea x-model="novo.descricao" placeholder="Descrição completa do imóvel..." rows="3" class="w-full border rounded-xl px-3 py-2.5 text-[14px]"></textarea>
+      <button @click="publicarImovel()" class="w-full bg-waGreen text-white font-bold py-3 rounded-full">🚀 Publicar anúncio (FIFO)</button>
+      <p class="text-[11px] text-gray-400 text-center">No deploy real, a foto sobe para o R2 via Worker e a URL salva no D1.</p>
+    </div>
+
+    <!-- Chatbot builder -->
+    <div x-show="abaAdmin==='bot'" class="space-y-3">
+      <div class="bg-white rounded-2xl p-4 shadow-sm">
+        <p class="font-bold text-[14px]">Construtor de Chatbot por anúncio</p><p class="text-[12px] text-gray-500">Disponível no Free e no Pago. O bot responde na hora no chat do imóvel.</p>
+        <select x-model="botImovelId" class="w-full mt-3 border rounded-xl px-3 py-2.5 text-[14px]"><template x-for="im in meusImoveis('me')" :key="im.id"><option :value="im.id" x-text="im.titulo"></option></template></select>
+      </div>
+      <div class="bg-white rounded-2xl p-4 shadow-sm space-y-2">
+        <template x-for="(r,i) in imovelBotAtual().regras" :key="i">
+          <div class="bg-gray-50 rounded-xl p-3 flex gap-2"><div class="flex-1"><p class="font-bold text-[13px]">❓ <span x-text="r.pergunta"></span></p><p class="text-[12.5px] text-gray-600 mt-0.5">🤖 <span x-text="r.resposta"></span></p></div><button @click="removerRegra(i)" class="text-red-500 font-bold">✕</button></div>
+        </template>
+        <input x-model="novaRegra.pergunta" placeholder="Pergunta — ex: Agendar visita" class="w-full border rounded-xl px-3 py-2.5 text-[14px]">
+        <textarea x-model="novaRegra.resposta" placeholder="Resposta automática — ex: Claro! Temos visita sábado às 10h..." rows="2" class="w-full border rounded-xl px-3 py-2.5 text-[14px]"></textarea>
+        <button @click="adicionarRegra()" class="w-full bg-waDark text-white font-bold py-2.5 rounded-full">+ Adicionar pergunta/resposta</button>
+      </div>
+      <p class="text-[12px] text-gray-500 text-center">Dica: crie perguntas como “Valor da entrada”, “Aceita financiamento?”, “Tem vaga?”</p>
+    </div>
+
+    <!-- Perfil & Capa -->
+    <div x-show="abaAdmin==='perfil'" class="space-y-3">
+      <div class="bg-white rounded-2xl p-4 shadow-sm relative overflow-hidden">
+        <div x-show="meuPlano==='free'" class="absolute inset-0 z-10 bg-white/70 backdrop-blur-[1px] flex flex-col items-center justify-center text-center p-4"><p class="text-2xl">🔒</p><p class="font-bold">Capa bloqueada no Free</p><p class="text-[12px] text-gray-600 mt-1">Assine Prata ou Ouro para ter capa personalizada, links extras e botão de WhatsApp no perfil.</p><button @click="view='planos'" class="mt-2 bg-waDark text-white font-bold px-4 py-2 rounded-full text-[13px]">Desbloquear com Prata • R$ 29,90</button></div>
+        <p class="font-bold">🖼️ Perfil & Capa <span x-show="meuPlano!=='free'" class="text-[11px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">DESBLOQUEADO</span></p>
+        <label class="text-[12px] font-semibold mt-3 block">Foto de perfil (circular — todos os planos)</label><input x-model="perfilForm.foto" class="w-full border rounded-xl px-3 py-2.5 mt-1 text-[13px]">
+        <label class="text-[12px] font-semibold mt-3 block">Bio / Descrição</label><textarea x-model="perfilForm.bio" rows="3" class="w-full border rounded-xl px-3 py-2.5 mt-1 text-[14px]"></textarea>
+        <label class="text-[12px] font-semibold mt-3 block">Capa do perfil (Prata/Ouro)</label><input x-model="perfilForm.capa" :disabled="meuPlano==='free'" class="w-full border rounded-xl px-3 py-2.5 mt-1 text-[13px] disabled:bg-gray-100">
+        <img x-show="perfilForm.capa" :src="perfilForm.capa" class="w-full h-32 object-cover rounded-xl mt-2">
+        <label class="text-[12px] font-semibold mt-3 block">Links externos (Prata/Ouro)</label><input x-model="perfilForm.link1" :disabled="meuPlano==='free'" placeholder="Instagram / Site" class="w-full border rounded-xl px-3 py-2.5 mt-1"><input x-model="perfilForm.link2" :disabled="meuPlano==='free'" placeholder="Portfólio / Linktree" class="w-full border rounded-xl px-3 py-2.5 mt-1">
+        <button @click="salvarPerfil()" class="w-full bg-waGreen text-white font-bold py-2.5 rounded-full mt-3">💾 Salvar perfil</button>
+      </div>
+    </div>
+
+    <!-- SEO -->
+    <div x-show="abaAdmin==='seo'" class="space-y-3">
+      <div class="bg-white rounded-2xl p-4 shadow-sm relative overflow-hidden">
+        <div x-show="meuPlano!=='ouro'" class="absolute inset-0 z-10 bg-white/70 backdrop-blur-[1px] flex flex-col items-center justify-center text-center p-4"><p class="text-2xl">🔒</p><p class="font-bold">SEO Avançado é exclusivo Ouro</p><p class="text-[12px] text-gray-600 mt-1">Palavras-chave, título SEO e integração com portais externos para rankear no Google.</p><button @click="iniciarCheckout('ouro')" class="mt-2 bg-amber-500 text-white font-bold px-4 py-2 rounded-full text-[13px]">Assinar Ouro • R$ 89,90</button></div>
+        <p class="font-bold">🔍 SEO & Portais <span class="text-[11px] bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full">OURO</span></p>
+        <label class="text-[12px] font-semibold mt-3 block">Título SEO (Google)</label><input x-model="seoForm.titulo" :disabled="meuPlano!=='ouro'" placeholder="Ex: Apartamento à venda Vila Mariana | Jean Aguiar" class="w-full border rounded-xl px-3 py-2.5 mt-1">
+        <label class="text-[12px] font-semibold mt-3 block">Descrição SEO</label><textarea x-model="seoForm.descricao" :disabled="meuPlano!=='ouro'" rows="2" class="w-full border rounded-xl px-3 py-2.5 mt-1"></textarea>
+        <label class="text-[12px] font-semibold mt-3 block">Palavras-chave (separadas por vírgula)</label><input x-model="seoForm.keywords" :disabled="meuPlano!=='ouro'" placeholder="apartamento vila mariana, comprar apartamento sp" class="w-full border rounded-xl px-3 py-2.5 mt-1">
+        <label class="text-[12px] font-semibold mt-3 block">Portais externos</label><input x-model="seoForm.vivareal" :disabled="meuPlano!=='ouro'" placeholder="Link VivaReal" class="w-full border rounded-xl px-3 py-2.5 mt-1"><input x-model="seoForm.zap" :disabled="meuPlano!=='ouro'" placeholder="Link Zap Imóveis" class="w-full border rounded-xl px-3 py-2.5 mt-1"><input x-model="seoForm.olx" :disabled="meuPlano!=='ouro'" placeholder="Link OLX" class="w-full border rounded-xl px-3 py-2.5 mt-1">
+        <button @click="salvarSEO()" class="w-full bg-amber-500 text-white font-bold py-2.5 rounded-full mt-3">💾 Salvar SEO & Portais</button>
+      </div>
+    </div>
+
+    <!-- Métricas -->
+    <div x-show="abaAdmin==='metricas'" class="space-y-3">
+      <div x-show="meuPlano==='free'" class="bg-white rounded-2xl p-5 text-center shadow-sm"><p class="text-3xl">🔒</p><p class="font-bold mt-1">Métricas bloqueadas no Free</p><p class="text-[13px] text-gray-500 mt-1">Assine Prata para ver cliques, visualizações, origem do tráfego e conversões.</p><button @click="view='planos'" class="mt-3 bg-waDark text-white font-bold px-4 py-2.5 rounded-full text-[13px]">Ver Planos • a partir de R$ 29,90</button></div>
+      <div x-show="meuPlano!=='free'" class="space-y-3">
+        <div class="grid grid-cols-3 gap-2"><div class="bg-white rounded-2xl p-3 text-center shadow-sm"><p class="text-[11px] text-gray-500">Visualizações</p><p class="font-extrabold text-[18px]">1.284</p><p class="text-[10px] text-emerald-600 font-bold">▲ 18% esta semana</p></div><div class="bg-white rounded-2xl p-3 text-center shadow-sm"><p class="text-[11px] text-gray-500">Cliques WhatsApp</p><p class="font-extrabold text-[18px]">342</p><p class="text-[10px] text-emerald-600 font-bold">▲ 12%</p></div><div class="bg-white rounded-2xl p-3 text-center shadow-sm"><p class="text-[11px] text-gray-500">Conversões</p><p class="font-extrabold text-[18px]">47</p><p class="text-[10px] text-gray-500">3,6% conv.</p></div></div>
+        <div class="bg-white rounded-2xl p-4 shadow-sm"><p class="font-bold text-[14px] mb-3">Origem do tráfego</p>
+          <template x-for="o in [{l:'WhatsApp',v:42},{l:'Google / SEO',v:31},{l:'Instagram',v:18},{l:'Direto / ImobChat',v:9}]" :key="o.l"><div class="mb-2"><div class="flex justify-between text-[12px] font-semibold"><span x-text="o.l"></span><span x-text="o.v+'%'"></span></div><div class="h-2 bg-gray-100 rounded-full mt-1"><div class="h-2 bg-waGreen rounded-full" :style="'width:'+o.v+'%'"></div></div></div></template>
+        </div>
+        <div class="bg-white rounded-2xl p-4 shadow-sm"><p class="font-bold text-[14px] mb-2">Top imóveis por cliques</p><template x-for="im in meusImoveis('me').slice(0,3)" :key="im.id"><div class="flex items-center gap-2 py-1.5 border-b last:border-0"><img :src="im.foto" class="w-10 h-10 rounded-lg object-cover"><p class="flex-1 text-[12.5px] font-semibold truncate" x-text="im.titulo"></p><span class="text-[12px] font-bold text-waGreen">128 cliques</span></div></template></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= PLANOS ================= -->
+<section x-show="view==='planos'" class="fade p-3 space-y-3 bg-[#f0f2f5] min-h-full">
+  <div class="bg-white rounded-2xl p-4 shadow-sm text-center"><p class="font-extrabold text-[17px]">Escolha seu plano 🚀</p><p class="text-[13px] text-gray-500 mt-1">Cancele quando quiser • Pagamento seguro via Mercado Pago • Ativação automática por webhook</p><p class="text-[12px] mt-2">Plano atual: <span class="font-bold" x-text="meuPlanoLabel()"></span></p></div>
+
+  <div class="bg-white rounded-2xl p-4 shadow-sm border-2" :class="meuPlano==='free'?'border-waGreen':'border-gray-100'">
+    <div class="flex justify-between"><h3 class="font-extrabold">FREE</h3><span class="font-extrabold">R$ 0</span></div><p class="text-[12px] text-gray-500">Para começar</p>
+    <ul class="text-[13px] space-y-1.5 mt-3"><li>✓ Até 15 anúncios ativos</li><li>✓ Chatbot por anúncio (perguntas/respostas)</li><li>✓ Foto de perfil circular + bio básica</li><li>✕ Sem capa de perfil</li><li>✕ Sem métricas e sem SEO</li></ul>
+    <button @click="meuPlano='free'; toast('Você está no plano Free')" class="w-full mt-3 py-2.5 rounded-full font-bold border-2 border-gray-200">Usar Free</button>
+  </div>
+
+  <div class="bg-waDark text-white rounded-2xl p-4 shadow-lg border-2 border-waGreen relative overflow-hidden">
+    <span class="absolute top-3 right-3 bg-waLight text-[11px] font-extrabold px-2 py-1 rounded-full">MAIS POPULAR</span>
+    <div class="flex justify-between"><h3 class="font-extrabold">PRATA</h3><div class="text-right"><span class="font-extrabold text-[18px]">R$ 29,90</span><span class="text-[12px] text-white/80">/mês</span></div></div>
+    <ul class="text-[13px] space-y-1.5 mt-3"><li>✓ Anúncios ilimitados</li><li>✓ Painel de Admin completo</li><li>✓ Portal de Métricas (cliques, origem, conversões)</li><li>✓ Capa de perfil personalizada</li><li>✓ Links externos + botão WhatsApp no perfil</li></ul>
+    <button @click="iniciarCheckout('prata')" class="w-full mt-3 bg-white text-waDark py-3 rounded-full font-extrabold">💳 Assinar Prata • Mercado Pago</button><p class="text-[11px] text-white/70 text-center mt-1.5">Pix ou Cartão • Ativação instantânea após pagamento</p>
+  </div>
+
+  <div class="bg-gradient-to-br from-amber-400 to-yellow-500 text-amber-950 rounded-2xl p-4 shadow-lg">
+    <div class="flex justify-between"><h3 class="font-extrabold">OURO ⭐</h3><div class="text-right"><span class="font-extrabold text-[18px]">R$ 89,90</span><span class="text-[12px]">/mês</span></div></div>
+    <ul class="text-[13px] space-y-1.5 mt-3 font-medium"><li>✓ Tudo do Prata +</li><li>✓ SEO Avançado — Palavras-chave, título e descrição para Google</li><li>✓ Integração com portais externos (VivaReal, Zap, OLX)</li><li>✓ Perfil completo com capa + máxima personalização</li><li>✓ Prioridade no feed (selo OURO)</li></ul>
+    <button @click="iniciarCheckout('ouro')" class="w-full mt-3 bg-black text-white py-3 rounded-full font-extrabold">⭐ Assinar Ouro • Mercado Pago</button>
+  </div>
+  <div class="bg-blue-50 border border-blue-100 rounded-2xl p-3 text-[12px] text-blue-800"><b>Como funciona o pagamento?</b><br>1. Você clica em Assinar → 2. Escolhe Pix ou Cartão no Mercado Pago → 3. Webhook confirma o pagamento → 4. D1 atualiza seu plano de <b>free → prata/ouro</b> e libera métricas, capa e SEO na hora.</div>
+</section>
+
+<!-- ================= CHECKOUT MERCADO PAGO ================= -->
+<section x-show="view==='checkout'" class="fade p-3 bg-[#f0f2f5] min-h-full">
+  <div class="bg-white rounded-2xl p-4 shadow-sm">
+    <div class="flex items-center gap-2"><div class="w-10 h-10 bg-[#009EE3] rounded-xl flex items-center justify-center text-white font-extrabold text-[13px]">MP</div><div><p class="font-extrabold">Mercado Pago</p><p class="text-[11px] text-gray-500">Checkout seguro • Ambiente simulado para demo</p></div><span class="ml-auto bg-emerald-50 text-emerald-700 text-[11px] font-bold px-2 py-1 rounded-full">🔒 SSL</span></div>
+    <div class="bg-gray-50 rounded-xl p-3 mt-4 flex justify-between"><span class="font-semibold text-[14px]">Plano <span x-text="checkoutPlano.toUpperCase()"></span> • Mensal</span><span class="font-extrabold" x-text="checkoutPlano==='prata'?'R$ 29,90':'R$ 89,90'"></span></div>
+    <p class="font-bold text-[13px] mt-4 mb-2">Forma de pagamento</p>
+    <div class="grid grid-cols-2 gap-2">
+      <button @click="metodo='pix'" :class="metodo==='pix'?'border-waGreen bg-emerald-50':'border-gray-200'" class="border-2 rounded-xl py-3 font-bold text-[14px]">📱 Pix<br><span class="text-[11px] font-normal text-gray-500">Aprovação instantânea</span></button>
+      <button @click="metodo='cartao'" :class="metodo==='cartao'?'border-waGreen bg-emerald-50':'border-gray-200'" class="border-2 rounded-xl py-3 font-bold text-[14px]">💳 Cartão<br><span class="text-[11px] font-normal text-gray-500">Crédito / Débito</span></button>
+    </div>
+    <div x-show="metodo==='pix'" class="mt-3 bg-white border rounded-xl p-3 text-center"><div class="w-32 h-32 mx-auto bg-gray-900 rounded-lg flex items-center justify-center text-white text-[10px] text-center p-2">QR CODE PIX<br>Mercado Pago<br><span x-text="checkoutPlano"></span></div><p class="text-[12px] text-gray-500 mt-2">Escaneie no app do seu banco ou copie o código abaixo</p><p class="text-[11px] bg-gray-100 rounded-lg p-2 mt-1 break-all">00020126...MP-IMOBCHAT-<span x-text="checkoutPlano"></span>-PIX</p></div>
+    <div x-show="metodo==='cartao'" class="mt-3 space-y-2"><input placeholder="Número do cartão • 4111 1111 1111 1111" class="w-full border rounded-xl px-3 py-2.5"><div class="grid grid-cols-2 gap-2"><input placeholder="Validade MM/AA" class="border rounded-xl px-3 py-2.5"><input placeholder="CVV" class="border rounded-xl px-3 py-2.5"></div><input placeholder="Nome no cartão" class="w-full border rounded-xl px-3 py-2.5"></div>
+    <button @click="confirmarPagamento()" :disabled="pagando" class="w-full mt-4 bg-[#009EE3] text-white font-extrabold py-3.5 rounded-full disabled:opacity-60"><span x-show="!pagando">Pagar <span x-text="checkoutPlano==='prata'?'R$ 29,90':'R$ 89,90'"></span> com Mercado Pago</span><span x-show="pagando">Processando pagamento... ⏳</span></button>
+    <p class="text-[11px] text-gray-400 text-center mt-2">Demo: ao confirmar, simulamos o webhook do Mercado Pago → D1 atualiza o plano.</p>
+    <div x-show="pagamentoOk" class="mt-3 bg-emerald-50 border border-emerald-200 rounded-xl p-3 text-center"><p class="text-2xl">✅</p><p class="font-bold text-emerald-800">Pagamento aprovado!</p><p class="text-[12px] text-emerald-700">Webhook recebido • D1 atualizado: free → <span x-text="checkoutPlano"></span> • Métricas, capa e SEO liberados.</p><button @click="view='admin'; abaAdmin='metricas'; pagamentoOk=false" class="mt-2 bg-waDark text-white px-4 py-2 rounded-full text-[13px] font-bold">Ir para meu painel →</button></div>
+  </div>
+</section>
+
+</main>
+
+<!-- ============ BOTTOM NAV ============ -->
+<nav class="absolute bottom-0 left-0 right-0 bg-white border-t border-gray-100 flex justify-around py-2 px-2 z-30" style="padding-bottom:calc(8px + env(safe-area-inset-bottom))">
+  <button @click="view='home'" class="flex flex-col items-center gap-0.5 flex-1"><span class="text-[20px]">🏠</span><span :class="view==='home'?'text-waGreen font-bold':'text-gray-400'" class="text-[10px]">Início</span></button>
+  <button @click="view='home'; busca=''; $nextTick(()=>document.querySelector('input[placeholder*=\'Buscar\']')?.focus())" class="flex flex-col items-center gap-0.5 flex-1"><span class="text-[20px]">🔍</span><span class="text-[10px] text-gray-400">Buscar</span></button>
+  <button @click="view='admin'; abaAdmin='novo'" class="flex flex-col items-center -mt-6 flex-1"><span class="w-12 h-12 bg-waGreen text-white rounded-full flex items-center justify-center text-[22px] shadow-lg border-4 border-white">+</span><span class="text-[10px] text-gray-500 font-semibold">Anunciar</span></button>
+  <button @click="view='planos'" class="flex flex-col items-center gap-0.5 flex-1"><span class="text-[20px]">⭐</span><span :class="view==='planos'?'text-waGreen font-bold':'text-gray-400'" class="text-[10px]">Planos</span></button>
+  <button @click="view='admin'" class="flex flex-col items-center gap-0.5 flex-1"><span class="text-[20px]">👤</span><span :class="view==='admin'?'text-waGreen font-bold':'text-gray-400'" class="text-[10px]">Painel</span></button>
+</nav>
+
+<!-- Toast -->
+<div x-show="toastMsg" x-transition class="fixed bottom-[84px] left-1/2 -translate-x-1/2 z-50 bg-[#111b21] text-white text-[13px] font-semibold px-4 py-2.5 rounded-full shadow-2xl max-w-[90%] text-center" x-text="toastMsg"></div>
+
+</div>
+
+<script>
+function imobChat(){
+return {
+view:'home', abaAdmin:'imoveis', busca:'', filtro:'', textoChat:'', digitando:false,
+meuPlano:'free', botImovelId:'me-1',
+checkoutPlano:'prata', metodo:'pix', pagando:false, pagamentoOk:false, toastMsg:'',
+novo:{titulo:'',preco:'',bairro:'',tipo:'Venda',quartos:2,area:60,foto:'',descricao:''},
+novaRegra:{pergunta:'',resposta:''},
+perfilForm:{foto:'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&q=80',bio:'Corretor em São Paulo • Especialista em Vila Mariana e Moema. Atendimento rápido no WhatsApp, visitas agendadas no mesmo dia.',capa:'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=1200&q=80',link1:'Instagram • @jean.aguiar.imoveis',link2:'Site • jeanaguiar.com.br'},
+seoForm:{titulo:'Apartamento à venda Vila Mariana | Jean Aguiar',descricao:'Apartamentos à venda em Vila Mariana, Moema e Paraíso. Financiamento facilitado.',keywords:'apartamento vila mariana, comprar apartamento sp, apartamento moema',vivareal:'https://vivareal.com.br/jean-aguiar',zap:'https://zapimoveis.com.br/jean-aguiar',olx:'https://olx.com.br/jean-aguiar'},
+anunciantes:[
+{id:'a1',nome:'Marina Duarte',slug:'marina-duarte',plano:'ouro',whatsapp:'5511999991111',bio:'Corretora Ouro • 8 anos em São Paulo. Especialista em apartamentos de alto padrão em Moema, Vila Nova Conceição e Itaim. Atendimento humanizado, visita em até 24h e negociação direta com o proprietário.',foto:'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=300&q=80',capa:'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=1200&q=80',seo:'apartamento moema, apartamento alto padrão sp, comprar apartamento itaim',links:[{label:'Instagram',icon:'📸',url:'https://instagram.com/marina.duarte.imoveis'},{label:'Site Oficial',icon:'🌐',url:'https://marinaduarte.com.br'}]},
+{id:'a2',nome:'Carlos Mendes',slug:'carlos-mendes',plano:'prata',whatsapp:'5511988882222',bio:'Corretor Prata • Foco em casas e apartamentos na Zona Leste e Centro. Financiamento facilitado, FGTS e Minha Casa Minha Vida. Respondo em minutos.',foto:'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=300&q=80',capa:'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=1200&q=80',seo:'casa zona leste, apartamento tatuape, minha casa minha vida sp',links:[{label:'Instagram',icon:'📸',url:'https://instagram.com/carlosmendes.imoveis'},{label:'Portfólio',icon:'📁',url:'https://carlosmendes.imoveis.com'}]},
+{id:'me',nome:'Jean Aguiar',slug:'jean-aguiar',plano:'free',whatsapp:'5511977773333',bio:'Corretor em São Paulo • Especialista em Vila Mariana e Moema. Atendimento rápido no WhatsApp, visitas agendadas no mesmo dia.',foto:'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&q=80',capa:'',seo:'',links:[]},
+],
+imoveis:[],
+imovelAtual:null, anuncianteAtual:null, mensagens:[],
+init(){
+this.imoveis=[
+{id:'me-1',anunciante_id:'me',titulo:'Apto 2 quartos • Vila Mariana • Próx. metrô',preco:485000,tipo:'Venda',bairro:'Vila Mariana',cidade:'São Paulo - SP',quartos:2,banheiros:1,area:68,foto:'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800&q=80',fotos:['1','2','3'],descricao:'Luminoso e reformado.',criado:'2026-11-08',regras:[{pergunta:'Agendar visita',resposta:'Perfeito! Temos visita sábado às 10h ou 15h, e segunda às 18h. Qual prefere? Me fala seu nome que já deixo reservado. 😊'},{pergunta:'Valor da entrada',resposta:'Com 20% de entrada (R$ 97.000) já dá para financiar o restante. Aceitamos FGTS como parte da entrada!'},{pergunta:'Aceita financiamento?',resposta:'Sim! Trabalhamos com Caixa, Itaú e Bradesco. Simulação em 5 minutos, sem compromisso.'},{pergunta:'Tem vaga?',resposta:'Sim, 1 vaga coberta + bicicletário. Condomínio com lazer completo.'}]},
+{id:'a1-1',anunciante_id:'a1',titulo:'Apto Alto Padrão 3 suítes • Moema',preco:1250000,tipo:'Venda',bairro:'Moema',cidade:'São Paulo - SP',quartos:3,banheiros:3,area:142,foto:'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&q=80',fotos:['1','2','3','4'],descricao:'Vista parque.',criado:'2026-11-09',regras:[{pergunta:'Agendar visita',resposta:'Claro! Visita com hora marcada — amanhã às 11h ou quinta às 16h. Qual fica melhor para você?'},{pergunta:'Valor da entrada',resposta:'Entrada a partir de 30%. Posso simular financiamento com as melhores taxas para você.'},{pergunta:'Aceita permuta?',resposta:'Sim, avaliamos permuta por imóvel de menor valor em Moema ou Vila Nova Conceição.'},{pergunta:'Condomínio?',resposta:'Condomínio R$ 1.480/mês com lazer completo, piscina aquecida e segurança 24h.'}]},
+{id:'a2-1',anunciante_id:'a2',titulo:'Casa 3 quartos • Tatuapé • Quintal',preco:780000,tipo:'Venda',bairro:'Tatuapé',cidade:'São Paulo - SP',quartos:3,banheiros:2,area:140,foto:'https://images.unsplash.com/photo-1568605114967-8130f3a36994?w=800&q=80',fotos:['1','2','3'],descricao:'Casa com quintal.',criado:'2026-11-09',regras:[{pergunta:'Agendar visita',resposta:'Temos visita hoje às 17h ou sábado às 9h. Quer que eu reserve?'},{pergunta:'Aceita financiamento?',resposta:'Sim! Aceitamos FGTS e Minha Casa Minha Vida. Faço sua simulação agora.'},{pergunta:'Tem quintal?',resposta:'Sim! Quintal amplo com churrasqueira e espaço para pets. Perfeito para família.'}]},
+{id:'a1-2',anunciante_id:'a1',titulo:'Studio Moderno • Itaim Bibi • Mobiliado',preco:4200,tipo:'Aluguel',bairro:'Itaim Bibi',cidade:'São Paulo - SP',quartos:1,banheiros:1,area:42,foto:'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800&q=80',fotos:['1','2'],descricao:'Mobiliado completo.',criado:'2026-11-10',regras:[{pergunta:'Agendar visita',resposta:'Visita hoje às 18h30 ou amanhã às 10h. Qual prefere?'},{pergunta:'Está mobiliado?',resposta:'Sim, 100% mobiliado e equipado — é só trazer a mala!'},{pergunta:'Aceita pet?',resposta:'Sim! Pet de pequeno porte é bem-vindo. 🐶'}]},
+{id:'me-2',anunciante_id:'me',titulo:'Apto 1 quarto • Paraíso • Próx. Paulista',preco:365000,tipo:'Venda',bairro:'Paraíso',cidade:'São Paulo - SP',quartos:1,banheiros:1,area:48,foto:'https://images.unsplash.com/photo-1493809842364-78817add7ffb?w=800&q=80',fotos:['1','2'],descricao:'Ideal primeiro imóvel.',criado:'2026-11-10',regras:[{pergunta:'Agendar visita',resposta:'Posso agendar para hoje às 19h ou amanhã às 12h. Qual melhor?'},{pergunta:'Valor da entrada',resposta:'Entrada a partir de R$ 36.500 com FGTS. Simulação gratuita!'},{pergunta:'Taxa de condomínio?',resposta:'Condomínio R$ 520/mês, com academia e lavanderia.'}]},
+{id:'a2-2',anunciante_id:'a2',titulo:'Apto 2 quartos • Centro • Reformado',preco:285000,tipo:'Venda',bairro:'Centro',cidade:'São Paulo - SP',quartos:2,banheiros:1,area:58,foto:'https://images.unsplash.com/photo-1484154218962-a197022b5858?w=800&q=80',fotos:['1','2'],descricao:'Reformado.',criado:'2026-11-10',regras:[{pergunta:'Agendar visita',resposta:'Visita sábado às 10h. Quer que eu confirme?'},{pergunta:'Aceita financiamento?',resposta:'Sim, financiamento com entrada facilitada.'}]},
+{id:'a1-3',anunciante_id:'a1',titulo:'Cobertura Duplex • Vila Nova Conceição',preco:2890000,tipo:'Venda',bairro:'Vila Nova Conceição',cidade:'São Paulo - SP',quartos:4,banheiros:4,area:280,foto:'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=800&q=80',fotos:['1','2','3','4','5'],descricao:'Cobertura exclusiva.',criado:'2026-11-10',regras:[{pergunta:'Agendar visita',resposta:'Visita exclusiva com hora marcada. Quinta às 15h funciona para você?'},{pergunta:'Tem piscina?',resposta:'Sim, piscina privativa na cobertura + vista panorâmica.'}]},
+{id:'me-3',anunciante_id:'me',titulo:'Apto 2 quartos • Moema • Aluguel',preco:3200,tipo:'Aluguel',bairro:'Moema',cidade:'São Paulo - SP',quartos:2,banheiros:1,area:72,foto:'https://images.unsplash.com/photo-1560185007-cde436f6a4d0?w=800&q=80',fotos:['1','2'],descricao:'Aluguel fácil.',criado:'2026-11-10',regras:[{pergunta:'Agendar visita',resposta:'Visita amanhã às 14h ou sábado às 11h. Qual prefere?'},{pergunta:'Aceita pet?',resposta:'Sim, aceitamos pets!'},{pergunta:'Documentação?',resposta:'Só RG, comprovante de renda e fiador ou seguro-fiança. Aprovação em 24h.'}]},
+];
+// FIFO: mais antigos primeiro (ordem de chegada)
+this.imoveis.sort((a,b)=>a.criado.localeCompare(b.criado));
+},
+get imoveisFiltrados(){
+let l=this.imoveis.filter(im=>{
+let q=this.busca.toLowerCase();
+let okQ=!q||im.titulo.toLowerCase().includes(q)||im.bairro.toLowerCase().includes(q)||this.anuncianteDo(im).nome.toLowerCase().includes(q);
+let okF=!this.filtro||im.tipo===this.filtro||(this.filtro==='Apartamento'&&im.titulo.includes('Apto'))||(this.filtro==='Casa'&&im.titulo.includes('Casa'))||(this.filtro==='Studio'&&im.titulo.includes('Studio'));
+return okQ&&okF;
+});
+return l;
+},
+anuncianteDo(im){return this.anunciantes.find(a=>a.id===im.anunciante_id)||this.anunciantes[0]},
+meusImoveis(id){if(id==='me')return this.imoveis.filter(i=>i.anunciante_id==='me');return this.imoveis.filter(i=>i.anunciante_id===id)},
+meuPlanoLabel(){return this.meuPlano==='free'?'FREE':this.meuPlano==='prata'?'PRATA • R$ 29,90/mês':'OURO • R$ 89,90/mês'},
+formatPreco(v){return v>=10000?'R$ '+v.toLocaleString('pt-BR'):'R$ '+v.toLocaleString('pt-BR')+'/mês'},
+voltar(){if(this.view==='chat'&&this.anuncianteAtual){this.view='perfil';return} if(this.view==='perfil'){this.view='home';return} this.view='home'; window.scrollTo(0,0)},
+abrirChat(im){
+this.imovelAtual=im; this.view='chat';
+let an=this.anuncianteDo(im);
+this.mensagens=[
+{id:1,de:'bot',texto:`Olá! 👋 Sou o assistente de ${an.nome}.\n\nVi que você se interessou por:\n🏠 ${im.titulo}\n💰 ${this.formatPreco(im.preco)} • 📍 ${im.bairro}\n\nPergunte aqui embaixo ou toque em uma pergunta rápida. Respondo na hora!`,hora:this.horaAgora()},
+];
+this.$nextTick(()=>{let el=document.getElementById('chatScroll'); if(el) el.scrollTop=el.scrollHeight});
+this.registrarMetrica(im.id,'view');
+},
+abrirPerfil(an){
+this.anuncianteAtual=an; this.view='perfil'; window.scrollTo(0,0);
+},
+imovelBotAtual(){return this.imoveis.find(i=>i.id===this.botImovelId)||this.imoveis[0]},
+horaAgora(){let d=new Date(); return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')},
+perguntar(regra){
+this.mensagens.push({id:Date.now(),de:'eu',texto:regra.pergunta,hora:this.horaAgora()});
+this.responderBot(regra.resposta);
+},
+enviarTexto(){
+let t=this.textoChat.trim(); if(!t) return;
+this.mensagens.push({id:Date.now(),de:'eu',texto:t,hora:this.horaAgora()}); this.textoChat='';
+let regras=this.imovelAtual.regras;
+let ach=RegExp; let found=regras.find(r=>t.toLowerCase().includes(r.pergunta.toLowerCase().split(' ')[0])||r.pergunta.toLowerCase().includes(t.toLowerCase().split(' ')[0]));
+if(found) this.responderBot(found.resposta);
+else this.responderBot('Entendi! Para te ajudar mais rápido, toque em uma das perguntas acima — ou clique no botão verde do WhatsApp para falar direto com '+this.anuncianteDo(this.imovelAtual).nome+' e receber fotos, vídeo e agendar visita. 😊');
+},
+responderBot(txt){
+this.digitando=true;
+setTimeout(()=>{
+this.digitando=false;
+this.mensagens.push({id:Date.now()+1,de:'bot',texto:txt,hora:this.horaAgora()});
+this.$nextTick(()=>{let el=document.getElementById('chatScroll'); if(el) el.scrollTop=el.scrollHeight});
+},650);
+},
+abrirWhatsAppChat(){
+let im=this.imovelAtual; let an=this.anuncianteDo(im);
+let msg=`Olá ${an.nome}! Vim pelo ImobChat e tenho interesse no imóvel:\n\n🏠 ${im.titulo}\n💰 ${this.formatPreco(im.preco)}\n📍 ${im.bairro} - ${im.cidade}\n🛏️ ${im.quartos} quartos • ${im.area}m²\n\nQuero mais informações e agendar uma visita. Pode me ajudar?`;
+window.open(`https://wa.me/${an.whatsapp}?text=${encodeURIComponent(msg)}`,'_blank');
+this.registrarMetrica(im.id,'whatsapp_click');
+},
+abrirWhatsAppPerfil(an){
+let msg=`Olá ${an.nome}! Vim pelo seu catálogo no ImobChat (imobchat.com.br/corretor/${an.slug}) e quero conversar sobre seus imóveis.`;
+window.open(`https://wa.me/${an.whatsapp}?text=${encodeURIComponent(msg)}`,'_blank');
+},
+compartilharPerfil(){
+let url=`https://imobchat.com.br/corretor/${this.anuncianteAtual.slug}`;
+if(navigator.share) navigator.share({title:this.anuncianteAtual.nome,url}).catch(()=>{});
+else {navigator.clipboard?.writeText(url); this.toast('Link copiado: '+url)}
+},
+registrarMetrica(id,tipo){ /* POST /api/metricas {imovel_id, tipo} -> D1 metricas_cliques */ console.log('metrica',id,tipo)},
+publicarImovel(){
+if(!this.novo.titulo||!this.novo.preco||!this.novo.bairro){this.toast('Preencha título, preço e bairro');return}
+if(this.meuPlano==='free'&&this.meusImoveis('me').length>=15){this.toast('Limite Free: 15 anúncios. Faça upgrade para ilimitado.'); this.view='planos'; return}
+let id='me-'+Date.now();
+this.imoveis.push({id,anunciante_id:'me',titulo:this.novo.titulo,preco:Number(this.novo.preco),tipo:this.novo.tipo,bairro:this.novo.bairro,cidade:'São Paulo - SP',quartos:Number(this.novo.quartos)||2,banheiros:1,area:Number(this.novo.area)||60,foto:this.novo.foto||'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800&q=80',fotos:['1'],descricao:this.novo.descricao,criado:new Date().toISOString().slice(0,10),regras:[{pergunta:'Agendar visita',resposta:'Claro! Me fala qual dia e horário prefere que já confirmo.'},{pergunta:'Valor da entrada',resposta:'Posso simular entrada e financiamento para você agora.'}]});
+this.novo={titulo:'',preco:'',bairro:'',tipo:'Venda',quartos:2,area:60,foto:'',descricao:''};
+this.abaAdmin='imoveis'; this.toast('✅ Anúncio publicado! Já aparece no feed (FIFO).');
+},
+removerImovel(id){this.imoveis=this.imoveis.filter(i=>i.id!==id); this.toast('Anúncio excluído');},
+adicionarRegra(){
+if(!this.novaRegra.pergunta||!this.novaRegra.resposta){this.toast('Preencha pergunta e resposta');return}
+let im=this.imovelBotAtual(); im.regras.push({pergunta:this.novaRegra.pergunta,resposta:this.novaRegra.resposta});
+this.novaRegra={pergunta:'',resposta:''}; this.toast('✅ Pergunta adicionada ao chatbot!');
+},
+removerRegra(i){this.imovelBotAtual().regras.splice(i,1)},
+salvarPerfil(){let me=this.anunciantes.find(a=>a.id==='me'); me.bio=this.perfilForm.bio; me.foto=this.perfilForm.foto; if(this.meuPlano!=='free'){me.capa=this.perfilForm.capa; me.plano=this.meuPlano; me.links=[{label:this.perfilForm.link1||'Instagram',icon:'📸',url:'https://instagram.com'},{label:this.perfilForm.link2||'Site',icon:'🌐',url:'https://example.com'}]} this.toast('✅ Perfil salvo! (D1: anunciantes atualizado)')},
+salvarSEO(){this.toast('✅ SEO & Portais salvos! Google vai indexar: '+this.seoForm.keywords.slice(0,40)+'...')},
+iniciarCheckout(plano){this.checkoutPlano=plano; this.pagamentoOk=false; this.pagando=false; this.view='checkout'; window.scrollTo(0,0)},
+confirmarPagamento(){
+this.pagando=true;
+setTimeout(()=>{
+this.pagando=false; this.pagamentoOk=true;
+this.meuPlano=this.checkoutPlano;
+// Simula webhook MP -> D1: UPDATE anunciantes SET plano=...
+let me=this.anunciantes.find(a=>a.id==='me'); me.plano=this.checkoutPlano;
+if(this.checkoutPlano!=='free'&&!me.capa) me.capa=this.perfilForm.capa;
+if(this.checkoutPlano==='ouro') me.seo=this.seoForm.keywords;
+this.toast('🎉 Webhook Mercado Pago confirmado! Plano '+this.checkoutPlano.toUpperCase()+' ativo.');
+},1400);
+},
+toast(msg){this.toastMsg=msg; setTimeout(()=>this.toastMsg='',3200)}
+}
+}
+</script>
+</body>
+</html>
