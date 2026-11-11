@@ -3,21 +3,34 @@
   "short_name": "ImobChat",
   "description": "Seu próximo lar começa numa conversa. Converse, ligue e visite por vídeo.",
   "start_url": "./index.html",
+  "scope": "./",
   "display": "standalone",
   "background_color": "#075E54",
   "theme_color": "#075E54",
   "icons": [
     {
-      "src": "logo-imobchat.png",
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "logo-imobchat.png",
-      "sizes": "192x192",
+      "src": "icon-512.png",
+      "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
+    },
+    {
+      "src": "apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
     }
   ]
 }
