@@ -167,6 +167,7 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
     <template x-if="view==='perfil' && anuncianteAtual">
       <div class="flex-1 min-w-0"><p class="font-bold truncate" x-text="'@'+anuncianteAtual.slug"></p><p class="text-[12px] text-white/80">imobchat.com.br/corretor/<span x-text="anuncianteAtual.slug"></span></p></div>
     </template>
+    <template x-if="view==='master'"><div class="flex-1"><p class="font-bold">🔐 Painel Master • Só Dono</p><p class="text-[12px] text-white/80" x-text="masterLogado ? 'Logado: ' + adminEmailDono : 'Acesso restrito ao dono'"></p></div></template>
     <template x-if="view==='admin'"><div class="flex-1"><p class="font-bold">Painel do Anunciante</p><p class="text-[12px] text-white/80">Jean Aguiar • <span x-text="meuPlanoLabel()"></span></p></div></template>
     <template x-if="view==='planos'"><div class="flex-1"><p class="font-bold">Planos & Mercado Pago</p><p class="text-[12px] text-white/80">Ative Prata ou Ouro em segundos</p></div></template>
     <template x-if="view==='checkout'"><div class="flex-1"><p class="font-bold">Checkout Seguro</p><p class="text-[12px] text-white/80">Mercado Pago • Pix ou Cartão</p></div></template>
@@ -387,6 +388,11 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
 <!-- ================= ADMIN ================= -->
 <section x-show="view==='admin'" class="fade bg-[#f0f2f5] min-h-full">
   <div class="p-3 space-y-3">
+    <!-- BOTÃO PAINEL MASTER - SÓ DONO -->
+    <button @click="view='master'" class="w-full bg-[#111b21] text-white font-bold py-3 rounded-2xl flex items-center justify-center gap-2 shadow-md">
+      <span>🔐</span> Painel Master • Só Dono • Liberar Planos e Ver Métricas <span>→</span>
+    </button>
+
     <div class="bg-white rounded-2xl p-4 shadow-sm flex gap-3">
       <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&q=80" class="w-14 h-14 rounded-full object-cover" alt="Jean Aguiar">
       <div class="flex-1"><p class="font-extrabold">Jean Aguiar</p><p class="text-[12px] text-gray-500">jean.aguiar • imobchat.com.br/corretor/jean-aguiar</p><span :class="meuPlano==='free'?'bg-gray-100 text-gray-700':'bg-amber-100 text-amber-800'" class="inline-block mt-1 text-[11px] font-bold px-2 py-0.5 rounded-full" x-text="meuPlanoLabel()+' • '+meusImoveis('me').length+' / '+(meuPlano==='free'?'15':'∞')+' anúncios'"></span></div>
@@ -479,6 +485,103 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
         </div>
         <div class="bg-white rounded-2xl p-4 shadow-sm"><p class="font-bold text-[14px] mb-2">Top imóveis por cliques</p><template x-for="im in meusImoveis('me').slice(0,3)" :key="im.id"><div class="flex items-center gap-2 py-1.5 border-b last:border-0"><img :src="im.foto" class="w-10 h-10 rounded-lg object-cover"><p class="flex-1 text-[12.5px] font-semibold truncate" x-text="im.titulo"></p><span class="text-[12px] font-bold text-waGreen">128 cliques</span></div></template></div>
       </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= PAINEL MASTER - SÓ DONO COM E-MAIL ================= -->
+<section x-show="view==='master'" class="fade bg-[#f0f2f5] min-h-full">
+  <div class="p-3 space-y-3">
+
+    <!-- LOGIN / CADASTRO DO DONO -->
+    <div x-show="!masterLogado" class="bg-white rounded-2xl p-5 shadow-sm">
+      <p class="text-3xl text-center">🔐</p>
+      <p class="font-extrabold text-[17px] text-center mt-1">Painel Master • Só o Dono</p>
+      <p class="text-[13px] text-gray-500 text-center mt-1">Só quem entrar com o e-mail do dono tem acesso. Outra pessoa vê <b>Acesso negado</b>.</p>
+
+      <!-- Se ainda não tem e-mail de dono cadastrado, cadastra agora -->
+      <div x-show="!adminEmailDono" class="mt-4 bg-amber-50 border border-amber-200 rounded-xl p-3">
+        <p class="font-bold text-[13px]">Primeiro acesso — cadastre seu e-mail de dono:</p>
+        <p class="text-[12px] text-gray-600 mt-1">Digite seu e-mail e crie uma senha. Depois disso, só esse e-mail entra aqui.</p>
+      </div>
+
+      <label class="text-[12px] font-bold mt-4 block">Seu e-mail de dono</label>
+      <input x-model="masterEmailInput" type="email" placeholder="Ex: seuemail@gmail.com" class="w-full border rounded-xl px-3 py-3 mt-1 text-[14px] outline-none focus:border-waGreen">
+      <label class="text-[12px] font-bold mt-3 block">Senha do painel master</label>
+      <input x-model="masterSenhaInput" type="password" placeholder="Crie uma senha forte" class="w-full border rounded-xl px-3 py-3 mt-1 text-[14px] outline-none focus:border-waGreen">
+
+      <p x-show="masterErro" class="text-[13px] font-bold text-red-600 bg-red-50 rounded-xl p-2.5 mt-3" x-text="masterErro"></p>
+
+      <button x-show="!adminEmailDono" @click="cadastrarEmailDono()" class="w-full bg-waDark text-white font-bold py-3 rounded-full mt-4">✅ Cadastrar meu e-mail e entrar</button>
+      <button x-show="adminEmailDono" @click="entrarMaster()" class="w-full bg-waDark text-white font-bold py-3 rounded-full mt-4">🔐 Entrar no Painel Master</button>
+      <p x-show="adminEmailDono" class="text-[12px] text-gray-500 text-center mt-2">E-mail do dono cadastrado: <b x-text="adminEmailDono"></b></p>
+      <button @click="view='admin'" class="w-full bg-gray-100 text-gray-700 font-bold py-2.5 rounded-full mt-2 text-[13px]">← Voltar para Painel do Anunciante</button>
+    </div>
+
+    <!-- PAINEL MASTER LOGADO -->
+    <div x-show="masterLogado" class="space-y-3">
+      <div class="bg-[#111b21] text-white rounded-2xl p-4 flex items-center gap-3">
+        <span class="text-3xl">👑</span>
+        <div class="flex-1 min-w-0"><p class="font-extrabold">Painel Master • Dono</p><p class="text-[12px] text-white/70 truncate" x-text="adminEmailDono"></p></div>
+        <button @click="sairMaster()" class="bg-white/15 px-3 py-2 rounded-full text-[12px] font-bold">Sair</button>
+      </div>
+
+      <!-- MÉTRICAS RÁPIDAS -->
+      <div class="grid grid-cols-3 gap-2">
+        <div class="bg-white rounded-2xl p-3 text-center shadow-sm"><p class="text-[11px] text-gray-500">Usuários</p><p class="font-extrabold text-[18px]" x-text="anunciantes.length"></p><p class="text-[10px] text-gray-400">corretores</p></div>
+        <div class="bg-white rounded-2xl p-3 text-center shadow-sm"><p class="text-[11px] text-gray-500">Imóveis</p><p class="font-extrabold text-[18px]" x-text="imoveis.length"></p><p class="text-[10px] text-gray-400">anúncios</p></div>
+        <div class="bg-white rounded-2xl p-3 text-center shadow-sm"><p class="text-[11px] text-gray-500">Pagos</p><p class="font-extrabold text-[18px]" x-text="anunciantes.filter(a=>a.plano!=='free').length"></p><p class="text-[10px] text-emerald-600 font-bold">Prata+Ouro</p></div>
+      </div>
+      <div class="bg-white rounded-2xl p-4 shadow-sm flex justify-between items-center"><div><p class="text-[12px] text-gray-500">Receita estimada / mês</p><p class="font-extrabold text-[18px]" x-text="'R$ ' + (anunciantes.filter(a=>a.plano==='prata').length*29.90 + anunciantes.filter(a=>a.plano==='ouro').length*89.90).toFixed(2).replace('.',',')"></p></div><span class="bg-emerald-100 text-emerald-700 px-2.5 py-1 rounded-full text-[11px] font-bold">💰 Mercado Pago</span></div>
+
+      <!-- ABAS MASTER -->
+      <div class="flex gap-2 overflow-x-auto">
+        <template x-for="ab in [{id:'usuarios',label:'👥 Usuários'},{id:'planos',label:'⭐ Liberar Planos'},{id:'metricas',label:'📊 Métricas'},{id:'pagamentos',label:'💳 Pagamentos'}]" :key="ab.id">
+          <button @click="masterAba=ab.id" :class="masterAba===ab.id?'bg-waDark text-white':'bg-white'" class="shrink-0 px-3.5 py-2 rounded-full text-[13px] font-semibold shadow-sm" x-text="ab.label"></button>
+        </template>
+      </div>
+
+      <!-- ABA USUÁRIOS / LIBERAR PLANOS -->
+      <div x-show="masterAba==='usuarios' || masterAba==='planos'" class="space-y-2">
+        <p class="text-[12px] text-gray-500 px-1">Toque em um usuário para liberar o plano. Só você pode fazer isso.</p>
+        <template x-for="u in anunciantes" :key="u.id">
+          <div class="bg-white rounded-2xl p-3 shadow-sm flex gap-3 items-center">
+            <img :src="u.foto" class="w-12 h-12 rounded-full object-cover shrink-0">
+            <div class="flex-1 min-w-0"><p class="font-bold text-[14px] truncate" x-text="u.nome"></p><p class="text-[11px] text-gray-500 truncate" x-text="'@'+u.slug+' • '+u.whatsapp"></p><span class="inline-block mt-1 text-[11px] font-bold px-2 py-0.5 rounded-full" :class="u.plano==='ouro'?'bg-amber-100 text-amber-800':u.plano==='prata'?'bg-slate-200 text-slate-800':'bg-gray-100 text-gray-700'" x-text="'Plano atual: ' + u.plano.toUpperCase()"></span></div>
+            <div class="flex flex-col gap-1.5 shrink-0">
+              <button @click="liberarPlanoMaster(u, 'prata')" class="bg-slate-800 text-white text-[11px] font-bold px-3 py-1.5 rounded-full">Liberar Prata</button>
+              <button @click="liberarPlanoMaster(u, 'ouro')" class="bg-amber-400 text-amber-950 text-[11px] font-bold px-3 py-1.5 rounded-full">Liberar Ouro</button>
+              <button @click="liberarPlanoMaster(u, 'free')" class="bg-gray-100 text-gray-700 text-[11px] font-bold px-3 py-1.5 rounded-full">Voltar Free</button>
+            </div>
+          </div>
+        </template>
+        <p x-show="masterMsg" class="bg-emerald-50 text-emerald-800 text-[13px] font-bold rounded-xl p-3 text-center" x-text="masterMsg"></p>
+      </div>
+
+      <!-- ABA MÉTRICAS -->
+      <div x-show="masterAba==='metricas'" class="space-y-3">
+        <div class="bg-white rounded-2xl p-4 shadow-sm"><p class="font-bold text-[14px]">📊 Métricas gerais</p>
+          <div class="mt-3 space-y-2">
+            <div class="flex justify-between text-[13px]"><span>Usuários cadastrados</span><b x-text="anunciantes.length"></b></div>
+            <div class="flex justify-between text-[13px]"><span>Anúncios ativos</span><b x-text="imoveis.length"></b></div>
+            <div class="flex justify-between text-[13px]"><span>Plano Free</span><b x-text="anunciantes.filter(a=>a.plano==='free').length"></b></div>
+            <div class="flex justify-between text-[13px]"><span>Plano Prata • R$ 29,90</span><b x-text="anunciantes.filter(a=>a.plano==='prata').length"></b></div>
+            <div class="flex justify-between text-[13px]"><span>Plano Ouro • R$ 89,90</span><b x-text="anunciantes.filter(a=>a.plano==='ouro').length"></b></div>
+          </div>
+        </div>
+        <div class="bg-white rounded-2xl p-4 shadow-sm"><p class="font-bold text-[14px]">Top imóveis por corretor</p><template x-for="im in imoveis.slice(0,5)" :key="im.id"><div class="flex items-center gap-2 py-2 border-b last:border-0"><img :src="im.foto" class="w-10 h-10 rounded-lg object-cover"><p class="flex-1 text-[12.5px] font-semibold truncate" x-text="im.titulo"></p><span class="text-[12px] font-bold text-waGreen" x-text="formatPreco(im.preco)"></span></div></template></div>
+      </div>
+
+      <!-- ABA PAGAMENTOS -->
+      <div x-show="masterAba==='pagamentos'" class="bg-white rounded-2xl p-4 shadow-sm">
+        <p class="font-bold text-[14px]">💳 Pagamentos • Mercado Pago</p>
+        <p class="text-[12px] text-gray-500 mt-1">Quem pagou, o plano liberado é atualizado sozinho pelo webhook. Você também pode liberar na mão na aba Usuários.</p>
+        <template x-for="u in anunciantes.filter(a=>a.plano!=='free')" :key="u.id">
+          <div class="flex justify-between items-center py-2.5 border-b last:border-0"><div><p class="font-bold text-[13px]" x-text="u.nome"></p><p class="text-[11px] text-gray-500" x-text="u.plano==='ouro' ? 'Ouro • R$ 89,90/mês' : 'Prata • R$ 29,90/mês'"></p></div><span class="bg-emerald-100 text-emerald-700 px-2.5 py-1 rounded-full text-[11px] font-bold">✅ Pago</span></div>
+        </template>
+        <p x-show="anunciantes.filter(a=>a.plano!=='free').length===0" class="text-[13px] text-gray-500 mt-2 text-center">Nenhum pagamento ainda. Libere um plano na aba Usuários para testar.</p>
+      </div>
+
     </div>
   </div>
 </section>
@@ -588,6 +691,10 @@ function imobChat(){
 return {
 view:'home', chamadaAtiva:false, salaChamada:'', linkChamada:'', visitanteId:'', promptInstalar:null, baixando:false, corretorOcupado:false, corretorOcupadoSala:null, peer:null, sinalUltimoId:0, chamadaTocando:null, _pollSinal:null, _pollPendentes:null, musicaToque:'seu-audio', _toqueCtx:null, _toqueTimer:null, _toqueOsc:null, apiBase: (localStorage.getItem('imobchat_api_url') || 'https://imobchat-api.seu-subdominio.workers.dev'), gravandoAudio:false, tempoAudio:'00:00', _audioTimer:null, _audioSeg:0, _mediaRecorder:null, _audioChunks:[], tipoChamada:'audio', chamadaStatus:'Chamando...', tempoChamada:'00:00', mutado:false, cameraLigada:true, _callTimer:null, _callStream:null, _callSeg:0, abaAdmin:'imoveis', busca:'', filtro:'', textoChat:'', digitando:false,
 meuPlano:'free', botImovelId:'me-1',
+    // ===== PAINEL MASTER - SÓ O DONO COM O E-MAIL CADASTRADO =====
+    masterEmailInput:'', masterSenhaInput:'', masterLogado:false, masterAba:'usuarios', masterErro:'', masterMsg:'',
+    adminEmailDono: (localStorage.getItem('imobchat_admin_email') || ''),
+    masterSenhaDono: (localStorage.getItem('imobchat_admin_senha') || ''),
 checkoutPlano:'prata', metodo:'pix', pagando:false, pagamentoOk:false, toastMsg:'',
 novo:{titulo:'',preco:'',bairro:'',tipo:'Venda',quartos:2,area:60,foto:'',descricao:''},
 novaRegra:{pergunta:'',resposta:''},
@@ -910,6 +1017,35 @@ this.toast('🎉 Webhook Mercado Pago confirmado! Plano '+this.checkoutPlano.toU
       this.toast('🎵 Música do toque: ' + this.musicaToque);
       this.iniciarToque('entrada');
       setTimeout(()=>this.pararToque(), 1200);
+    },
+    // ===== MASTER - SÓ DONO =====
+    cadastrarEmailDono(){
+      const email = (this.masterEmailInput||'').trim().toLowerCase();
+      const senha = (this.masterSenhaInput||'').trim();
+      if(!email || !email.includes('@')){ this.masterErro='Digite seu e-mail certinho, com @.'; return; }
+      if(!senha || senha.length<4){ this.masterErro='Crie uma senha com pelo menos 4 letras.'; return; }
+      localStorage.setItem('imobchat_admin_email', email);
+      localStorage.setItem('imobchat_admin_senha', senha);
+      this.adminEmailDono = email; this.masterSenhaDono = senha;
+      this.masterLogado = true; this.masterErro=''; this.masterMsg='✅ Seu e-mail de dono foi cadastrado. Só ele entra aqui.';
+      this.toast('✅ Painel Master liberado só para ' + email);
+    },
+    entrarMaster(){
+      const email = (this.masterEmailInput||'').trim().toLowerCase();
+      const senha = (this.masterSenhaInput||'').trim();
+      if(email !== this.adminEmailDono){ this.masterErro='⛔ Acesso negado. Esse e-mail não é o do dono. Só ' + this.adminEmailDono + ' entra aqui.'; return; }
+      if(senha !== this.masterSenhaDono){ this.masterErro='⛔ Senha errada. Tente de novo.'; return; }
+      this.masterLogado = true; this.masterErro='';
+      this.toast('👑 Bem-vindo, dono! Painel Master aberto.');
+    },
+    sairMaster(){ this.masterLogado=false; this.masterEmailInput=''; this.masterSenhaInput=''; this.view='admin'; },
+    async liberarPlanoMaster(u, plano){
+      u.plano = plano;
+      if(u.id==='me') this.meuPlano = plano;
+      this.masterMsg = '✅ ' + u.nome + ' agora está no plano ' + plano.toUpperCase() + ' • Liberado por você.';
+      this.toast(this.masterMsg);
+      // Tenta salvar no D1 via Workers também
+      try{ await fetch(this.apiBase + '/api/admin/liberar-plano', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({anunciante_id: u.id, slug: u.slug, plano})}); }catch(e){}
     },
     async baixarApp(){
       this.baixando = true;
