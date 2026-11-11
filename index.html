@@ -143,7 +143,7 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
         <img :src="anuncianteDo(imovelAtual).foto" class="w-9 h-9 rounded-full object-cover cursor-pointer" @click="abrirPerfil(anuncianteDo(imovelAtual))" alt="Corretor">
         <div class="min-w-0 flex-1 cursor-pointer" @click="abrirPerfil(anuncianteDo(imovelAtual))">
           <p class="font-semibold text-[15px] truncate" x-text="anuncianteDo(imovelAtual).nome"></p>
-          <p class="text-[11px] text-emerald-200">🟢 Online agora • toque p/ ver perfil</p>
+          <p class="text-[11px]" :class="corretorOcupado ? 'text-red-300' : 'text-emerald-200'" x-text="corretorOcupado ? '🔴 Ocupada em ligação • toque p/ ver perfil' : '🟢 Online agora • toque p/ ver perfil'"></p>
         </div>
         <!-- TOPO: SÓ LIGAÇÃO DE ÁUDIO + LIGAÇÃO DE VÍDEO - MODELO NOVO BONITO (não é o cinza feio) -->
         <div class="flex items-center gap-1.5 shrink-0">
@@ -295,6 +295,13 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
 
 <!-- ================= CHAT ================= -->
 <section x-show="view==='chat' && imovelAtual" class="fade flex flex-col chat-bg min-h-[calc(100dvh-56px)]">
+  <!-- CORRETOR OCUPADO: aparece quando a Marina já está em ligação com outra pessoa -->
+  <div x-show="corretorOcupado && !chamadaAtiva" class="mx-3 mt-3 bg-red-50 border border-red-200 rounded-2xl p-3 flex items-center gap-3">
+    <span class="w-10 h-10 rounded-full bg-red-500 text-white flex items-center justify-center text-[18px]">🔴</span>
+    <div class="flex-1 min-w-0"><p class="font-bold text-[13.5px] text-red-800 leading-tight" x-text="(anuncianteDo(imovelAtual)?.nome || 'Corretor') + ' está em ligação agora'"></p><p class="text-[12px] text-red-600">Termine a ligação atual para atender você. Deixe recado no WhatsApp ou tente em alguns minutos.</p></div>
+    <button @click="trocarParaWhatsApp()" class="bg-[#25D366] text-white px-3 py-2 rounded-full font-bold text-[12px] shrink-0">WhatsApp</button>
+  </div>
+
   <!-- CHAMADA ENTRANTE: aparece para quem vai atender, sem misturar com outras ligações -->
   <div x-show="chamadaTocando" class="mx-3 mt-3 bg-[#075E54] text-white rounded-2xl p-3 flex items-center gap-3 shadow-lg">
     <span class="w-11 h-11 rounded-full bg-white flex items-center justify-center text-[20px] animate-pulse" x-text="chamadaTocando?.tipo==='video' ? '📹' : '📞'"></span>
@@ -562,7 +569,7 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
 <script>
 function imobChat(){
 return {
-view:'home', chamadaAtiva:false, salaChamada:'', linkChamada:'', visitanteId:'', peer:null, sinalUltimoId:0, chamadaTocando:null, _pollSinal:null, _pollPendentes:null, musicaToque:'seu-audio', _toqueCtx:null, _toqueTimer:null, _toqueOsc:null, apiBase: (localStorage.getItem('imobchat_api_url') || 'https://imobchat-api.seu-subdominio.workers.dev'), gravandoAudio:false, tempoAudio:'00:00', _audioTimer:null, _audioSeg:0, _mediaRecorder:null, _audioChunks:[], tipoChamada:'audio', chamadaStatus:'Chamando...', tempoChamada:'00:00', mutado:false, cameraLigada:true, _callTimer:null, _callStream:null, _callSeg:0, abaAdmin:'imoveis', busca:'', filtro:'', textoChat:'', digitando:false,
+view:'home', chamadaAtiva:false, salaChamada:'', linkChamada:'', visitanteId:'', corretorOcupado:false, corretorOcupadoSala:null, peer:null, sinalUltimoId:0, chamadaTocando:null, _pollSinal:null, _pollPendentes:null, musicaToque:'seu-audio', _toqueCtx:null, _toqueTimer:null, _toqueOsc:null, apiBase: (localStorage.getItem('imobchat_api_url') || 'https://imobchat-api.seu-subdominio.workers.dev'), gravandoAudio:false, tempoAudio:'00:00', _audioTimer:null, _audioSeg:0, _mediaRecorder:null, _audioChunks:[], tipoChamada:'audio', chamadaStatus:'Chamando...', tempoChamada:'00:00', mutado:false, cameraLigada:true, _callTimer:null, _callStream:null, _callSeg:0, abaAdmin:'imoveis', busca:'', filtro:'', textoChat:'', digitando:false,
 meuPlano:'free', botImovelId:'me-1',
 checkoutPlano:'prata', metodo:'pix', pagando:false, pagamentoOk:false, toastMsg:'',
 novo:{titulo:'',preco:'',bairro:'',tipo:'Venda',quartos:2,area:60,foto:'',descricao:''},
@@ -608,6 +615,8 @@ abrirChat(im){
 this.imovelAtual=im; this.view='chat';
 if(!this.visitanteId){ this.visitanteId = localStorage.getItem('imobchat_visitante') || ('v-' + Math.random().toString(36).slice(2,8)); localStorage.setItem('imobchat_visitante', this.visitanteId); }
 this.verificarChamadasPendentes();
+this.checarSeCorretorOcupado();
+setInterval(()=>{ if(this.view==='chat') this.checarSeCorretorOcupado(); }, 5000);
 // Se abriu com ?sala=xxx na URL, já mostra que tem chamada para entrar
 const params = new URLSearchParams(window.location.search);
 const salaUrl = params.get('sala');
@@ -697,6 +706,15 @@ this.toast('🎉 Webhook Mercado Pago confirmado! Plano '+this.checkoutPlano.toU
       // João->Pedro: call-12-1-a9f3 | Maurício->Paula: call-18-5-b7k2 -> NÃO SE MISTURAM
       if(!this.visitanteId){ this.visitanteId = localStorage.getItem('imobchat_visitante') || ('v-' + Math.random().toString(36).slice(2,8)); localStorage.setItem('imobchat_visitante', this.visitanteId); }
       const an = this.anuncianteDo(this.imovelAtual);
+      // ===== SE O CORRETOR JÁ ESTÁ EM LIGAÇÃO, NÃO DEIXA ENTRAR E AVISA OCUPADO =====
+      const ocupado = await this.checarSeCorretorOcupado();
+      if(ocupado){
+        this.pararToque();
+        const querWhats = confirm('🔴 ' + (an?.nome || 'Corretor') + ' está em ligação agora com outra pessoa.\n\nQuer ir para o WhatsApp dela e deixar recado?');
+        if(querWhats) this.trocarParaWhatsApp();
+        else this.toast('🔴 ' + (an?.nome || 'Corretor') + ' está ocupada em ligação. Tente em alguns minutos.');
+        return;
+      }
       const codigo = Math.random().toString(36).slice(2,6);
       const sala = 'call-' + this.imovelAtual.id + '-' + (an?.id || '0') + '-' + codigo;
       this.salaChamada = sala;
@@ -792,6 +810,18 @@ this.toast('🎉 Webhook Mercado Pago confirmado! Plano '+this.checkoutPlano.toU
     },
     async enviarSinalChamada(sala, tipo){
       try{ await fetch(this.apiBase + '/api/sinalizacao', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({sala, de_id:this.visitanteId||'v', tipo, dados:{}})}); }catch(e){}
+    },
+    async checarSeCorretorOcupado(){
+      if(!this.imovelAtual) return false;
+      const an = this.anuncianteDo(this.imovelAtual);
+      if(!an) return false;
+      try{
+        const r = await fetch(this.apiBase + '/api/salas/ocupado?anunciante_id=' + an.id);
+        const d = await r.json();
+        this.corretorOcupado = d.ocupado;
+        this.corretorOcupadoSala = d.sala || null;
+        return d.ocupado;
+      }catch(e){ return false; }
     },
     verificarChamadasPendentes(){
       clearInterval(this._pollPendentes);
