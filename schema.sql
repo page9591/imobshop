@@ -1,106 +1,124 @@
--- ============================================
--- ImobChat — Schema Cloudflare D1 (SQLite)
--- Rode: npx wrangler d1 execute imobchat-db --file=./schema.sql
--- ============================================
+// ImobChat Worker API — Cloudflare Workers + D1 + R2 + Mercado Pago
+// Deploy: npx wrangler deploy worker-api.js
+// Env bindings: DB (D1), IMAGENS (R2), MP_ACCESS_TOKEN (secret), MP_WEBHOOK_SECRET
 
-CREATE TABLE IF NOT EXISTS anunciantes (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  slug TEXT UNIQUE NOT NULL,
-  nome TEXT NOT NULL,
-  whatsapp TEXT NOT NULL,
-  email TEXT,
-  plano TEXT NOT NULL DEFAULT 'free' CHECK (plano IN ('free','prata','ouro')),
-  plano_ate TEXT,
-  bio TEXT DEFAULT '',
-  foto_perfil TEXT DEFAULT '',
-  capa_url TEXT DEFAULT '',
-  links_extras_json TEXT DEFAULT '[]',
-  palavras_chave_seo TEXT DEFAULT '',
-  titulo_seo TEXT DEFAULT '',
-  descricao_seo TEXT DEFAULT '',
-  mp_customer_id TEXT,
-  mp_subscription_id TEXT,
-  criado_em TEXT DEFAULT (datetime('now'))
-);
+export default {
+  async fetch(request, env) {
+    const url = new URL(request.url);
+    const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'GET,POST,OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type' };
+    if (request.method === 'OPTIONS') return new Response(null, { headers: cors });
 
-CREATE TABLE IF NOT EXISTS imoveis (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  anunciante_id INTEGER NOT NULL REFERENCES anunciantes(id) ON DELETE CASCADE,
-  titulo TEXT NOT NULL,
-  preco REAL NOT NULL,
-  bairro TEXT NOT NULL,
-  cidade TEXT DEFAULT 'São Paulo',
-  tipo TEXT DEFAULT 'Apartamento',
-  area REAL DEFAULT 0,
-  quartos INTEGER DEFAULT 1,
-  banheiros INTEGER DEFAULT 1,
-  descricao TEXT DEFAULT '',
-  fotos_json TEXT DEFAULT '[]',
-  ativo INTEGER DEFAULT 1,
-  criado_em TEXT DEFAULT (datetime('now'))
-);
-CREATE INDEX IF NOT EXISTS idx_imoveis_anunciante ON imoveis(anunciante_id);
-CREATE INDEX IF NOT EXISTS idx_imoveis_criado ON imoveis(criado_em ASC);
-
-CREATE TABLE IF NOT EXISTS chat_bot_regras (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  imovel_id INTEGER NOT NULL REFERENCES imoveis(id) ON DELETE CASCADE,
-  pergunta TEXT NOT NULL,
-  resposta TEXT NOT NULL,
-  ordem INTEGER DEFAULT 0,
-  criado_em TEXT DEFAULT (datetime('now'))
-);
-CREATE INDEX IF NOT EXISTS idx_regras_imovel ON chat_bot_regras(imovel_id);
-
-CREATE TABLE IF NOT EXISTS metricas_cliques (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  imovel_id INTEGER,
-  anunciante_id INTEGER,
-  tipo TEXT NOT NULL DEFAULT 'visualizacao',
-  ip_origem TEXT,
-  origem TEXT DEFAULT 'imobchat',
-  user_agent TEXT,
-  data TEXT DEFAULT (datetime('now'))
-);
-CREATE INDEX IF NOT EXISTS idx_metricas_imovel ON metricas_cliques(imovel_id);
-CREATE INDEX IF NOT EXISTS idx_metricas_data ON metricas_cliques(data);
-
-CREATE TABLE IF NOT EXISTS pagamentos (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  anunciante_id INTEGER NOT NULL REFERENCES anunciantes(id),
-  plano TEXT NOT NULL,
-  valor REAL NOT NULL,
-  mp_payment_id TEXT UNIQUE,
-  mp_preapproval_id TEXT,
-  status TEXT DEFAULT 'pending',
-  metodo TEXT DEFAULT 'pix',
-  criado_em TEXT DEFAULT (datetime('now')),
-  atualizado_em TEXT DEFAULT (datetime('now'))
-);
-
-CREATE TABLE IF NOT EXISTS chamadas (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  imovel_id INTEGER,
-  anunciante_id INTEGER,
-  tipo TEXT CHECK (tipo IN ('audio','video')),
-  duracao_seg INTEGER DEFAULT 0,
-  status TEXT DEFAULT 'iniciada',
-  criado_em TEXT DEFAULT (datetime('now'))
-);
-
--- DADOS INICIAIS (exemplo - Jean Aguiar)
-INSERT OR IGNORE INTO anunciantes (id, slug, nome, whatsapp, plano, bio, foto_perfil, capa_url, palavras_chave_seo) VALUES
-(1, 'jean-aguiar', 'Jean Aguiar', '5511999990000', 'free', 'Corretor em São Paulo. Atendimento rápido no WhatsApp, visita agendada em minutos.', 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&q=80', '', 'apartamento sao paulo, casa venda sp'),
-(2, 'marina-duarte', 'Marina Duarte', '5511999991111', 'ouro', 'Especialista em Vila Mariana e Moema. 10 anos de mercado, CRECI-SP.', 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&q=80', 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=1200&q=80', 'apartamento vila mariana, imoveis moema'),
-(3, 'carlos-mendes', 'Carlos Mendes', '5511999992222', 'prata', 'Casas e sobrados na Zona Leste. Financiamento facilitado.', 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200&q=80', 'https://images.unsplash.com/photo-1568605114967-8130f3a36994?w=1200&q=80', 'casa zona leste sp');
-
-INSERT OR IGNORE INTO imoveis (id, anunciante_id, titulo, preco, bairro, tipo, area, quartos, banheiros, fotos_json) VALUES
-(1, 1, 'Apto 2 quartos - Vila Prudente', 385000, 'Vila Prudente', 'Apartamento', 58, 2, 1, '["https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800&q=80"]'),
-(2, 2, 'Apto Garden - Vila Mariana', 890000, 'Vila Mariana', 'Apartamento', 92, 3, 2, '["https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800&q=80"]'),
-(3, 3, 'Casa 3 quartos - Mooca', 720000, 'Mooca', 'Casa', 140, 3, 2, '["https://images.unsplash.com/photo-1568605114967-8130f3a36994?w=800&q=80"]');
-
-INSERT OR IGNORE INTO chat_bot_regras (imovel_id, pergunta, resposta, ordem) VALUES
-(1, 'Agendar visita', 'Perfeito! Temos visita hoje às 16h ou amanhã às 10h. Qual prefere? Toque em LIGAR ou VÍDEO no topo para falar comigo agora.', 1),
-(1, 'Valor da entrada', 'Entrada a partir de R$ 38.500 (10%). Parcelamos o restante. Quer simulação?', 2),
-(2, 'Agendar visita', 'Claro! Visita guiada por vídeo disponível agora. Toque em VÍDEO no topo.', 1),
-(2, 'Condomínio incluso?', 'Condomínio R$ 680/mês, já com água e gás. IPTU R$ 210/mês.', 2);
+    // GET /api/imoveis — FIFO
+    if (url.pathname === '/api/imoveis' && request.method === 'GET') {
+      const { results } = await env.DB.prepare(`SELECT im.*, an.nome as anunciante_nome, an.slug, an.plano, an.whatsapp, an.foto_perfil FROM imoveis im JOIN anunciantes an ON an.id = im.anunciante_id WHERE im.ativo=1 ORDER BY im.criado_em ASC LIMIT 100`).all();
+      return Response.json(results, { headers: cors });
+    }
+    // GET /api/imoveis/:id/regras
+    const mRegras = url.pathname.match(/^\/api\/imoveis\/(\d+)\/regras$/);
+    if (mRegras) {
+      const { results } = await env.DB.prepare(`SELECT * FROM chat_bot_regras WHERE imovel_id=? ORDER BY ordem ASC`).bind(mRegras[1]).all();
+      return Response.json(results, { headers: cors });
+    }
+    // POST /api/metricas — registrar clique / chamada
+    if (url.pathname === '/api/metricas' && request.method === 'POST') {
+      const b = await request.json();
+      await env.DB.prepare(`INSERT INTO metricas_cliques (imovel_id, anunciante_id, tipo, ip_origem, origem) VALUES (?,?,?,?,?)`).bind(b.imovel_id||null, b.anunciante_id||null, b.tipo||'visualizacao', request.headers.get('CF-Connecting-IP')||'', b.origem||'imobchat').run();
+      return Response.json({ ok: true }, { headers: cors });
+    }
+    // POST /api/chamadas — registrar chamada de voz/vídeo
+    if (url.pathname === '/api/chamadas' && request.method === 'POST') {
+      const b = await request.json();
+      await env.DB.prepare(`INSERT INTO chamadas (imovel_id, anunciante_id, tipo, duracao_seg, status) VALUES (?,?,?,?,?)`).bind(b.imovel_id||null, b.anunciante_id||null, b.tipo||'audio', b.duracao_seg||0, 'finalizada').run();
+      return Response.json({ ok: true }, { headers: cors });
+    }
+    // POST /api/checkout — criar assinatura Mercado Pago (Prata R$29,90 / Ouro R$89,90)
+    if (url.pathname === '/api/checkout' && request.method === 'POST') {
+      const { anunciante_id, plano } = await request.json();
+      const preco = plano === 'ouro' ? 89.90 : 29.90;
+      const resp = await fetch('https://api.mercadopago.com/preapproval', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${env.MP_ACCESS_TOKEN}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          reason: `ImobChat ${plano === 'ouro' ? 'Ouro' : 'Prata'} - Assinatura mensal`,
+          auto_recurring: { frequency: 1, frequency_type: 'months', transaction_amount: preco, currency_id: 'BRL' },
+          back_url: `${env.PUBLIC_BASE_URL}/?pagamento=ok`,
+          external_reference: String(anunciante_id),
+        })
+      });
+      const data = await resp.json();
+      return Response.json({ init_point: data.init_point, id: data.id }, { headers: cors });
+    }
+    // POST /api/mp-webhook — Mercado Pago avisa que pagou → D1 atualiza plano automaticamente
+    if (url.pathname === '/api/mp-webhook' && request.method === 'POST') {
+      const body = await request.json().catch(()=>({}));
+      const paymentId = body?.data?.id || body?.id;
+      if (!paymentId) return Response.json({ ok: false }, { status: 400, headers: cors });
+      const pay = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, { headers: { Authorization: `Bearer ${env.MP_ACCESS_TOKEN}` } }).then(r=>r.json());
+      if (pay.status === 'approved') {
+        const anuncianteId = pay.external_reference;
+        const plano = pay.transaction_amount >= 89 ? 'ouro' : 'prata';
+        await env.DB.prepare(`UPDATE anunciantes SET plano=?, plano_ate=datetime('now','+1 month') WHERE id=?`).bind(plano, anuncianteId).run();
+        await env.DB.prepare(`INSERT INTO pagamentos (anunciante_id, plano, valor, mp_payment_id, status, metodo) VALUES (?,?,?,?, 'approved', ?) ON CONFLICT(mp_payment_id) DO NOTHING`).bind(anuncianteId, plano, pay.transaction_amount, String(paymentId), pay.payment_method_id||'pix').run();
+      }
+      return Response.json({ ok: true }, { headers: cors });
+    }
+    // ===== ADMIN MASTER - SÓ DONO pode liberar plano =====
+    // POST /api/admin/liberar-plano {anunciante_id ou slug, plano}
+    if (url.pathname === '/api/admin/liberar-plano' && request.method === 'POST') {
+      const b = await request.json();
+      const plano = (b.plano||'free').toLowerCase();
+      if (b.slug) await env.DB.prepare(`UPDATE anunciantes SET plano=? WHERE slug=?`).bind(plano, b.slug).run();
+      else if (b.anunciante_id) await env.DB.prepare(`UPDATE anunciantes SET plano=? WHERE id=?`).bind(plano, b.anunciante_id).run();
+      return Response.json({ ok: true, plano }, { headers: cors });
+    }
+    // GET /api/admin/metricas -> totais para o Painel Master
+    if (url.pathname === '/api/admin/metricas' && request.method === 'GET') {
+      const totalAnunciantes = await env.DB.prepare(`SELECT COUNT(*) as total FROM anunciantes`).first();
+      const totalImoveis = await env.DB.prepare(`SELECT COUNT(*) as total FROM imoveis WHERE ativo=1`).first();
+      const pagos = await env.DB.prepare(`SELECT plano, COUNT(*) as total FROM anunciantes GROUP BY plano`).all();
+      return Response.json({ totalAnunciantes: totalAnunciantes?.total||0, totalImoveis: totalImoveis?.total||0, porPlano: pagos.results||[] }, { headers: cors });
+    }
+    // ===== CHAMADAS NATIVAS: salas + sinalização WebRTC (sem app de terceiro) =====
+    // POST /api/salas {sala, imovel_id, anunciante_id, de_id, de_nome, tipo} -> cria sala única da ligação
+    if (url.pathname === '/api/salas' && request.method === 'POST') {
+      const b = await request.json();
+      await env.DB.prepare(`INSERT OR IGNORE INTO chamadas_salas (sala, imovel_id, anunciante_id, de_id, de_nome, tipo, status) VALUES (?,?,?,?,?,?, 'tocando')`).bind(b.sala, b.imovel_id||null, b.anunciante_id||null, b.de_id||'visitante', b.de_nome||'', b.tipo||'audio').run();
+      return Response.json({ ok: true, sala: b.sala }, { headers: cors });
+    }
+    // GET /api/salas/pendentes?imovel_id=12 -> quem está ligando para este imóvel agora
+    if (url.pathname === '/api/salas/pendentes' && request.method === 'GET') {
+      const imovelId = url.searchParams.get('imovel_id');
+      const deId = url.searchParams.get('de_id') || '';
+      const { results } = await env.DB.prepare(`SELECT * FROM chamadas_salas WHERE status='tocando' AND imovel_id=? AND de_id!=? ORDER BY id DESC LIMIT 5`).bind(imovelId, deId).all();
+      return Response.json(results, { headers: cors });
+    }
+    // GET /api/salas/ocupado?anunciante_id=2 -> Marina está em ligação? Sim/Não
+    // Se tiver sala 'tocando' ou 'atendida' para esse anunciante, ele está OCUPADO
+    if (url.pathname === '/api/salas/ocupado' && request.method === 'GET') {
+      const anuncianteId = url.searchParams.get('anunciante_id');
+      const { results } = await env.DB.prepare(`SELECT * FROM chamadas_salas WHERE anunciante_id=? AND status IN ('tocando','atendida') ORDER BY id DESC LIMIT 1`).bind(anuncianteId).all();
+      const ocupado = results.length > 0;
+      return Response.json({ ocupado, sala: ocupado ? results[0] : null }, { headers: cors });
+    }
+    // POST /api/salas/atender {sala, status} -> atendida / recusada / encerrada
+    if (url.pathname === '/api/salas/atender' && request.method === 'POST') {
+      const b = await request.json();
+      await env.DB.prepare(`UPDATE chamadas_salas SET status=? WHERE sala=?`).bind(b.status||'atendida', b.sala).run();
+      return Response.json({ ok: true }, { headers: cors });
+    }
+    // POST /api/sinalizacao {sala, de_id, tipo, dados} -> offer / answer / ice
+    if (url.pathname === '/api/sinalizacao' && request.method === 'POST') {
+      const b = await request.json();
+      await env.DB.prepare(`INSERT INTO sinalizacao (sala, de_id, tipo, dados) VALUES (?,?,?,?)`).bind(b.sala, b.de_id, b.tipo, typeof b.dados==='string' ? b.dados : JSON.stringify(b.dados)).run();
+      return Response.json({ ok: true }, { headers: cors });
+    }
+    // GET /api/sinalizacao?sala=xxx&depois_de=0 -> mensagens novas da sala (polling)
+    if (url.pathname === '/api/sinalizacao' && request.method === 'GET') {
+      const sala = url.searchParams.get('sala') || '';
+      const depois = parseInt(url.searchParams.get('depois_de') || '0');
+      const { results } = await env.DB.prepare(`SELECT * FROM sinalizacao WHERE sala=? AND id>? ORDER BY id ASC LIMIT 50`).bind(sala, depois).all();
+      return Response.json(results, { headers: cors });
+    }
+    return new Response('ImobChat API online — /api/imoveis', { headers: cors });
+  }
+};
