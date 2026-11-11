@@ -29,7 +29,9 @@
 <meta name="theme-color" content="#075E54">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="logo-imobchat.png">
-<link rel="apple-touch-icon" href="logo-imobchat.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="ImobChat">
@@ -168,7 +170,7 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
       <div class="flex-1 min-w-0"><p class="font-bold truncate" x-text="'@'+anuncianteAtual.slug"></p><p class="text-[12px] text-white/80">imobchat.com.br/corretor/<span x-text="anuncianteAtual.slug"></span></p></div>
     </template>
     <template x-if="view==='login'"><div class="flex-1"><p class="font-bold">👤 Login do Usuário</p><p class="text-[12px] text-white/80">Entre com seu e-mail para anunciar</p></div></template>
-    <template x-if="view==='master'"><div class="flex-1"><p class="font-bold">🔐 Painel Master • Só Dono</p><p class="text-[12px] text-white/80" x-text="masterLogado ? 'Logado: ' + adminEmailDono : 'Acesso restrito ao dono'"></p></div></template>
+    <template x-if="view==='master'"><div class="flex-1"><p class="font-bold">🔐 Painel Master • Só Dono</p><p class="text-[12px] text-white/80" x-text="masterLogado ? 'Logado como dono' : 'Acesso restrito ao dono'"></p></div></template>
     <template x-if="view==='admin'"><div class="flex-1"><p class="font-bold">Painel do Anunciante</p><p class="text-[12px] text-white/80">Jean Aguiar • <span x-text="meuPlanoLabel()"></span></p></div></template>
     <template x-if="view==='planos'"><div class="flex-1"><p class="font-bold">Planos & Mercado Pago</p><p class="text-[12px] text-white/80">Ative Prata ou Ouro em segundos</p></div></template>
     <template x-if="view==='checkout'"><div class="flex-1"><p class="font-bold">Checkout Seguro</p><p class="text-[12px] text-white/80">Mercado Pago • Pix ou Cartão</p></div></template>
@@ -299,7 +301,13 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
     </div>
   </div>
 
-  <div id="catalogo" class="p-3">
+  <!-- CATÁLOGO: só Prata/Ouro. Free = sem catálogo -->
+  <div x-show="anuncianteAtual.plano==='free'" class="mx-3 mt-3 bg-gray-100 rounded-2xl p-4 text-center">
+    <p class="font-bold text-[14px]">Catálogo bloqueado no Free</p>
+    <p class="text-[12px] text-gray-500 mt-1">Perfil Free mostra foto, WhatsApp, descrição e site. Catálogo completo e capa são só no Prata e Ouro.</p>
+    <button @click="view='planos'" class="mt-2 bg-waDark text-white font-bold px-4 py-2 rounded-full text-[13px]">Desbloquear catálogo</button>
+  </div>
+  <div id="catalogo" x-show="anuncianteAtual.plano!=='free'" class="p-3">
     <h3 class="font-extrabold px-1 pt-3 pb-2">Catálogo de <span x-text="anuncianteAtual.nome.split(' ')[0]"></span> • <span x-text="meusImoveis(anuncianteAtual.id).length"></span> imóveis</h3>
     <div class="grid grid-cols-2 gap-3">
       <template x-for="im in meusImoveis(anuncianteAtual.id)" :key="im.id">
@@ -396,19 +404,53 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
     </div>
     <div class="bg-white rounded-2xl p-5 shadow-sm space-y-3">
       <div x-show="!usuarioLogado">
-        <label class="text-[12px] font-bold block">Seu e-mail</label>
+        <!-- ABRIR CONTA: Nome de usuário + E-mail + Senha -->
+        <div x-show="loginCadastro" class="bg-emerald-50 border border-emerald-100 rounded-xl p-3 mb-1">
+          <p class="font-bold text-[13px]">Abrir conta — é rápido:</p>
+          <p class="text-[12px] text-gray-600 mt-0.5">1. Nome de usuário • 2. E-mail • 3. Senha. Depois você completa seu perfil.</p>
+        </div>
+        <label x-show="loginCadastro" class="text-[12px] font-bold block">Nome de usuário</label>
+        <input x-show="loginCadastro" x-model="cadastroNomeUsuario" placeholder="Ex: joao.corretor" class="w-full border rounded-xl px-3 py-3 mt-1 text-[14px] outline-none focus:border-waGreen">
+        <label class="text-[12px] font-bold block mt-3">Seu e-mail (não aparece para ninguém)</label>
         <input x-model="loginEmail" type="email" placeholder="Ex: seuemail@gmail.com" class="w-full border rounded-xl px-3 py-3 mt-1 text-[14px] outline-none focus:border-waGreen">
+        <p class="text-[11px] text-gray-400 mt-1">🔒 Seu e-mail é só para entrar. Não aparece no perfil, nem para outros usuários.</p>
         <label class="text-[12px] font-bold block mt-3">Senha</label>
         <input x-model="loginSenha" type="password" placeholder="Sua senha" class="w-full border rounded-xl px-3 py-3 mt-1 text-[14px] outline-none focus:border-waGreen">
         <p x-show="loginErro" class="text-[13px] font-bold text-red-600 bg-red-50 rounded-xl p-2.5 mt-3" x-text="loginErro"></p>
-        <button @click="entrarUsuario()" class="w-full bg-waDark text-white font-bold py-3 rounded-full mt-4">👤 Entrar</button>
+        <button @click="entrarUsuario()" class="w-full bg-waDark text-white font-bold py-3 rounded-full mt-4" x-text="loginCadastro ? '✅ Abrir minha conta' : '👤 Entrar'"></button>
         <button @click="loginCadastro=!loginCadastro" class="w-full bg-gray-100 text-gray-700 font-bold py-2.5 rounded-full mt-2 text-[13px]" x-text="loginCadastro ? 'Já tenho conta • Entrar' : 'Não tenho conta • Cadastrar'"></button>
-        <p x-show="loginCadastro" class="text-[12px] text-gray-500 text-center mt-2">Cadastro: digite seu e-mail + senha e clique em Entrar. Na próxima vez, use o mesmo e-mail e senha.</p>
+        <p x-show="loginCadastro" class="text-[12px] text-gray-500 text-center mt-2">Ao abrir conta, você vai para preencher seu perfil: foto, WhatsApp, descrição e site.</p>
         <p class="text-[11px] text-gray-400 text-center mt-3">Seu e-mail fica salvo só no seu celular. O dono tem um painel separado (Painel Master).</p>
+      </div>
+      <!-- COMPLETAR PERFIL: aparece quando abre conta -->
+      <div x-show="usuarioLogado" class="bg-white rounded-2xl p-5 shadow-sm mt-3 text-left">
+        <p class="font-extrabold text-[15px]">✏️ Meu perfil</p>
+        <p class="text-[12px] text-gray-500 mt-0.5">Preencha seu perfil. O que aparece para todo mundo: nome de usuário, foto, WhatsApp, descrição e site. E-mail <b>não</b> aparece.</p>
+        <label class="text-[12px] font-bold block mt-3">Nome de usuário</label>
+        <input x-model="nomeUsuario" placeholder="Ex: joao.corretor" class="w-full border rounded-xl px-3 py-2.5 mt-1 text-[14px]">
+        <label class="text-[12px] font-bold block mt-3">📸 Foto de perfil</label>
+        <div class="flex items-center gap-3 mt-1">
+          <img :src="usuarioFoto || perfilForm.foto" class="w-16 h-16 rounded-full object-cover border-2 border-emerald-100">
+          <label class="flex-1 bg-waGreen text-white font-bold text-[12px] text-center py-2.5 rounded-xl cursor-pointer">Enviar foto <input type="file" accept="image/*" @change="onFotoPerfilChange($event)" class="hidden"></label>
+        </div>
+        <label class="text-[12px] font-bold block mt-3">📱 Número do WhatsApp</label>
+        <input x-model="perfilWhatsapp" placeholder="Ex: 5511999991111 (só números, com DDD)" class="w-full border rounded-xl px-3 py-2.5 mt-1 text-[14px]">
+        <p class="text-[11px] text-emerald-600 mt-1" x-show="perfilWhatsapp">No seu perfil vai aparecer: <b>💬 Chamar no WhatsApp</b> → <span x-text="'wa.me/' + perfilWhatsapp"></span></p>
+        <label class="text-[12px] font-bold block mt-3">📝 Descrição</label>
+        <textarea x-model="perfilDescricao" rows="2" placeholder="Ex: Corretor em São Paulo, especialista em Vila Mariana..." class="w-full border rounded-xl px-3 py-2.5 mt-1 text-[14px]"></textarea>
+        <label class="text-[12px] font-bold block mt-3">🌐 Link de algum site</label>
+        <input x-model="perfilSite" placeholder="Ex: https://meusite.com.br ou Instagram" class="w-full border rounded-xl px-3 py-2.5 mt-1 text-[14px]">
+        <button @click="salvarPerfilCompleto()" class="w-full bg-waGreen text-white font-bold py-3 rounded-full mt-4">💾 Salvar meu perfil</button>
+        <div x-show="nomeUsuario && perfilWhatsapp" class="mt-3 bg-[#DCF8C6] rounded-xl p-3">
+          <p class="font-bold text-[13px]">Prévia do seu perfil:</p>
+          <p class="text-[13px] mt-1"><b x-text="'@' + nomeUsuario"></b> • <span x-text="perfilDescricao"></span></p>
+          <p class="text-[12px] text-waGreen font-bold mt-1">💬 Chamar no WhatsApp → wa.me/<span x-text="perfilWhatsapp"></span></p>
+          <p class="text-[12px] text-blue-600" x-show="perfilSite" x-text="perfilSite"></p>
+        </div>
       </div>
       <div x-show="usuarioLogado" class="text-center">
         <img :src="usuarioFoto || perfilForm.foto" class="w-20 h-20 rounded-full object-cover mx-auto border-4 border-emerald-100">
-        <p class="font-bold mt-2" x-text="usuarioEmail"></p>
+        <p class="font-bold mt-2" x-text="'@' + (nomeUsuario || 'usuario')"></p><p class="text-[11px] text-gray-400">E-mail oculto • Só você vê</p>
         <p class="text-[12px] text-emerald-600 font-bold">✅ Logado</p>
         <button @click="view='admin'" class="w-full bg-waGreen text-white font-bold py-3 rounded-full mt-3">Ir para meu Painel →</button>
         <button @click="sairUsuario()" class="w-full bg-gray-100 text-gray-700 font-bold py-2.5 rounded-full mt-2 text-[13px]">Sair</button>
@@ -583,7 +625,7 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
 
       <button x-show="!adminEmailDono" @click="cadastrarEmailDono()" class="w-full bg-waDark text-white font-bold py-3 rounded-full mt-4">✅ Cadastrar meu e-mail e entrar</button>
       <button x-show="adminEmailDono" @click="entrarMaster()" class="w-full bg-waDark text-white font-bold py-3 rounded-full mt-4">🔐 Entrar no Painel Master</button>
-      <p x-show="adminEmailDono" class="text-[12px] text-gray-500 text-center mt-2">E-mail do dono cadastrado: <b x-text="adminEmailDono"></b></p>
+      <p x-show="adminEmailDono" class="text-[12px] text-gray-500 text-center mt-2">✅ Conta do dono já cadastrada neste celular.</p>
       <button @click="view='admin'" class="w-full bg-gray-100 text-gray-700 font-bold py-2.5 rounded-full mt-2 text-[13px]">← Voltar para Painel do Anunciante</button>
     </div>
 
@@ -591,7 +633,7 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
     <div x-show="masterLogado" class="space-y-3">
       <div class="bg-[#111b21] text-white rounded-2xl p-4 flex items-center gap-3">
         <span class="text-3xl">👑</span>
-        <div class="flex-1 min-w-0"><p class="font-extrabold">Painel Master • Dono</p><p class="text-[12px] text-white/70 truncate" x-text="adminEmailDono"></p></div>
+        <div class="flex-1 min-w-0"><p class="font-extrabold">Painel Master • Dono</p><p class="text-[12px] text-white/70">Conta do dono • Acesso privado</p></div>
         <button @click="sairMaster()" class="bg-white/15 px-3 py-2 rounded-full text-[12px] font-bold">Sair</button>
       </div>
 
@@ -763,6 +805,11 @@ meuPlano:'free', botImovelId:'me-1',
     // ===== LOGIN DO USUÁRIO (corretor) + FOTO DE PERFIL =====
     usuarioLogado: (localStorage.getItem('imobchat_usuario_logado')==='1'),
     usuarioEmail: (localStorage.getItem('imobchat_usuario_email') || ''),
+    nomeUsuario: (localStorage.getItem('imobchat_nome_usuario') || ''),
+    cadastroNomeUsuario:'', cadastroWhatsapp:'', cadastroDescricao:'', cadastroSite:'', cadastroFoto:'',
+    perfilWhatsapp: (localStorage.getItem('imobchat_whatsapp') || ''),
+    perfilDescricao: (localStorage.getItem('imobchat_descricao') || ''),
+    perfilSite: (localStorage.getItem('imobchat_site') || ''),
     usuarioFoto: (localStorage.getItem('imobchat_usuario_foto') || ''),
     loginEmail:'', loginSenha:'', loginErro:'', loginCadastro:false, loginEnviando:false,
     // ===== PAINEL MASTER - SÓ O DONO COM O E-MAIL CADASTRADO =====
@@ -1102,12 +1149,12 @@ this.toast('🎉 Webhook Mercado Pago confirmado! Plano '+this.checkoutPlano.toU
       localStorage.setItem('imobchat_admin_senha', senha);
       this.adminEmailDono = email; this.masterSenhaDono = senha;
       this.masterLogado = true; this.masterErro=''; this.masterMsg='✅ Seu e-mail de dono foi cadastrado. Só ele entra aqui.';
-      this.toast('✅ Painel Master liberado só para ' + email);
+      this.toast('✅ Painel Master liberado só para você.');
     },
     entrarMaster(){
       const email = (this.masterEmailInput||'').trim().toLowerCase();
       const senha = (this.masterSenhaInput||'').trim();
-      if(email !== this.adminEmailDono){ this.masterErro='⛔ Acesso negado. Esse e-mail não é o do dono. Só ' + this.adminEmailDono + ' entra aqui.'; return; }
+      if(email !== this.adminEmailDono){ this.masterErro='⛔ Acesso negado.'; return; }
       if(senha !== this.masterSenhaDono){ this.masterErro='⛔ Senha errada. Tente de novo.'; return; }
       this.masterLogado = true; this.masterErro='';
       this.toast('👑 Bem-vindo, dono! Painel Master aberto.');
@@ -1122,9 +1169,27 @@ this.toast('🎉 Webhook Mercado Pago confirmado! Plano '+this.checkoutPlano.toU
       try{ await fetch(this.apiBase + '/api/admin/liberar-plano', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({anunciante_id: u.id, slug: u.slug, plano})}); }catch(e){}
     },
     // ===== LOGIN DO USUÁRIO + UPLOAD FOTO =====
+    salvarPerfilCompleto(){
+      const nome = (this.nomeUsuario||'').trim();
+      const whats = (this.perfilWhatsapp||'').replace(/[^0-9]/g,'');
+      if(!nome){ this.toast('Coloque seu nome de usuário.'); return; }
+      if(!whats || whats.length<10){ this.toast('Coloque seu WhatsApp com DDD, só números.'); return; }
+      localStorage.setItem('imobchat_nome_usuario', nome);
+      localStorage.setItem('imobchat_whatsapp', whats);
+      localStorage.setItem('imobchat_descricao', this.perfilDescricao||'');
+      localStorage.setItem('imobchat_site', this.perfilSite||'');
+      // Atualiza o anunciante 'me' para aparecer no perfil público
+      const me = this.anunciantes.find(a=>a.id==='me');
+      if(me){ me.nome = nome; me.slug = nome.toLowerCase().replace(/[^a-z0-9]/g,'.'); me.whatsapp = whats; me.bio = this.perfilDescricao||me.bio; }
+      if(this.perfilSite){ this.perfilForm.link1 = this.perfilSite; }
+      this.perfilWhatsapp = whats;
+      this.toast('✅ Perfil salvo! Seu WhatsApp já virou link no seu perfil.');
+      this.view='admin';
+    },
     entrarUsuario(){
       const email = (this.loginEmail||'').trim().toLowerCase();
       const senha = (this.loginSenha||'').trim();
+      if(this.loginCadastro && !(this.cadastroNomeUsuario||'').trim()){ this.loginErro='Coloque seu nome de usuário.'; return; }
       if(!email || !email.includes('@')){ this.loginErro='Digite seu e-mail certinho, com @.'; return; }
       if(!senha || senha.length<4){ this.loginErro='Senha com pelo menos 4 letras.'; return; }
       const emailSalvo = localStorage.getItem('imobchat_usuario_email');
@@ -1134,6 +1199,11 @@ this.toast('🎉 Webhook Mercado Pago confirmado! Plano '+this.checkoutPlano.toU
       // Cadastro novo ou login ok
       localStorage.setItem('imobchat_usuario_email', email);
       localStorage.setItem('imobchat_usuario_senha', senha);
+      if(this.loginCadastro && this.cadastroNomeUsuario){
+        const nomeU = this.cadastroNomeUsuario.trim().toLowerCase().replace(/\s+/g,'.');
+        localStorage.setItem('imobchat_nome_usuario', nomeU);
+        this.nomeUsuario = nomeU;
+      }
       localStorage.setItem('imobchat_usuario_logado', '1');
       this.usuarioEmail = email; this.usuarioLogado = true; this.loginErro='';
       const fotoSalva = localStorage.getItem('imobchat_usuario_foto');
