@@ -505,6 +505,8 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
 </main>
 
 
+<!-- ÁUDIO DO TOQUE - arquivo que o Jean mandou, toca quando chama -->
+<audio id="toqueChamadaAudio" src="toque-chamada.oga" loop preload="auto" style="display:none"></audio>
 <!-- ================= MODAL DE CHAMADA - TELEFONE / CÂMERA / MICROFONE ================= -->
 <div x-show="chamadaAtiva" x-cloak class="fixed inset-0 z-[100] bg-[#0b141a] flex flex-col text-white" style="display:none">
   <div class="flex items-center justify-between px-4 py-3">
@@ -516,7 +518,7 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
   </div>
   <div class="mx-3 bg-white/10 rounded-2xl px-3 py-2.5">
     <div class="flex items-center justify-center gap-2">
-      <p class="text-[12px] font-bold text-center">🎵 Tocando: <span x-text="musicaToque"></span></p>
+      <p class="text-[12px] font-bold text-center">🎵 Tocando: <span x-text="musicaToque==='seu-audio' ? 'Seu áudio' : musicaToque"></span></p>
       <button @click="trocarMusicaToque()" class="bg-white text-black px-2.5 py-1 rounded-full text-[11px] font-bold">Trocar música</button>
       <button @click="pararToque()" class="bg-white/20 px-2.5 py-1 rounded-full text-[11px] font-bold">🔇 Silenciar</button>
     </div>
@@ -560,7 +562,7 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
 <script>
 function imobChat(){
 return {
-view:'home', chamadaAtiva:false, salaChamada:'', linkChamada:'', visitanteId:'', peer:null, sinalUltimoId:0, chamadaTocando:null, _pollSinal:null, _pollPendentes:null, musicaToque:'classico', _toqueCtx:null, _toqueTimer:null, _toqueOsc:null, apiBase: (localStorage.getItem('imobchat_api_url') || 'https://imobchat-api.seu-subdominio.workers.dev'), gravandoAudio:false, tempoAudio:'00:00', _audioTimer:null, _audioSeg:0, _mediaRecorder:null, _audioChunks:[], tipoChamada:'audio', chamadaStatus:'Chamando...', tempoChamada:'00:00', mutado:false, cameraLigada:true, _callTimer:null, _callStream:null, _callSeg:0, abaAdmin:'imoveis', busca:'', filtro:'', textoChat:'', digitando:false,
+view:'home', chamadaAtiva:false, salaChamada:'', linkChamada:'', visitanteId:'', peer:null, sinalUltimoId:0, chamadaTocando:null, _pollSinal:null, _pollPendentes:null, musicaToque:'seu-audio', _toqueCtx:null, _toqueTimer:null, _toqueOsc:null, apiBase: (localStorage.getItem('imobchat_api_url') || 'https://imobchat-api.seu-subdominio.workers.dev'), gravandoAudio:false, tempoAudio:'00:00', _audioTimer:null, _audioSeg:0, _mediaRecorder:null, _audioChunks:[], tipoChamada:'audio', chamadaStatus:'Chamando...', tempoChamada:'00:00', mutado:false, cameraLigada:true, _callTimer:null, _callStream:null, _callSeg:0, abaAdmin:'imoveis', busca:'', filtro:'', textoChat:'', digitando:false,
 meuPlano:'free', botImovelId:'me-1',
 checkoutPlano:'prata', metodo:'pix', pagando:false, pagamentoOk:false, toastMsg:'',
 novo:{titulo:'',preco:'',bairro:'',tipo:'Venda',quartos:2,area:60,foto:'',descricao:''},
@@ -809,6 +811,16 @@ this.toast('🎉 Webhook Mercado Pago confirmado! Plano '+this.checkoutPlano.toU
     // Sem arquivo externo: gera o som direto no celular com Web Audio
     iniciarToque(tipo){
       this.pararToque();
+      // 1) Toca o ÁUDIO QUE O JEAN MANDOU como toque principal
+      if(this.musicaToque==='seu-audio'){
+        const el = document.getElementById('toqueChamadaAudio');
+        if(el){
+          el.currentTime = 0; el.loop = true; el.volume = 0.9;
+          el.play().catch(()=>{});
+          return;
+        }
+      }
+      // 2) Se não for o seu áudio, usa as musiquinhas geradas (classico/alegre/suave)
       try{
         const ctx = new (window.AudioContext || window.webkitAudioContext)();
         this._toqueCtx = ctx;
@@ -837,11 +849,13 @@ this.toast('🎉 Webhook Mercado Pago confirmado! Plano '+this.checkoutPlano.toU
       }catch(e){ console.log('toque offline', e); }
     },
     pararToque(){
+      const el = document.getElementById('toqueChamadaAudio');
+      if(el){ try{ el.pause(); el.currentTime = 0; }catch(e){} }
       if(this._toqueTimer){ clearInterval(this._toqueTimer); this._toqueTimer=null; }
       if(this._toqueCtx){ try{ this._toqueCtx.close(); }catch(e){} this._toqueCtx=null; }
     },
     trocarMusicaToque(){
-      const lista = ['classico','alegre','suave'];
+      const lista = ['seu-audio','classico','alegre','suave'];
       const idx = lista.indexOf(this.musicaToque);
       this.musicaToque = lista[(idx+1)%lista.length];
       this.toast('🎵 Música do toque: ' + this.musicaToque);
