@@ -124,7 +124,7 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
       <p class="text-[12px] text-white/85 flex items-center gap-1"><span class="w-2 h-2 bg-emerald-400 rounded-full inline-block"></span> 🟢 Online • responde na hora</p>
     </div>
     <button @click="view='planos'" class="bg-white/15 hover:bg-white/25 px-2.5 py-1.5 rounded-full text-[12px] font-semibold">✨ Planos</button>
-    <button @click="view='admin'" class="w-9 h-9 rounded-full bg-white/15 flex items-center justify-center text-lg">👤</button>
+    <button @click="view = usuarioLogado ? 'admin' : 'login'" class="w-9 h-9 rounded-full bg-white/15 flex items-center justify-center text-lg relative">👤<span x-show="!usuarioLogado" class="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-waDark"></span></button>
   </div>
   <div class="px-3 pb-3">
     <div class="bg-white rounded-full flex items-center gap-2 px-3 py-2">
@@ -167,6 +167,7 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
     <template x-if="view==='perfil' && anuncianteAtual">
       <div class="flex-1 min-w-0"><p class="font-bold truncate" x-text="'@'+anuncianteAtual.slug"></p><p class="text-[12px] text-white/80">imobchat.com.br/corretor/<span x-text="anuncianteAtual.slug"></span></p></div>
     </template>
+    <template x-if="view==='login'"><div class="flex-1"><p class="font-bold">👤 Login do Usuário</p><p class="text-[12px] text-white/80">Entre com seu e-mail para anunciar</p></div></template>
     <template x-if="view==='master'"><div class="flex-1"><p class="font-bold">🔐 Painel Master • Só Dono</p><p class="text-[12px] text-white/80" x-text="masterLogado ? 'Logado: ' + adminEmailDono : 'Acesso restrito ao dono'"></p></div></template>
     <template x-if="view==='admin'"><div class="flex-1"><p class="font-bold">Painel do Anunciante</p><p class="text-[12px] text-white/80">Jean Aguiar • <span x-text="meuPlanoLabel()"></span></p></div></template>
     <template x-if="view==='planos'"><div class="flex-1"><p class="font-bold">Planos & Mercado Pago</p><p class="text-[12px] text-white/80">Ative Prata ou Ouro em segundos</p></div></template>
@@ -385,9 +386,48 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
   </button>
 </section>
 
+<!-- ================= LOGIN DO USUÁRIO ================= -->
+<section x-show="view==='login'" class="fade bg-[#f0f2f5] min-h-full">
+  <div class="p-4 space-y-3">
+    <div class="bg-white rounded-2xl p-5 shadow-sm text-center">
+      <img src="logo-imobchat.png" class="w-[64px] h-[64px] mx-auto rounded-2xl object-contain bg-[#075E54]/5" alt="ImobChat">
+      <p class="font-extrabold text-[18px] mt-2">Entrar no ImobChat</p>
+      <p class="text-[13px] text-gray-500 mt-1">Corretor, entre com seu e-mail para anunciar, trocar foto de perfil e gerenciar seus imóveis.</p>
+    </div>
+    <div class="bg-white rounded-2xl p-5 shadow-sm space-y-3">
+      <div x-show="!usuarioLogado">
+        <label class="text-[12px] font-bold block">Seu e-mail</label>
+        <input x-model="loginEmail" type="email" placeholder="Ex: seuemail@gmail.com" class="w-full border rounded-xl px-3 py-3 mt-1 text-[14px] outline-none focus:border-waGreen">
+        <label class="text-[12px] font-bold block mt-3">Senha</label>
+        <input x-model="loginSenha" type="password" placeholder="Sua senha" class="w-full border rounded-xl px-3 py-3 mt-1 text-[14px] outline-none focus:border-waGreen">
+        <p x-show="loginErro" class="text-[13px] font-bold text-red-600 bg-red-50 rounded-xl p-2.5 mt-3" x-text="loginErro"></p>
+        <button @click="entrarUsuario()" class="w-full bg-waDark text-white font-bold py-3 rounded-full mt-4">👤 Entrar</button>
+        <button @click="loginCadastro=!loginCadastro" class="w-full bg-gray-100 text-gray-700 font-bold py-2.5 rounded-full mt-2 text-[13px]" x-text="loginCadastro ? 'Já tenho conta • Entrar' : 'Não tenho conta • Cadastrar'"></button>
+        <p x-show="loginCadastro" class="text-[12px] text-gray-500 text-center mt-2">Cadastro: digite seu e-mail + senha e clique em Entrar. Na próxima vez, use o mesmo e-mail e senha.</p>
+        <p class="text-[11px] text-gray-400 text-center mt-3">Seu e-mail fica salvo só no seu celular. O dono tem um painel separado (Painel Master).</p>
+      </div>
+      <div x-show="usuarioLogado" class="text-center">
+        <img :src="usuarioFoto || perfilForm.foto" class="w-20 h-20 rounded-full object-cover mx-auto border-4 border-emerald-100">
+        <p class="font-bold mt-2" x-text="usuarioEmail"></p>
+        <p class="text-[12px] text-emerald-600 font-bold">✅ Logado</p>
+        <button @click="view='admin'" class="w-full bg-waGreen text-white font-bold py-3 rounded-full mt-3">Ir para meu Painel →</button>
+        <button @click="sairUsuario()" class="w-full bg-gray-100 text-gray-700 font-bold py-2.5 rounded-full mt-2 text-[13px]">Sair</button>
+      </div>
+    </div>
+  </div>
+</section>
+
 <!-- ================= ADMIN ================= -->
 <section x-show="view==='admin'" class="fade bg-[#f0f2f5] min-h-full">
   <div class="p-3 space-y-3">
+    <!-- SE NÃO ESTÁ LOGADO, PEDE LOGIN -->
+    <div x-show="!usuarioLogado" class="bg-white rounded-2xl p-5 shadow-sm text-center">
+      <p class="text-3xl">🔒</p>
+      <p class="font-extrabold text-[16px] mt-1">Faça login para ver seu painel</p>
+      <p class="text-[13px] text-gray-500 mt-1">Só o usuário logado com seu e-mail vê seus imóveis, sua foto e suas métricas.</p>
+      <button @click="view='login'" class="w-full bg-waDark text-white font-bold py-3 rounded-full mt-3">👤 Fazer Login</button>
+    </div>
+    <div x-show="usuarioLogado">
     <!-- BOTÃO PAINEL MASTER - SÓ DONO -->
     <button @click="view='master'" class="w-full bg-[#111b21] text-white font-bold py-3 rounded-2xl flex items-center justify-center gap-2 shadow-md">
       <span>🔐</span> Painel Master • Só Dono • Liberar Planos e Ver Métricas <span>→</span>
@@ -424,7 +464,18 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
       <input x-model="novo.titulo" placeholder="Ex: Apto 2 quartos Vila Mariana" class="w-full border rounded-xl px-3 py-2.5 text-[14px] outline-none focus:border-waGreen">
       <div class="grid grid-cols-2 gap-2"><input x-model="novo.preco" type="number" placeholder="Preço R$" class="border rounded-xl px-3 py-2.5"><input x-model="novo.bairro" placeholder="Bairro" class="border rounded-xl px-3 py-2.5"></div>
       <div class="grid grid-cols-3 gap-2"><select x-model="novo.tipo" class="border rounded-xl px-2 py-2.5 text-[13px]"><option>Venda</option><option>Aluguel</option></select><input x-model="novo.quartos" type="number" placeholder="Quartos" class="border rounded-xl px-3 py-2.5"><input x-model="novo.area" type="number" placeholder="Área m²" class="border rounded-xl px-3 py-2.5"></div>
-      <input x-model="novo.foto" placeholder="Foto (URL R2) — ex: https://pub.../foto.jpg" class="w-full border rounded-xl px-3 py-2.5 text-[13px]">
+      <!-- FOTO DO IMÓVEL: OURO = upload arquivo / PRATA = só link -->
+      <div x-show="meuPlano==='ouro'" class="bg-amber-50 border border-amber-200 rounded-xl p-3">
+        <p class="text-[12px] font-bold text-amber-800">⭐ OURO • Upload de imagens liberado</p>
+        <label class="block bg-amber-400 text-amber-950 font-bold text-[13px] text-center py-2.5 rounded-xl cursor-pointer mt-2">📸 Enviar foto do celular / computador <input type="file" accept="image/*" multiple @change="onFotoImovelChange($event)" class="hidden"></label>
+        <p class="text-[11px] text-gray-500 mt-1">Ou cole um link abaixo, se preferir:</p>
+      </div>
+      <div x-show="meuPlano!=='ouro'" class="bg-slate-50 border border-slate-200 rounded-xl p-3">
+        <p class="text-[12px] font-bold text-slate-700">🔗 PRATA / FREE • Só link da imagem</p>
+        <p class="text-[11px] text-gray-500 mt-1">Cole o link da foto do imóvel. Upload direto de arquivo é só no plano OURO.</p>
+        <button @click="view='planos'" class="mt-2 bg-waDark text-white font-bold px-3 py-1.5 rounded-full text-[12px]">⬆️ Assinar Ouro para liberar upload</button>
+      </div>
+      <input x-model="novo.foto" placeholder="Foto (link) — ex: https://pub.../foto.jpg" class="w-full border rounded-xl px-3 py-2.5 text-[13px]">
       <img x-show="novo.foto" :src="novo.foto" class="w-full h-36 object-cover rounded-xl">
       <textarea x-model="novo.descricao" placeholder="Descrição completa do imóvel..." rows="3" class="w-full border rounded-xl px-3 py-2.5 text-[14px]"></textarea>
       <button @click="publicarImovel()" class="w-full bg-waGreen text-white font-bold py-3 rounded-full">🚀 Publicar anúncio (FIFO)</button>
@@ -453,7 +504,24 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
       <div class="bg-white rounded-2xl p-4 shadow-sm relative overflow-hidden">
         <div x-show="meuPlano==='free'" class="absolute inset-0 z-10 bg-white/70 backdrop-blur-[1px] flex flex-col items-center justify-center text-center p-4"><p class="text-2xl">🔒</p><p class="font-bold">Capa bloqueada no Free</p><p class="text-[12px] text-gray-600 mt-1">Assine Prata ou Ouro para ter capa personalizada, links extras e botão de WhatsApp no perfil.</p><button @click="view='planos'" class="mt-2 bg-waDark text-white font-bold px-4 py-2 rounded-full text-[13px]">Desbloquear com Prata • R$ 29,90</button></div>
         <p class="font-bold">🖼️ Perfil & Capa <span x-show="meuPlano!=='free'" class="text-[11px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">DESBLOQUEADO</span></p>
-        <label class="text-[12px] font-semibold mt-3 block">Foto de perfil (circular — todos os planos)</label><input x-model="perfilForm.foto" class="w-full border rounded-xl px-3 py-2.5 mt-1 text-[13px]">
+        <label class="text-[12px] font-semibold mt-3 block">📸 Foto de perfil</label>
+        <div class="flex items-center gap-3 mt-1">
+          <img :src="usuarioFoto || perfilForm.foto" class="w-16 h-16 rounded-full object-cover border-2 border-emerald-100 shrink-0">
+          <div class="flex-1">
+            <!-- OURO: pode enviar arquivo do celular / computador -->
+            <div x-show="meuPlano==='ouro'">
+              <label class="block bg-amber-400 text-amber-950 font-bold text-[12px] text-center py-2.5 rounded-xl cursor-pointer">⭐ OURO • Enviar foto do celular <input type="file" accept="image/*" @change="onFotoPerfilChange($event)" class="hidden"></label>
+              <p class="text-[11px] text-gray-500 mt-1">Ou cole um link abaixo:</p>
+            </div>
+            <!-- PRATA / FREE: só link da imagem -->
+            <div x-show="meuPlano!=='ouro'">
+              <p class="text-[11px] bg-slate-100 text-slate-700 font-bold px-2.5 py-1.5 rounded-lg">🔗 PRATA / FREE • Só link da imagem • Upload direto só no OURO</p>
+              <p class="text-[11px] text-gray-500 mt-1">Cole o link da sua foto. Para enviar arquivo direto, assine Ouro.</p>
+            </div>
+          </div>
+        </div>
+        <input x-model="perfilForm.foto" placeholder="Link da foto — ex: https://.../foto.jpg" class="w-full border rounded-xl px-3 py-2.5 mt-2 text-[13px]">
+        <button @click="salvarFotoPerfil()" class="w-full bg-waGreen text-white font-bold py-2.5 rounded-full mt-2 text-[13px]">💾 Salvar foto de perfil</button>
         <label class="text-[12px] font-semibold mt-3 block">Bio / Descrição</label><textarea x-model="perfilForm.bio" rows="3" class="w-full border rounded-xl px-3 py-2.5 mt-1 text-[14px]"></textarea>
         <label class="text-[12px] font-semibold mt-3 block">Capa do perfil (Prata/Ouro)</label><input x-model="perfilForm.capa" :disabled="meuPlano==='free'" class="w-full border rounded-xl px-3 py-2.5 mt-1 text-[13px] disabled:bg-gray-100">
         <img x-show="perfilForm.capa" :src="perfilForm.capa" class="w-full h-32 object-cover rounded-xl mt-2">
@@ -485,6 +553,7 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
         </div>
         <div class="bg-white rounded-2xl p-4 shadow-sm"><p class="font-bold text-[14px] mb-2">Top imóveis por cliques</p><template x-for="im in meusImoveis('me').slice(0,3)" :key="im.id"><div class="flex items-center gap-2 py-1.5 border-b last:border-0"><img :src="im.foto" class="w-10 h-10 rounded-lg object-cover"><p class="flex-1 text-[12.5px] font-semibold truncate" x-text="im.titulo"></p><span class="text-[12px] font-bold text-waGreen">128 cliques</span></div></template></div>
       </div>
+    </div>
     </div>
   </div>
 </section>
@@ -678,7 +747,7 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
   <button @click="view='home'; busca=''; $nextTick(()=>document.querySelector('input[placeholder*=\'Buscar\']')?.focus())" class="flex flex-col items-center gap-0.5 flex-1"><span class="text-[20px]">🔍</span><span class="text-[10px] text-gray-400">Buscar</span></button>
   <button @click="view='admin'; abaAdmin='novo'" class="flex flex-col items-center -mt-6 flex-1"><span class="w-12 h-12 bg-waGreen text-white rounded-full flex items-center justify-center text-[22px] shadow-lg border-4 border-white">+</span><span class="text-[10px] text-gray-500 font-semibold">Anunciar</span></button>
   <button @click="view='planos'" class="flex flex-col items-center gap-0.5 flex-1"><span class="text-[20px]">⭐</span><span :class="view==='planos'?'text-waGreen font-bold':'text-gray-400'" class="text-[10px]">Planos</span></button>
-  <button @click="view='admin'" class="flex flex-col items-center gap-0.5 flex-1"><span class="text-[20px]">👤</span><span :class="view==='admin'?'text-waGreen font-bold':'text-gray-400'" class="text-[10px]">Painel</span></button>
+  <button @click="view = usuarioLogado ? 'admin' : 'login'" class="flex flex-col items-center gap-0.5 flex-1"><span class="text-[20px]">👤</span><span :class="(view==='admin'||view==='login')?'text-waGreen font-bold':'text-gray-400'" class="text-[10px]">Painel</span></button>
 </nav>
 
 <!-- Toast -->
@@ -691,6 +760,11 @@ function imobChat(){
 return {
 view:'home', chamadaAtiva:false, salaChamada:'', linkChamada:'', visitanteId:'', promptInstalar:null, baixando:false, corretorOcupado:false, corretorOcupadoSala:null, peer:null, sinalUltimoId:0, chamadaTocando:null, _pollSinal:null, _pollPendentes:null, musicaToque:'seu-audio', _toqueCtx:null, _toqueTimer:null, _toqueOsc:null, apiBase: (localStorage.getItem('imobchat_api_url') || 'https://imobchat-api.seu-subdominio.workers.dev'), gravandoAudio:false, tempoAudio:'00:00', _audioTimer:null, _audioSeg:0, _mediaRecorder:null, _audioChunks:[], tipoChamada:'audio', chamadaStatus:'Chamando...', tempoChamada:'00:00', mutado:false, cameraLigada:true, _callTimer:null, _callStream:null, _callSeg:0, abaAdmin:'imoveis', busca:'', filtro:'', textoChat:'', digitando:false,
 meuPlano:'free', botImovelId:'me-1',
+    // ===== LOGIN DO USUÁRIO (corretor) + FOTO DE PERFIL =====
+    usuarioLogado: (localStorage.getItem('imobchat_usuario_logado')==='1'),
+    usuarioEmail: (localStorage.getItem('imobchat_usuario_email') || ''),
+    usuarioFoto: (localStorage.getItem('imobchat_usuario_foto') || ''),
+    loginEmail:'', loginSenha:'', loginErro:'', loginCadastro:false, loginEnviando:false,
     // ===== PAINEL MASTER - SÓ O DONO COM O E-MAIL CADASTRADO =====
     masterEmailInput:'', masterSenhaInput:'', masterLogado:false, masterAba:'usuarios', masterErro:'', masterMsg:'',
     adminEmailDono: (localStorage.getItem('imobchat_admin_email') || ''),
@@ -1046,6 +1120,68 @@ this.toast('🎉 Webhook Mercado Pago confirmado! Plano '+this.checkoutPlano.toU
       this.toast(this.masterMsg);
       // Tenta salvar no D1 via Workers também
       try{ await fetch(this.apiBase + '/api/admin/liberar-plano', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({anunciante_id: u.id, slug: u.slug, plano})}); }catch(e){}
+    },
+    // ===== LOGIN DO USUÁRIO + UPLOAD FOTO =====
+    entrarUsuario(){
+      const email = (this.loginEmail||'').trim().toLowerCase();
+      const senha = (this.loginSenha||'').trim();
+      if(!email || !email.includes('@')){ this.loginErro='Digite seu e-mail certinho, com @.'; return; }
+      if(!senha || senha.length<4){ this.loginErro='Senha com pelo menos 4 letras.'; return; }
+      const emailSalvo = localStorage.getItem('imobchat_usuario_email');
+      const senhaSalva = localStorage.getItem('imobchat_usuario_senha');
+      if(emailSalvo && emailSalvo!==email){ this.loginErro='Esse e-mail não é o cadastrado neste celular. Use ' + emailSalvo + ' ou saia e cadastre outro.'; return; }
+      if(emailSalvo && senhaSalva && senha!==senhaSalva){ this.loginErro='Senha errada. Tente de novo.'; return; }
+      // Cadastro novo ou login ok
+      localStorage.setItem('imobchat_usuario_email', email);
+      localStorage.setItem('imobchat_usuario_senha', senha);
+      localStorage.setItem('imobchat_usuario_logado', '1');
+      this.usuarioEmail = email; this.usuarioLogado = true; this.loginErro='';
+      const fotoSalva = localStorage.getItem('imobchat_usuario_foto');
+      if(fotoSalva) this.usuarioFoto = fotoSalva;
+      this.toast('✅ Logado como ' + email);
+      this.view='admin';
+    },
+    sairUsuario(){
+      localStorage.setItem('imobchat_usuario_logado','0');
+      this.usuarioLogado=false; this.loginEmail=''; this.loginSenha='';
+      this.toast('Você saiu. Até logo!');
+      this.view='login';
+    },
+    async onFotoPerfilChange(e){
+      const file = e.target.files && e.target.files[0];
+      if(!file) return;
+      if(this.meuPlano!=='ouro'){ this.toast('🔗 Upload direto só no OURO. No PRATA, cole o link da foto.'); return; }
+      const url = await this.uploadParaR2(file, 'perfil-'+Date.now()+'-'+file.name);
+      if(url){ this.perfilForm.foto=url; this.usuarioFoto=url; localStorage.setItem('imobchat_usuario_foto', url); this.toast('✅ Foto de perfil enviada!'); }
+    },
+    async onFotoImovelChange(e){
+      const files = e.target.files;
+      if(!files || files.length===0) return;
+      if(this.meuPlano!=='ouro'){ this.toast('🔗 Upload direto só no OURO. No PRATA, cole o link da imagem.'); return; }
+      const file = files[0];
+      const url = await this.uploadParaR2(file, 'imovel-'+Date.now()+'-'+file.name);
+      if(url){ this.novo.foto=url; this.toast('✅ Foto do imóvel enviada!'); }
+    },
+    async uploadParaR2(file, nome){
+      try{
+        // Converte para base64 e tenta enviar para o Workers/R2
+        const base64 = await new Promise((res,rej)=>{ const r=new FileReader(); r.onload=()=>res(r.result); r.onerror=rej; r.readAsDataURL(file); });
+        try{
+          const resp = await fetch(this.apiBase + '/api/upload', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({nome, base64, tipo: file.type||'image/jpeg'})});
+          const d = await resp.json();
+          if(d.ok && d.url && !d.url.includes('undefined')) return d.url;
+        }catch(e){}
+        // Fallback: usa a foto local mesmo (funciona sem R2)
+        return base64;
+      }catch(e){ this.toast('Não consegui enviar a foto. Tente um arquivo menor.'); return null; }
+    },
+    salvarFotoPerfil(){
+      const url = (this.perfilForm.foto||'').trim();
+      if(!url){ this.toast('Cole o link da foto ou envie o arquivo (Ouro).'); return; }
+      this.usuarioFoto=url; localStorage.setItem('imobchat_usuario_foto', url);
+      // Atualiza também o anunciante 'me'
+      const me = this.anunciantes.find(a=>a.id==='me'); if(me) me.foto=url;
+      this.toast('✅ Foto de perfil salva!');
     },
     async baixarApp(){
       this.baixando = true;
