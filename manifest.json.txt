@@ -1,0 +1,23 @@
+{
+  "name": "ImobChat - Seu próximo lar começa numa conversa.",
+  "short_name": "ImobChat",
+  "description": "Seu próximo lar começa numa conversa. Converse, ligue e visite por vídeo.",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#075E54",
+  "theme_color": "#075E54",
+  "icons": [
+    {
+      "src": "logo-imobchat.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "logo-imobchat.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
