@@ -298,7 +298,7 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
   <!-- CHAMADA ENTRANTE: aparece para quem vai atender, sem misturar com outras ligações -->
   <div x-show="chamadaTocando" class="mx-3 mt-3 bg-[#075E54] text-white rounded-2xl p-3 flex items-center gap-3 shadow-lg">
     <span class="w-11 h-11 rounded-full bg-white flex items-center justify-center text-[20px] animate-pulse" x-text="chamadaTocando?.tipo==='video' ? '📹' : '📞'"></span>
-    <div class="flex-1 min-w-0"><p class="font-bold text-[14px] leading-tight" x-text="'📞 ' + (chamadaTocando?.de_nome || 'Alguém') + ' está ligando'"></p><p class="text-[12px] text-white/80" x-text="'Imóvel: ' + (imovelAtual?.titulo || '') + ' • Sala: ' + (chamadaTocando?.sala || '')"></p></div>
+    <div class="flex-1 min-w-0"><p class="font-bold text-[14px] leading-tight" x-text="'🎵📞 ' + (chamadaTocando?.de_nome || 'Alguém') + ' está ligando'"></p><p class="text-[12px] text-white/80" x-text="'Imóvel: ' + (imovelAtual?.titulo || '') + ' • Sala: ' + (chamadaTocando?.sala || '')"></p></div>
     <button @click="aceitarChamada()" class="bg-[#25D366] px-3.5 py-2 rounded-full font-bold text-[13px] shrink-0">Aceitar</button>
     <button @click="recusarChamada()" class="bg-red-500 px-3.5 py-2 rounded-full font-bold text-[13px] shrink-0">Recusar</button>
   </div>
@@ -515,7 +515,12 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
     <span class="px-2.5 py-1 rounded-full text-[11px] font-bold" :class="tipoChamada==='video' ? 'bg-[#2563EB]' : tipoChamada==='mic' ? 'bg-[#FF8A00]' : 'bg-[#25D366]'" x-text="tipoChamada==='video' ? '📹 VÍDEO' : tipoChamada==='mic' ? '🎙️ MICROFONE' : '📞 TELEFONE'"></span>
   </div>
   <div class="mx-3 bg-white/10 rounded-2xl px-3 py-2.5">
-    <p class="text-[12px] font-bold text-center">Sala: <span x-text="salaChamada"></span> • Funciona dos 2 lados</p>
+    <div class="flex items-center justify-center gap-2">
+      <p class="text-[12px] font-bold text-center">🎵 Tocando: <span x-text="musicaToque"></span></p>
+      <button @click="trocarMusicaToque()" class="bg-white text-black px-2.5 py-1 rounded-full text-[11px] font-bold">Trocar música</button>
+      <button @click="pararToque()" class="bg-white/20 px-2.5 py-1 rounded-full text-[11px] font-bold">🔇 Silenciar</button>
+    </div>
+    <p class="text-[12px] font-bold text-center mt-1">Sala: <span x-text="salaChamada"></span> • Funciona dos 2 lados</p>
     <p class="text-[11px] text-white/70 text-center">Quem clicar no mesmo imóvel entra na mesma sala. Envie o link para a outra pessoa entrar.</p>
     <div class="flex gap-2 mt-2">
       <button @click="copiarLinkSala()" class="flex-1 bg-white text-black font-bold py-2 rounded-full text-[12px]">🔗 Copiar link da sala</button>
@@ -555,7 +560,7 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
 <script>
 function imobChat(){
 return {
-view:'home', chamadaAtiva:false, salaChamada:'', linkChamada:'', visitanteId:'', peer:null, sinalUltimoId:0, chamadaTocando:null, _pollSinal:null, _pollPendentes:null, apiBase: (localStorage.getItem('imobchat_api_url') || 'https://imobchat-api.seu-subdominio.workers.dev'), gravandoAudio:false, tempoAudio:'00:00', _audioTimer:null, _audioSeg:0, _mediaRecorder:null, _audioChunks:[], tipoChamada:'audio', chamadaStatus:'Chamando...', tempoChamada:'00:00', mutado:false, cameraLigada:true, _callTimer:null, _callStream:null, _callSeg:0, abaAdmin:'imoveis', busca:'', filtro:'', textoChat:'', digitando:false,
+view:'home', chamadaAtiva:false, salaChamada:'', linkChamada:'', visitanteId:'', peer:null, sinalUltimoId:0, chamadaTocando:null, _pollSinal:null, _pollPendentes:null, musicaToque:'classico', _toqueCtx:null, _toqueTimer:null, _toqueOsc:null, apiBase: (localStorage.getItem('imobchat_api_url') || 'https://imobchat-api.seu-subdominio.workers.dev'), gravandoAudio:false, tempoAudio:'00:00', _audioTimer:null, _audioSeg:0, _mediaRecorder:null, _audioChunks:[], tipoChamada:'audio', chamadaStatus:'Chamando...', tempoChamada:'00:00', mutado:false, cameraLigada:true, _callTimer:null, _callStream:null, _callSeg:0, abaAdmin:'imoveis', busca:'', filtro:'', textoChat:'', digitando:false,
 meuPlano:'free', botImovelId:'me-1',
 checkoutPlano:'prata', metodo:'pix', pagando:false, pagamentoOk:false, toastMsg:'',
 novo:{titulo:'',preco:'',bairro:'',tipo:'Venda',quartos:2,area:60,foto:'',descricao:''},
@@ -700,6 +705,7 @@ this.toast('🎉 Webhook Mercado Pago confirmado! Plano '+this.checkoutPlano.toU
       this.cameraLigada = tipo==='video';
       this._callSeg = 0; this.tempoChamada='00:00'; this.sinalUltimoId=0;
       this.chamadaStatus = tipo==='video' ? 'Chamando por vídeo... Aguardando a outra pessoa atender' : 'Chamando por voz... Aguardando a outra pessoa atender';
+      this.iniciarToque('saida');
       clearInterval(this._callTimer);
       this._callTimer = setInterval(()=>{ this._callSeg++; const mm=String(Math.floor(this._callSeg/60)).padStart(2,'0'); const ss=String(this._callSeg%60).padStart(2,'0'); this.tempoChamada=mm+':'+ss; },1000);
       // 1) Avisa o Workers que tem uma sala tocando (para a outra pessoa ver "estão ligando")
@@ -711,7 +717,7 @@ this.toast('🎉 Webhook Mercado Pago confirmado! Plano '+this.checkoutPlano.toU
         this._callStream = stream;
         stream.getTracks().forEach(tr=>this.peer.addTrack(tr, stream));
         this.$nextTick(()=>{ const lv=document.getElementById('localVideo'); if(lv) lv.srcObject=stream; });
-        this.peer.ontrack = (e)=>{ const rv=document.getElementById('remoteVideo'); if(rv) rv.srcObject=e.streams[0]; this.chamadaStatus='Em chamada • Conectado'; };
+        this.peer.ontrack = (e)=>{ this.pararToque(); const rv=document.getElementById('remoteVideo'); if(rv) rv.srcObject=e.streams[0]; this.chamadaStatus='Em chamada • Conectado'; };
         this.peer.onicecandidate = (e)=>{ if(e.candidate) this.enviarSinal('ice', e.candidate); };
         const offer = await this.peer.createOffer();
         await this.peer.setLocalDescription(offer);
@@ -759,6 +765,7 @@ this.toast('🎉 Webhook Mercado Pago confirmado! Plano '+this.checkoutPlano.toU
       this.chamadaTocando = null;
       this.chamadaAtiva = true;
       if(!this.visitanteId){ this.visitanteId = localStorage.getItem('imobchat_visitante') || ('v-' + Math.random().toString(36).slice(2,8)); localStorage.setItem('imobchat_visitante', this.visitanteId); }
+      this.pararToque();
       this.chamadaStatus='Atendendo... Conectando...';
       this.sinalUltimoId=0;
       try{
@@ -768,7 +775,7 @@ this.toast('🎉 Webhook Mercado Pago confirmado! Plano '+this.checkoutPlano.toU
         this._callStream = stream;
         stream.getTracks().forEach(tr=>this.peer.addTrack(tr, stream));
         this.$nextTick(()=>{ const lv=document.getElementById('localVideo'); if(lv) lv.srcObject=stream; });
-        this.peer.ontrack = (e)=>{ const rv=document.getElementById('remoteVideo'); if(rv) rv.srcObject=e.streams[0]; this.chamadaStatus='Em chamada • Conectado'; };
+        this.peer.ontrack = (e)=>{ this.pararToque(); const rv=document.getElementById('remoteVideo'); if(rv) rv.srcObject=e.streams[0]; this.chamadaStatus='Em chamada • Conectado'; };
         this.peer.onicecandidate = (e)=>{ if(e.candidate) this.enviarSinal('ice', e.candidate); };
         this.pollSinal();
       }catch(e){ this.chamadaStatus='Permita microfone/câmera para atender'; }
@@ -778,6 +785,7 @@ this.toast('🎉 Webhook Mercado Pago confirmado! Plano '+this.checkoutPlano.toU
         try{ await fetch(this.apiBase + '/api/salas/atender', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({sala:this.chamadaTocando.sala, status:'recusada'})}); }catch(e){}
         await this.enviarSinalChamada(this.chamadaTocando.sala, 'fim');
       }
+      this.pararToque();
       this.chamadaTocando=null; this.toast('Chamada recusada');
     },
     async enviarSinalChamada(sala, tipo){
@@ -791,13 +799,57 @@ this.toast('🎉 Webhook Mercado Pago confirmado! Plano '+this.checkoutPlano.toU
         try{
           const r = await fetch(this.apiBase + '/api/salas/pendentes?imovel_id=' + this.imovelAtual.id + '&de_id=' + this.visitanteId);
           const lista = await r.json();
-          if(lista && lista.length>0) this.chamadaTocando = lista[0];
+          if(lista && lista.length>0){ this.chamadaTocando = lista[0]; this.iniciarToque('entrada'); }
         }catch(e){}
       }, 3000);
     },
 
 
+    // ===== MÚSICA DE TOQUE - toca quando está chamando / quando chega ligação =====
+    // Sem arquivo externo: gera o som direto no celular com Web Audio
+    iniciarToque(tipo){
+      this.pararToque();
+      try{
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        this._toqueCtx = ctx;
+        let i = 0;
+        const melodias = {
+          classico: [440, 440, 0, 440, 440, 0],
+          alegre: [523, 659, 784, 659, 523, 0],
+          suave: [392, 440, 494, 440, 392, 0]
+        };
+        const notas = melodias[this.musicaToque] || melodias.classico;
+        const tocarNota = ()=>{
+          if(!this._toqueCtx) return;
+          const freq = notas[i % notas.length];
+          i++;
+          if(freq===0) return;
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = tipo==='entrada' ? 'sine' : 'triangle';
+          osc.frequency.value = freq;
+          gain.gain.value = 0.12;
+          osc.connect(gain); gain.connect(ctx.destination);
+          osc.start(); osc.stop(ctx.currentTime + 0.35);
+        };
+        tocarNota();
+        this._toqueTimer = setInterval(tocarNota, tipo==='entrada' ? 500 : 800);
+      }catch(e){ console.log('toque offline', e); }
+    },
+    pararToque(){
+      if(this._toqueTimer){ clearInterval(this._toqueTimer); this._toqueTimer=null; }
+      if(this._toqueCtx){ try{ this._toqueCtx.close(); }catch(e){} this._toqueCtx=null; }
+    },
+    trocarMusicaToque(){
+      const lista = ['classico','alegre','suave'];
+      const idx = lista.indexOf(this.musicaToque);
+      this.musicaToque = lista[(idx+1)%lista.length];
+      this.toast('🎵 Música do toque: ' + this.musicaToque);
+      this.iniciarToque('entrada');
+      setTimeout(()=>this.pararToque(), 1200);
+    },
     async encerrarChamada(){
+      this.pararToque();
       clearInterval(this._callTimer); clearInterval(this._pollSinal);
       if(this.salaChamada) await this.enviarSinalChamada(this.salaChamada, 'fim');
       if(this.salaChamada){ try{ await fetch(this.apiBase + '/api/salas/atender', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({sala:this.salaChamada, status:'encerrada'})}); }catch(e){} }
