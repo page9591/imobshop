@@ -27,6 +27,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>ImobChat — Marketplace Imobiliário Conversacional</title>
 <meta name="theme-color" content="#075E54">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="logo-imobchat.png">
+<link rel="apple-touch-icon" href="logo-imobchat.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="ImobChat">
 <meta name="description" content="ImobChat — Encontre seu imóvel conversando. Chatbot por anúncio, catálogo do corretor e WhatsApp direto.">
 <script src="https://cdn.tailwindcss.com"></script>
 <script>
@@ -175,6 +181,17 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
   <div class="px-3 pt-3 flex items-center justify-between">
     <div><h1 class="font-extrabold text-[18px] leading-tight">Imóveis perto de você</h1><p class="text-[12px] text-gray-500"><span x-text="imoveisFiltrados.length"></span> anúncios • ordem de chegada (FIFO) • São Paulo</p></div>
     <span class="bg-emerald-50 text-emerald-700 text-[11px] font-bold px-2 py-1 rounded-full border border-emerald-100">⚡ NOVOS HOJE</span>
+  </div>
+
+  <!-- HERO: LOGO + SLOGAN + BOTÃO BAIXAR -->
+  <div class="mx-3 mt-3 bg-[#075E54] rounded-2xl p-4 flex items-center gap-3 text-white shadow-md">
+    <img src="logo-imobchat.png" class="w-[58px] h-[58px] rounded-2xl object-contain bg-white/10 shrink-0" alt="ImobChat">
+    <div class="flex-1 min-w-0">
+      <p class="font-extrabold text-[18px] leading-tight">ImobChat</p>
+      <p class="text-[13px] leading-snug text-white/90 font-medium">Seu próximo lar começa numa conversa.</p>
+      <p class="text-[11px] text-white/70">Converse, ligue e visite por vídeo — sem cadastro.</p>
+    </div>
+    <button @click="baixarApp()" :disabled="baixando" class="bg-[#25D366] text-white font-extrabold text-[12.5px] px-4 py-2.5 rounded-full shadow-lg shrink-0 active:scale-95 transition" x-text="baixando ? '⬇️ Baixando...' : '⬇️ BAIXAR'"></button>
   </div>
 
   <!-- Banner Ana -->
@@ -569,7 +586,7 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
 <script>
 function imobChat(){
 return {
-view:'home', chamadaAtiva:false, salaChamada:'', linkChamada:'', visitanteId:'', corretorOcupado:false, corretorOcupadoSala:null, peer:null, sinalUltimoId:0, chamadaTocando:null, _pollSinal:null, _pollPendentes:null, musicaToque:'seu-audio', _toqueCtx:null, _toqueTimer:null, _toqueOsc:null, apiBase: (localStorage.getItem('imobchat_api_url') || 'https://imobchat-api.seu-subdominio.workers.dev'), gravandoAudio:false, tempoAudio:'00:00', _audioTimer:null, _audioSeg:0, _mediaRecorder:null, _audioChunks:[], tipoChamada:'audio', chamadaStatus:'Chamando...', tempoChamada:'00:00', mutado:false, cameraLigada:true, _callTimer:null, _callStream:null, _callSeg:0, abaAdmin:'imoveis', busca:'', filtro:'', textoChat:'', digitando:false,
+view:'home', chamadaAtiva:false, salaChamada:'', linkChamada:'', visitanteId:'', promptInstalar:null, baixando:false, corretorOcupado:false, corretorOcupadoSala:null, peer:null, sinalUltimoId:0, chamadaTocando:null, _pollSinal:null, _pollPendentes:null, musicaToque:'seu-audio', _toqueCtx:null, _toqueTimer:null, _toqueOsc:null, apiBase: (localStorage.getItem('imobchat_api_url') || 'https://imobchat-api.seu-subdominio.workers.dev'), gravandoAudio:false, tempoAudio:'00:00', _audioTimer:null, _audioSeg:0, _mediaRecorder:null, _audioChunks:[], tipoChamada:'audio', chamadaStatus:'Chamando...', tempoChamada:'00:00', mutado:false, cameraLigada:true, _callTimer:null, _callStream:null, _callSeg:0, abaAdmin:'imoveis', busca:'', filtro:'', textoChat:'', digitando:false,
 meuPlano:'free', botImovelId:'me-1',
 checkoutPlano:'prata', metodo:'pix', pagando:false, pagamentoOk:false, toastMsg:'',
 novo:{titulo:'',preco:'',bairro:'',tipo:'Venda',quartos:2,area:60,foto:'',descricao:''},
@@ -615,6 +632,8 @@ abrirChat(im){
 this.imovelAtual=im; this.view='chat';
 if(!this.visitanteId){ this.visitanteId = localStorage.getItem('imobchat_visitante') || ('v-' + Math.random().toString(36).slice(2,8)); localStorage.setItem('imobchat_visitante', this.visitanteId); }
 this.verificarChamadasPendentes();
+if(window.__promptInstalar) this.promptInstalar = window.__promptInstalar;
+window.addEventListener('beforeinstallprompt', (e)=>{ e.preventDefault(); this.promptInstalar = e; });
 this.checarSeCorretorOcupado();
 setInterval(()=>{ if(this.view==='chat') this.checarSeCorretorOcupado(); }, 5000);
 // Se abriu com ?sala=xxx na URL, já mostra que tem chamada para entrar
@@ -892,6 +911,38 @@ this.toast('🎉 Webhook Mercado Pago confirmado! Plano '+this.checkoutPlano.toU
       this.iniciarToque('entrada');
       setTimeout(()=>this.pararToque(), 1200);
     },
+    async baixarApp(){
+      this.baixando = true;
+      this.toast('⬇️ Baixando ImobChat... Já vai aparecer na sua tela inicial!');
+      // Notificação do navegador
+      try{
+        if('Notification' in window){
+          if(Notification.permission==='default') await Notification.requestPermission();
+          if(Notification.permission==='granted') new Notification('ImobChat baixando...', {body:'Seu próximo lar começa numa conversa.', icon:'logo-imobchat.png'});
+        }
+      }catch(e){}
+      // Tenta abrir o instalar do navegador (PWA)
+      try{
+        if(this.promptInstalar){
+          this.promptInstalar.prompt();
+          const escolha = await this.promptInstalar.userChoice;
+          if(escolha.outcome==='accepted') this.toast('✅ ImobChat instalado! Procure o ícone na sua tela inicial.');
+          else this.toast('Tudo bem! Você pode baixar depois no botão BAIXAR.');
+          this.promptInstalar = null;
+        } else {
+          // Sem prompt do navegador: mostra como instalar + baixa o app como arquivo
+          const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+          if(isIOS) this.toast('No iPhone: toque em Compartilhar ⬆️ → Adicionar à Tela de Início');
+          else this.toast('No Android/Chrome: toque nos 3 pontinhos ⋮ → Adicionar à tela inicial / Instalar app');
+          // Baixa também o arquivo do app para garantir que "baixou"
+          const blob = new Blob([document.documentElement.outerHTML], {type:'text/html'});
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a'); a.href=url; a.download='imobchat.html'; document.body.appendChild(a); a.click(); a.remove();
+          setTimeout(()=>URL.revokeObjectURL(url), 2000);
+        }
+      }catch(e){ this.toast('Para baixar: Menu do navegador → Adicionar à tela inicial'); }
+      setTimeout(()=>{ this.baixando=false; }, 2500);
+    },
     async encerrarChamada(){
       this.pararToque();
       clearInterval(this._callTimer); clearInterval(this._pollSinal);
@@ -957,6 +1008,9 @@ this.toast('🎉 Webhook Mercado Pago confirmado! Plano '+this.checkoutPlano.toU
 toast(msg){this.toastMsg=msg; setTimeout(()=>this.toastMsg='',3200)}
 }
 }
+</script>
+<script>
+window.addEventListener('beforeinstallprompt', (e)=>{ e.preventDefault(); window.__promptInstalar = e; });
 </script>
 <script>(function(){var loc=location.href.replace(/#.*$/,"");var ATTR_NAMES=["data-product-id","data-productid","data-product_id","product-id","productid","product_id","data-source-entity-id","source-entity-id","source_entity_id","data-product","data-metadata","data-meta"];var DATASET_KEYS=["productId","productid","product_id","sourceEntityId","sourceentityid","source_entity_id","product","metadata","meta"];function readProductId(value){if(typeof value!=="string"||value.length===0)return null;if(/^[0-9]{6,}$/.test(value))return value;var match=value.match(/(?:product(?:_|-)?id|source(?:_|-)?entity(?:_|-)?id)["'=:\s]+([0-9]{6,})/i);return match?match[1]:null}function extractProductId(start){for(var node=start;node&&node!==document.body;node=node.parentElement){for(var i=0;i<ATTR_NAMES.length;i++){var attrValue=node.getAttribute&&node.getAttribute(ATTR_NAMES[i]);var attrProductId=readProductId(attrValue);if(attrProductId)return attrProductId}var dataset=node.dataset||null;if(dataset){for(var j=0;j<DATASET_KEYS.length;j++){var dataValue=dataset[DATASET_KEYS[j]];var dataProductId=readProductId(dataValue);if(dataProductId)return dataProductId}}}return null}function isInlineMediaSlotElement(node){return !!(node&&node.getAttribute&&node.getAttribute("data-clippy-inline-media-slot")!==null)}function findInlineMediaSlot(start){for(var node=start;node&&node!==document.body;node=node.parentElement){if(isInlineMediaSlotElement(node))return node}return null}function readInlineMediaUrl(node){if(!node)return null;return node.getAttribute&&((node.getAttribute("data-clippy-inline-media-url")||node.getAttribute("data-url")||node.getAttribute("data_url")))||node.href||null}function stripHash(url){return String(url).replace(/#.*$/,"")}function urlsMatch(a,b){if(!a||!b)return false;try{return stripHash(new URL(a,loc).href)===stripHash(new URL(b,loc).href)}catch(_){return stripHash(a)===stripHash(b)}}function isFirstPartyReelUrl(value){try{var url=new URL(value,loc);if(url.protocol!=="https:")return false;var host=url.hostname.toLowerCase();var supported=host==="instagram.com"||host.endsWith(".instagram.com")||host==="facebook.com"||host.endsWith(".facebook.com");return supported&&/\/reels?\//i.test(url.pathname)}catch(_){return false}}function isInlineMediaUrlClick(node,href){var slot=findInlineMediaSlot(node);if(!slot)return false;var slotUrl=readInlineMediaUrl(slot);if(slotUrl)return urlsMatch(href,slotUrl);return isFirstPartyReelUrl(href)}function findDataHref(start){for(var node=start;node&&node!==document.body;node=node.parentElement){if(node.getAttribute){var href=node.getAttribute("data-href")||node.getAttribute("data-url");if(href)return{href:href,node:node}}}return null}var nativeOpen=window.open;window.open=function(url){if(parent!==window&&typeof url==="string"&&/^https?:\/\//.test(url)){parent.postMessage({type:"ecto:usercontent-link-click",href:url},"*");return null}return nativeOpen?nativeOpen.apply(window,arguments):null};document.addEventListener("click",function(e){var target=e.target instanceof Element?e.target:null;if(!target)return;if(parent===window)return;var a=target.closest?target.closest("a[href]"):null;if(a&&a.href&&/^https?:\/\//.test(a.href)&&a.href.replace(/#.*$/,"")!==loc){if(isInlineMediaUrlClick(a,a.href))return;var productId=extractProductId(target)||extractProductId(a);if(productId){e.preventDefault();parent.postMessage({type:"ecto-artifact-link-click",productId:productId},"*");return}e.preventDefault();parent.postMessage({type:"ecto:usercontent-link-click",href:a.href},"*");return}var dataHref=findDataHref(target);if(dataHref&&/^https?:\/\//.test(dataHref.href)&&dataHref.href.replace(/#.*$/,"")!==loc){if(isInlineMediaUrlClick(dataHref.node,dataHref.href))return;e.preventDefault();parent.postMessage({type:"ecto:usercontent-link-click",href:dataHref.href},"*")}},true)})();</script><script>(function(){var FOCUS_TYPE="ecto:artifact-focus-request";var CLOSE_TYPE="ecto:artifact-close-request";function focusArtifactDocument(){var body=document.body;if(!body)return;try{window.focus();}catch(e){}if(!body.hasAttribute("tabindex"))body.setAttribute("tabindex","-1");try{body.focus({preventScroll:true});}catch(e){try{body.focus();}catch(e2){}}}window.addEventListener("message",function(event){if(event.source!==window.parent)return;var data=event.data;if(!data||typeof data!=="object"||data.type!==FOCUS_TYPE)return;if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded",focusArtifactDocument,{once:true});return;}focusArtifactDocument();});window.addEventListener("keydown",function(event){if(event.key!=="Escape")return;window.setTimeout(function(){if(event.defaultPrevented)return;window.parent.postMessage({type:CLOSE_TYPE},"*");},0);});})();</script></body>
 </html>
