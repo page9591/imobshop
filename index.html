@@ -295,6 +295,14 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
 
 <!-- ================= CHAT ================= -->
 <section x-show="view==='chat' && imovelAtual" class="fade flex flex-col chat-bg min-h-[calc(100dvh-56px)]">
+  <!-- CHAMADA ENTRANTE: aparece para quem vai atender, sem misturar com outras ligações -->
+  <div x-show="chamadaTocando" class="mx-3 mt-3 bg-[#075E54] text-white rounded-2xl p-3 flex items-center gap-3 shadow-lg">
+    <span class="w-11 h-11 rounded-full bg-white flex items-center justify-center text-[20px] animate-pulse" x-text="chamadaTocando?.tipo==='video' ? '📹' : '📞'"></span>
+    <div class="flex-1 min-w-0"><p class="font-bold text-[14px] leading-tight" x-text="'📞 ' + (chamadaTocando?.de_nome || 'Alguém') + ' está ligando'"></p><p class="text-[12px] text-white/80" x-text="'Imóvel: ' + (imovelAtual?.titulo || '') + ' • Sala: ' + (chamadaTocando?.sala || '')"></p></div>
+    <button @click="aceitarChamada()" class="bg-[#25D366] px-3.5 py-2 rounded-full font-bold text-[13px] shrink-0">Aceitar</button>
+    <button @click="recusarChamada()" class="bg-red-500 px-3.5 py-2 rounded-full font-bold text-[13px] shrink-0">Recusar</button>
+  </div>
+
   <!-- Card flutuante -->
   <div class="mx-3 mt-3 bg-white rounded-2xl shadow-md overflow-hidden flex">
     <img :src="imovelAtual.foto" class="w-[92px] h-[92px] object-cover" :alt="imovelAtual.titulo">
@@ -515,10 +523,13 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
     </div>
   </div>
   <div class="flex-1 relative bg-black mx-3 mt-2 rounded-3xl overflow-hidden min-h-[360px]">
-    <iframe id="jitsiFrame" :src="linkChamada" allow="camera; microphone; display-capture; fullscreen" allowfullscreen class="absolute inset-0 w-full h-full border-0 bg-black"></iframe>
+    <video id="remoteVideo" autoplay playsinline class="absolute inset-0 w-full h-full object-cover bg-black"></video>
+    <video id="localVideo" autoplay muted playsinline class="absolute bottom-3 right-3 w-[110px] h-[150px] object-cover rounded-2xl border-2 border-white shadow-lg bg-gray-800 z-10"></video>
+    <div class="absolute top-3 left-3 bg-black/60 px-2.5 py-1 rounded-full text-[11px] font-bold z-10" x-text="'Sala: ' + salaChamada"></div>
     <div class="absolute top-3 right-3 bg-red-500 text-white text-[11px] font-bold px-2.5 py-1 rounded-full flex items-center gap-1 z-10"><span class="w-2 h-2 bg-white rounded-full animate-ping"></span> <span x-text="tempoChamada"></span></div>
+    <div class="absolute bottom-3 left-3 bg-black/60 px-2.5 py-1 rounded-full text-[11px] font-bold z-10" x-text="chamadaStatus"></div>
   </div>
-  <p class="text-center text-[12px] text-white/60 px-6 mt-2">Chamada de verdade via sala • Se a outra pessoa não entrar, toque em WhatsApp.</p>
+  <p class="text-center text-[12px] text-white/60 px-6 mt-2">Ligação nativa ImobChat • Áudio/vídeo direto de pessoa pra pessoa • Sem app de terceiro</p>
   <div class="px-6 pt-4 pb-8 grid grid-cols-4 gap-3 max-w-[420px] w-full mx-auto">
     <button @click="toggleMute()" :class="mutado ? 'bg-white text-black' : 'bg-white/15'" class="h-[56px] rounded-full flex flex-col items-center justify-center text-[18px]"><span x-text="mutado ? '🔇' : '🎙️'"></span><span class="text-[10px] font-bold mt-0.5">Microfone</span></button>
     <button @click="toggleCamera()" :class="!cameraLigada ? 'bg-white text-black' : 'bg-white/15'" class="h-[56px] rounded-full flex flex-col items-center justify-center text-[18px]"><span x-text="cameraLigada ? '📹' : '🚫📹'"></span><span class="text-[10px] font-bold mt-0.5">Câmera</span></button>
@@ -544,7 +555,7 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
 <script>
 function imobChat(){
 return {
-view:'home', chamadaAtiva:false, salaChamada:'', linkChamada:'', gravandoAudio:false, tempoAudio:'00:00', _audioTimer:null, _audioSeg:0, _mediaRecorder:null, _audioChunks:[], tipoChamada:'audio', chamadaStatus:'Chamando...', tempoChamada:'00:00', mutado:false, cameraLigada:true, _callTimer:null, _callStream:null, _callSeg:0, abaAdmin:'imoveis', busca:'', filtro:'', textoChat:'', digitando:false,
+view:'home', chamadaAtiva:false, salaChamada:'', linkChamada:'', visitanteId:'', peer:null, sinalUltimoId:0, chamadaTocando:null, _pollSinal:null, _pollPendentes:null, apiBase: (localStorage.getItem('imobchat_api_url') || 'https://imobchat-api.seu-subdominio.workers.dev'), gravandoAudio:false, tempoAudio:'00:00', _audioTimer:null, _audioSeg:0, _mediaRecorder:null, _audioChunks:[], tipoChamada:'audio', chamadaStatus:'Chamando...', tempoChamada:'00:00', mutado:false, cameraLigada:true, _callTimer:null, _callStream:null, _callSeg:0, abaAdmin:'imoveis', busca:'', filtro:'', textoChat:'', digitando:false,
 meuPlano:'free', botImovelId:'me-1',
 checkoutPlano:'prata', metodo:'pix', pagando:false, pagamentoOk:false, toastMsg:'',
 novo:{titulo:'',preco:'',bairro:'',tipo:'Venda',quartos:2,area:60,foto:'',descricao:''},
@@ -588,6 +599,12 @@ formatPreco(v){return v>=10000?'R$ '+v.toLocaleString('pt-BR'):'R$ '+v.toLocaleS
 voltar(){if(this.view==='chat'&&this.anuncianteAtual){this.view='perfil';return} if(this.view==='perfil'){this.view='home';return} this.view='home'; window.scrollTo(0,0)},
 abrirChat(im){
 this.imovelAtual=im; this.view='chat';
+if(!this.visitanteId){ this.visitanteId = localStorage.getItem('imobchat_visitante') || ('v-' + Math.random().toString(36).slice(2,8)); localStorage.setItem('imobchat_visitante', this.visitanteId); }
+this.verificarChamadasPendentes();
+// Se abriu com ?sala=xxx na URL, já mostra que tem chamada para entrar
+const params = new URLSearchParams(window.location.search);
+const salaUrl = params.get('sala');
+if(salaUrl){ this.chamadaTocando = {sala: salaUrl, tipo: 'video', de_nome: 'Quem te ligou'}; }
 let an=this.anuncianteDo(im);
 this.mensagens=[
 {id:1,de:'bot',texto:`Olá! 👋 Sou o assistente de ${an.nome}.\n\nVi que você se interessou por:\n🏠 ${im.titulo}\n💰 ${this.formatPreco(im.preco)} • 📍 ${im.bairro}\n\nPergunte aqui embaixo ou toque em uma pergunta rápida. Respondo na hora!`,hora:this.horaAgora()},
@@ -668,36 +685,131 @@ this.toast('🎉 Webhook Mercado Pago confirmado! Plano '+this.checkoutPlano.toU
 },
 
     async iniciarChamada(tipo){
-      // SALA ÚNICA POR IMÓVEL: quem clicar no mesmo imóvel entra na MESMA sala.
-      // Funciona dos 2 lados: cliente -> corretor, corretor -> cliente, corretor -> corretor.
-      const slug = (this.anuncianteDo(this.imovelAtual)?.slug || 'corretor').replace(/[^a-z0-9-]/gi,'').toLowerCase();
-      const sala = 'ImobChat-' + this.imovelAtual.id + '-' + slug;
+      // ===== LIGAÇÃO NATIVA DENTRO DO IMOBCHAT - SEM APP DE TERCEIRO =====
+      // Cada ligação tem sala ÚNICA: call-IMOVEL-ANUNCIANTE-ALEATORIO
+      // João->Pedro: call-12-1-a9f3 | Maurício->Paula: call-18-5-b7k2 -> NÃO SE MISTURAM
+      if(!this.visitanteId){ this.visitanteId = localStorage.getItem('imobchat_visitante') || ('v-' + Math.random().toString(36).slice(2,8)); localStorage.setItem('imobchat_visitante', this.visitanteId); }
+      const an = this.anuncianteDo(this.imovelAtual);
+      const codigo = Math.random().toString(36).slice(2,6);
+      const sala = 'call-' + this.imovelAtual.id + '-' + (an?.id || '0') + '-' + codigo;
       this.salaChamada = sala;
-      const base = 'https://meet.jit.si/' + sala;
-      // Áudio: entra com câmera desligada. Vídeo: entra com câmera ligada.
-      this.linkChamada = tipo==='video' ? base + '#config.startWithAudioMuted=false&config.startWithVideoMuted=false' : base + '#config.startWithAudioMuted=false&config.startWithVideoMuted=true';
+      this.linkChamada = window.location.origin + window.location.pathname + '?sala=' + sala + '&imovel=' + this.imovelAtual.id;
       this.tipoChamada = tipo;
       this.chamadaAtiva = true;
       this.mutado = false;
       this.cameraLigada = tipo==='video';
-      this._callSeg = 0;
-      this.tempoChamada = '00:00';
-      this.chamadaStatus = tipo==='video' ? 'Sala de vídeo aberta • Envie o link para a outra pessoa entrar' : 'Sala de voz aberta • Envie o link para a outra pessoa entrar';
+      this._callSeg = 0; this.tempoChamada='00:00'; this.sinalUltimoId=0;
+      this.chamadaStatus = tipo==='video' ? 'Chamando por vídeo... Aguardando a outra pessoa atender' : 'Chamando por voz... Aguardando a outra pessoa atender';
       clearInterval(this._callTimer);
       this._callTimer = setInterval(()=>{ this._callSeg++; const mm=String(Math.floor(this._callSeg/60)).padStart(2,'0'); const ss=String(this._callSeg%60).padStart(2,'0'); this.tempoChamada=mm+':'+ss; },1000);
-      this.$nextTick(()=>{ const f=document.getElementById('jitsiFrame'); if(f) f.src = this.linkChamada; });
+      // 1) Avisa o Workers que tem uma sala tocando (para a outra pessoa ver "estão ligando")
+      try{ await fetch(this.apiBase + '/api/salas', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({sala, imovel_id:this.imovelAtual.id, anunciante_id:an?.id||null, de_id:this.visitanteId, de_nome:'Visitante', tipo})}); }catch(e){ console.log('salas offline, segue local', e); }
+      // 2) Cria conexão P2P direta (WebRTC) - áudio/vídeo vai de pessoa pra pessoa, não passa por servidor
+      try{
+        this.peer = new RTCPeerConnection({iceServers:[{urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun1.l.google.com:19302'}]});
+        const stream = await navigator.mediaDevices.getUserMedia({video: tipo==='video', audio:true});
+        this._callStream = stream;
+        stream.getTracks().forEach(tr=>this.peer.addTrack(tr, stream));
+        this.$nextTick(()=>{ const lv=document.getElementById('localVideo'); if(lv) lv.srcObject=stream; });
+        this.peer.ontrack = (e)=>{ const rv=document.getElementById('remoteVideo'); if(rv) rv.srcObject=e.streams[0]; this.chamadaStatus='Em chamada • Conectado'; };
+        this.peer.onicecandidate = (e)=>{ if(e.candidate) this.enviarSinal('ice', e.candidate); };
+        const offer = await this.peer.createOffer();
+        await this.peer.setLocalDescription(offer);
+        await this.enviarSinal('offer', offer);
+        this.pollSinal();
+      }catch(e){ this.chamadaStatus='Permita microfone/câmera para ligar • Toque em WhatsApp se preferir'; console.log(e); }
       this.registrarMetrica(this.imovelAtual?.id, 'chamada_'+tipo);
     },
+    async enviarSinal(tipo, dados){
+      try{ await fetch(this.apiBase + '/api/sinalizacao', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({sala:this.salaChamada, de_id:this.visitanteId, tipo, dados})}); }catch(e){ console.log('sinal offline', e); }
+    },
+    pollSinal(){
+      clearInterval(this._pollSinal);
+      this._pollSinal = setInterval(async ()=>{
+        if(!this.chamadaAtiva || !this.salaChamada) return;
+        try{
+          const r = await fetch(this.apiBase + '/api/sinalizacao?sala=' + encodeURIComponent(this.salaChamada) + '&depois_de=' + this.sinalUltimoId);
+          const msgs = await r.json();
+          for(const m of msgs){
+            this.sinalUltimoId = Math.max(this.sinalUltimoId, m.id);
+            if(m.de_id===this.visitanteId) continue;
+            const dados = typeof m.dados==='string' ? JSON.parse(m.dados) : m.dados;
+            if(m.tipo==='offer' && this.peer && !this.peer.currentRemoteDescription){
+              await this.peer.setRemoteDescription(new RTCSessionDescription(dados));
+              const answer = await this.peer.createAnswer();
+              await this.peer.setLocalDescription(answer);
+              await this.enviarSinal('answer', answer);
+            } else if(m.tipo==='answer' && this.peer && !this.peer.currentRemoteDescription){
+              await this.peer.setRemoteDescription(new RTCSessionDescription(dados));
+              this.chamadaStatus='Em chamada • Conectado';
+            } else if(m.tipo==='ice' && this.peer){
+              try{ await this.peer.addIceCandidate(new RTCIceCandidate(dados)); }catch(e){}
+            } else if(m.tipo==='fim'){
+              this.encerrarChamada();
+            }
+          }
+        }catch(e){}
+      }, 900);
+    },
+    async aceitarChamada(){
+      if(!this.chamadaTocando) return;
+      const info = this.chamadaTocando;
+      this.salaChamada = info.sala;
+      this.tipoChamada = info.tipo;
+      this.chamadaTocando = null;
+      this.chamadaAtiva = true;
+      if(!this.visitanteId){ this.visitanteId = localStorage.getItem('imobchat_visitante') || ('v-' + Math.random().toString(36).slice(2,8)); localStorage.setItem('imobchat_visitante', this.visitanteId); }
+      this.chamadaStatus='Atendendo... Conectando...';
+      this.sinalUltimoId=0;
+      try{
+        await fetch(this.apiBase + '/api/salas/atender', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({sala:info.sala, status:'atendida'})});
+        this.peer = new RTCPeerConnection({iceServers:[{urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun1.l.google.com:19302'}]});
+        const stream = await navigator.mediaDevices.getUserMedia({video: info.tipo==='video', audio:true});
+        this._callStream = stream;
+        stream.getTracks().forEach(tr=>this.peer.addTrack(tr, stream));
+        this.$nextTick(()=>{ const lv=document.getElementById('localVideo'); if(lv) lv.srcObject=stream; });
+        this.peer.ontrack = (e)=>{ const rv=document.getElementById('remoteVideo'); if(rv) rv.srcObject=e.streams[0]; this.chamadaStatus='Em chamada • Conectado'; };
+        this.peer.onicecandidate = (e)=>{ if(e.candidate) this.enviarSinal('ice', e.candidate); };
+        this.pollSinal();
+      }catch(e){ this.chamadaStatus='Permita microfone/câmera para atender'; }
+    },
+    async recusarChamada(){
+      if(this.chamadaTocando){
+        try{ await fetch(this.apiBase + '/api/salas/atender', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({sala:this.chamadaTocando.sala, status:'recusada'})}); }catch(e){}
+        await this.enviarSinalChamada(this.chamadaTocando.sala, 'fim');
+      }
+      this.chamadaTocando=null; this.toast('Chamada recusada');
+    },
+    async enviarSinalChamada(sala, tipo){
+      try{ await fetch(this.apiBase + '/api/sinalizacao', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({sala, de_id:this.visitanteId||'v', tipo, dados:{}})}); }catch(e){}
+    },
+    verificarChamadasPendentes(){
+      clearInterval(this._pollPendentes);
+      this._pollPendentes = setInterval(async ()=>{
+        if(!this.imovelAtual || this.chamadaAtiva || this.chamadaTocando) return;
+        if(!this.visitanteId){ this.visitanteId = localStorage.getItem('imobchat_visitante') || ('v-' + Math.random().toString(36).slice(2,8)); localStorage.setItem('imobchat_visitante', this.visitanteId); }
+        try{
+          const r = await fetch(this.apiBase + '/api/salas/pendentes?imovel_id=' + this.imovelAtual.id + '&de_id=' + this.visitanteId);
+          const lista = await r.json();
+          if(lista && lista.length>0) this.chamadaTocando = lista[0];
+        }catch(e){}
+      }, 3000);
+    },
 
-    encerrarChamada(){
-      clearInterval(this._callTimer);
+
+    async encerrarChamada(){
+      clearInterval(this._callTimer); clearInterval(this._pollSinal);
+      if(this.salaChamada) await this.enviarSinalChamada(this.salaChamada, 'fim');
+      if(this.salaChamada){ try{ await fetch(this.apiBase + '/api/salas/atender', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({sala:this.salaChamada, status:'encerrada'})}); }catch(e){} }
+      if(this.peer){ try{ this.peer.close(); }catch(e){} this.peer=null; }
       if(this._callStream){ try{ this._callStream.getTracks().forEach(tr=>tr.stop()); }catch(e){} this._callStream=null; }
-      const f=document.getElementById('jitsiFrame'); if(f) f.src='about:blank';
-      this.chamadaAtiva=false; this.linkChamada='';
+      const rv=document.getElementById('remoteVideo'); if(rv) rv.srcObject=null;
+      const lv=document.getElementById('localVideo'); if(lv) lv.srcObject=null;
+      this.chamadaAtiva=false; this.linkChamada=''; this.salaChamada='';
       this.toast('Chamada encerrada • O corretor recebeu seu contato');
     },
     copiarLinkSala(){
-      if(navigator.clipboard && this.linkChamada) navigator.clipboard.writeText(this.linkChamada).then(()=>this.toast('🔗 Link da sala copiado! Envie para a outra pessoa'));
+      if(navigator.clipboard && this.linkChamada) navigator.clipboard.writeText(this.linkChamada).then(()=>this.toast('🔗 Link da sala copiado! Envie para a outra pessoa entrar na mesma ligação'));
       else this.toast(this.linkChamada);
     },
     enviarLinkSalaWhatsApp(){
