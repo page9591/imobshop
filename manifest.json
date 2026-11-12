@@ -1,12 +1,12 @@
 {
-  "name": "ImobChat - Seu próximo lar começa numa conversa.",
-  "short_name": "ImobChat",
+  "name": "ChatImov - Seu próximo lar começa numa conversa.",
+  "short_name": "ChatImov",
   "description": "Seu próximo lar começa numa conversa. Converse, ligue e visite por vídeo.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#075E54",
-  "theme_color": "#075E54",
+  "background_color": "#B91C1C",
+  "theme_color": "#B91C1C",
   "icons": [
     {
       "src": "icon-192.png",
