@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- ImobChat-NOVO-2026-11-11-SALA-LIGAR-VIDEO-CORRIGIDO -->
+<!-- ChatImov-NOVO-2026-11-11-SALA-LIGAR-VIDEO-CORRIGIDO -->
 <html lang="pt-BR">
 <head><style>
 @font-face {
@@ -25,20 +25,20 @@
 </style>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>ImobChat — Marketplace Imobiliário Conversacional</title>
-<meta name="theme-color" content="#075E54">
+<title>ChatImov — Marketplace Imobiliário Conversacional</title>
+<meta name="theme-color" content="#B91C1C">
 <link rel="manifest" href="manifest.json">
-<link rel="icon" href="logo-imobchat.png">
+<link rel="icon" href="logo-chatimov.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="ImobChat">
-<meta name="description" content="ImobChat — Encontre seu imóvel conversando. Chatbot por anúncio, catálogo do corretor e WhatsApp direto.">
+<meta name="apple-mobile-web-app-title" content="ChatImov">
+<meta name="description" content="ChatImov — Encontre seu imóvel conversando. Chatbot por anúncio, catálogo do corretor e WhatsApp direto.">
 <script src="https://cdn.tailwindcss.com"></script>
 <script>
-tailwind.config={theme:{extend:{colors:{waDark:'#075E54',waGreen:'#128C7E',waLight:'#25D366',waChat:'#ECE5DD',waBubble:'#DCF8C6',waTeal:'#00A884'},fontFamily:{sans:['Inter','system-ui','sans-serif']}}}}
+tailwind.config={theme:{extend:{colors:{waDark:'#B91C1C',waGreen:'#128C7E',waLight:'#25D366',waChat:'#ECE5DD',waBubble:'#DCF8C6',waTeal:'#00A884'},fontFamily:{sans:['Inter','system-ui','sans-serif']}}}}
 </script>
 <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -57,12 +57,12 @@ html{scrollbar-width:none}::-webkit-scrollbar{display:none}
 </style>
 <!--
 ================================================================================
-IMOBCHAT — ARQUITETURA CLOUDFLARE (PRODUÇÃO)
+CHATIMOV — ARQUITETURA CLOUDFLARE (PRODUÇÃO)
 Hospedagem: Cloudflare Pages — repo: jeanaguiar636 / Branch: main / Build: index.html
 Banco: Cloudflare D1 (SQLite na borda) | Mídia: Cloudflare R2 (public bucket)
 Pagamentos: Mercado Pago (Assinaturas / Checkout) + Webhook -> Cloudflare Worker -> D1
 
---- D1 SCHEMA (rodar em: wrangler d1 execute imobchat-db --file=./schema.sql) ---
+--- D1 SCHEMA (rodar em: wrangler d1 execute chatimov-db --file=./schema.sql) ---
 CREATE TABLE IF NOT EXISTS anunciantes (
   id TEXT PRIMARY KEY, slug TEXT UNIQUE NOT NULL, nome TEXT NOT NULL,
   whatsapp TEXT NOT NULL, plano TEXT NOT NULL DEFAULT 'free' CHECK(plano IN ('free','prata','ouro')),
@@ -92,10 +92,10 @@ CREATE INDEX IF NOT EXISTS idx_imoveis_criado ON imoveis(criado_em ASC);
 CREATE INDEX IF NOT EXISTS idx_metricas_imovel ON metricas_cliques(imovel_id);
 
 --- wrangler.toml ---
-name = "imobchat"
+name = "chatimov"
 pages_build_output_dir = "."
-[[d1_databases]] binding="DB" database_name="imobchat-db" database_id="SEU_D1_ID"
-[[r2_buckets]] binding="R2" bucket_name="imobchat-fotos"
+[[d1_databases]] binding="DB" database_name="chatimov-db" database_id="SEU_D1_ID"
+[[r2_buckets]] binding="R2" bucket_name="chatimov-fotos"
 [vars] MP_ACCESS_TOKEN = "SEU_TOKEN_MP"  # usar Secrets: wrangler secret put MP_ACCESS_TOKEN
 
 --- R2 ---
@@ -112,17 +112,17 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
 -->
 </head>
 <body class="bg-[#0b141a] font-sans text-[#111b21] antialiased">
-<div x-data="imobChat()" x-init="init()" class="max-w-[430px] mx-auto min-h-[100dvh] bg-white relative shadow-2xl flex flex-col overflow-hidden">
+<div x-data="chatImov()" x-init="init()" class="max-w-[430px] mx-auto min-h-[100dvh] bg-white relative shadow-2xl flex flex-col overflow-hidden">
 
 <!-- ============ HEADER HOME ============ -->
 <header x-show="view==='home'" class="bg-waDark text-white sticky top-0 z-30">
   <div class="flex items-center gap-3 px-3 pt-3 pb-2">
     <div class="relative">
-      <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&q=80" class="w-10 h-10 rounded-full object-cover border-2 border-white/20" alt="Ana ImobChat">
+      <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&q=80" class="w-10 h-10 rounded-full object-cover border-2 border-white/20" alt="Ana ChatImov">
       <span class="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-waLight border-2 border-waDark rounded-full"></span>
     </div>
     <div class="flex-1 min-w-0">
-      <p class="font-bold leading-tight">Ana • ImobChat</p>
+      <p class="font-bold leading-tight">Ana • ChatImov</p>
       <p class="text-[12px] text-white/85 flex items-center gap-1"><span class="w-2 h-2 bg-emerald-400 rounded-full inline-block"></span> 🟢 Online • responde na hora</p>
     </div>
     <button @click="view='planos'" class="bg-white/15 hover:bg-white/25 px-2.5 py-1.5 rounded-full text-[12px] font-semibold">✨ Planos</button>
@@ -155,7 +155,7 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
         </div>
         <!-- TOPO: SÓ LIGAÇÃO DE ÁUDIO + LIGAÇÃO DE VÍDEO - MODELO NOVO BONITO (não é o cinza feio) -->
         <div class="flex items-center gap-1.5 shrink-0">
-          <button @click="iniciarChamada('audio')" title="Ligar para o corretor - Chamada de voz" style="background:#ffffff;color:#075E54;box-shadow:0 2px 10px rgba(0,0,0,.35);border:2px solid #25D366;" class="flex items-center gap-1 font-extrabold text-[11px] pl-1 pr-2.5 py-2 rounded-full active:scale-95 transition">
+          <button @click="iniciarChamada('audio')" title="Ligar para o corretor - Chamada de voz" style="background:#ffffff;color:#B91C1C;box-shadow:0 2px 10px rgba(0,0,0,.35);border:2px solid #25D366;" class="flex items-center gap-1 font-extrabold text-[11px] pl-1 pr-2.5 py-2 rounded-full active:scale-95 transition">
             <span style="background:#25D366;" class="w-[24px] h-[24px] rounded-full flex items-center justify-center text-[14px] leading-none">📞</span>
             LIGAR
           </button>
@@ -167,7 +167,7 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
       </div>
     </template>
     <template x-if="view==='perfil' && anuncianteAtual">
-      <div class="flex-1 min-w-0"><p class="font-bold truncate" x-text="'@'+anuncianteAtual.slug"></p><p class="text-[12px] text-white/80">imobchat.com.br/corretor/<span x-text="anuncianteAtual.slug"></span></p></div>
+      <div class="flex-1 min-w-0"><p class="font-bold truncate" x-text="'@'+anuncianteAtual.slug"></p><p class="text-[12px] text-white/80">chatimov.com.br/corretor/<span x-text="anuncianteAtual.slug"></span></p></div>
     </template>
     <template x-if="view==='login'"><div class="flex-1"><p class="font-bold">👤 Login do Usuário</p><p class="text-[12px] text-white/80">Entre com seu e-mail para anunciar</p></div></template>
     <template x-if="view==='master'"><div class="flex-1"><p class="font-bold">🔐 Painel Master • Só Dono</p><p class="text-[12px] text-white/80" x-text="masterLogado ? 'Logado como dono' : 'Acesso restrito ao dono'"></p></div></template>
@@ -188,10 +188,10 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
   </div>
 
   <!-- HERO: LOGO + SLOGAN + BOTÃO BAIXAR -->
-  <div class="mx-3 mt-3 bg-[#075E54] rounded-2xl p-4 flex items-center gap-3 text-white shadow-md">
-    <img src="logo-imobchat.png" class="w-[58px] h-[58px] rounded-2xl object-contain bg-white/10 shrink-0" alt="ImobChat">
+  <div class="mx-3 mt-3 bg-[#B91C1C] rounded-2xl p-4 flex items-center gap-3 text-white shadow-md">
+    <img src="logo-chatimov.png" class="w-[58px] h-[58px] rounded-2xl object-contain bg-white/10 shrink-0" alt="ChatImov">
     <div class="flex-1 min-w-0">
-      <p class="font-extrabold text-[18px] leading-tight">ImobChat</p>
+      <p class="font-extrabold text-[18px] leading-tight">ChatImov</p>
       <p class="text-[13px] leading-snug text-white/90 font-medium">Seu próximo lar começa numa conversa.</p>
       <p class="text-[11px] text-white/70">Converse, ligue e visite por vídeo — sem cadastro.</p>
     </div>
@@ -239,7 +239,7 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
     <p class="text-[13px] text-white/85 mt-1">Comece grátis com até 15 anúncios + chatbot por anúncio. Upgrade para Prata e Ouro com Mercado Pago.</p>
     <div class="flex gap-2 mt-3"><button @click="view='admin'" class="flex-1 bg-white text-waDark font-bold py-2 rounded-full text-[13px]">Criar anúncio grátis</button><button @click="view='planos'" class="flex-1 bg-waLight text-white font-bold py-2 rounded-full text-[13px]">Ver Planos</button></div>
   </div>
-  <p class="text-center text-[11px] text-gray-400 px-4 pb-2">ImobChat • Cloudflare Pages + D1 + R2 • Pagamentos via Mercado Pago • Feito para mobile</p>
+  <p class="text-center text-[11px] text-gray-400 px-4 pb-2">ChatImov • Cloudflare Pages + D1 + R2 • Pagamentos via Mercado Pago • Feito para mobile</p>
 </section>
 
 <!-- ================= PERFIL / CATÁLOGO ================= -->
@@ -297,7 +297,7 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
     <div x-show="anuncianteAtual.plano==='ouro'" class="mt-4 bg-amber-50 border border-amber-200 rounded-2xl p-3">
       <p class="font-bold text-[13px]">🔍 SEO • Encontrado no Google</p>
       <p class="text-[12px] text-gray-600 mt-1">Palavras-chave: <span class="font-semibold text-gray-800" x-text="anuncianteAtual.seo"></span></p>
-      <p class="text-[12px] text-gray-600">URL amigável: imobchat.com.br/corretor/<span x-text="anuncianteAtual.slug"></span></p>
+      <p class="text-[12px] text-gray-600">URL amigável: chatimov.com.br/corretor/<span x-text="anuncianteAtual.slug"></span></p>
     </div>
   </div>
 
@@ -330,7 +330,7 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
   </div>
 
   <!-- CHAMADA ENTRANTE: aparece para quem vai atender, sem misturar com outras ligações -->
-  <div x-show="chamadaTocando" class="mx-3 mt-3 bg-[#075E54] text-white rounded-2xl p-3 flex items-center gap-3 shadow-lg">
+  <div x-show="chamadaTocando" class="mx-3 mt-3 bg-[#B91C1C] text-white rounded-2xl p-3 flex items-center gap-3 shadow-lg">
     <span class="w-11 h-11 rounded-full bg-white flex items-center justify-center text-[20px] animate-pulse" x-text="chamadaTocando?.tipo==='video' ? '📹' : '📞'"></span>
     <div class="flex-1 min-w-0"><p class="font-bold text-[14px] leading-tight" x-text="'🎵📞 ' + (chamadaTocando?.de_nome || 'Alguém') + ' está ligando'"></p><p class="text-[12px] text-white/80" x-text="'Imóvel: ' + (imovelAtual?.titulo || '') + ' • Sala: ' + (chamadaTocando?.sala || '')"></p></div>
     <button @click="aceitarChamada()" class="bg-[#25D366] px-3.5 py-2 rounded-full font-bold text-[13px] shrink-0">Aceitar</button>
@@ -398,8 +398,8 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
 <section x-show="view==='login'" class="fade bg-[#f0f2f5] min-h-full">
   <div class="p-4 space-y-3">
     <div class="bg-white rounded-2xl p-5 shadow-sm text-center">
-      <img src="logo-imobchat.png" class="w-[64px] h-[64px] mx-auto rounded-2xl object-contain bg-[#075E54]/5" alt="ImobChat">
-      <p class="font-extrabold text-[18px] mt-2">Entrar no ImobChat</p>
+      <img src="logo-chatimov.png" class="w-[64px] h-[64px] mx-auto rounded-2xl object-contain bg-[#B91C1C]/5" alt="ChatImov">
+      <p class="font-extrabold text-[18px] mt-2">Entrar no ChatImov</p>
       <p class="text-[13px] text-gray-500 mt-1">Corretor, entre com seu e-mail para anunciar, trocar foto de perfil e gerenciar seus imóveis.</p>
     </div>
     <div class="bg-white rounded-2xl p-5 shadow-sm space-y-3">
@@ -477,7 +477,7 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
 
     <div class="bg-white rounded-2xl p-4 shadow-sm flex gap-3">
       <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&q=80" class="w-14 h-14 rounded-full object-cover" alt="Jean Aguiar">
-      <div class="flex-1"><p class="font-extrabold">Jean Aguiar</p><p class="text-[12px] text-gray-500">jean.aguiar • imobchat.com.br/corretor/jean-aguiar</p><span :class="meuPlano==='free'?'bg-gray-100 text-gray-700':'bg-amber-100 text-amber-800'" class="inline-block mt-1 text-[11px] font-bold px-2 py-0.5 rounded-full" x-text="meuPlanoLabel()+' • '+meusImoveis('me').length+' / '+(meuPlano==='free'?'15':'∞')+' anúncios'"></span></div>
+      <div class="flex-1"><p class="font-extrabold">Jean Aguiar</p><p class="text-[12px] text-gray-500">jean.aguiar • chatimov.com.br/corretor/jean-aguiar</p><span :class="meuPlano==='free'?'bg-gray-100 text-gray-700':'bg-amber-100 text-amber-800'" class="inline-block mt-1 text-[11px] font-bold px-2 py-0.5 rounded-full" x-text="meuPlanoLabel()+' • '+meusImoveis('me').length+' / '+(meuPlano==='free'?'15':'∞')+' anúncios'"></span></div>
       <button @click="view='planos'" class="bg-waDark text-white text-[12px] font-bold px-3 py-2 rounded-full h-fit">⬆️ Upgrade</button>
     </div>
 
@@ -591,7 +591,7 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
       <div x-show="meuPlano!=='free'" class="space-y-3">
         <div class="grid grid-cols-3 gap-2"><div class="bg-white rounded-2xl p-3 text-center shadow-sm"><p class="text-[11px] text-gray-500">Visualizações</p><p class="font-extrabold text-[18px]">1.284</p><p class="text-[10px] text-emerald-600 font-bold">▲ 18% esta semana</p></div><div class="bg-white rounded-2xl p-3 text-center shadow-sm"><p class="text-[11px] text-gray-500">Cliques WhatsApp</p><p class="font-extrabold text-[18px]">342</p><p class="text-[10px] text-emerald-600 font-bold">▲ 12%</p></div><div class="bg-white rounded-2xl p-3 text-center shadow-sm"><p class="text-[11px] text-gray-500">Conversões</p><p class="font-extrabold text-[18px]">47</p><p class="text-[10px] text-gray-500">3,6% conv.</p></div></div>
         <div class="bg-white rounded-2xl p-4 shadow-sm"><p class="font-bold text-[14px] mb-3">Origem do tráfego</p>
-          <template x-for="o in [{l:'WhatsApp',v:42},{l:'Google / SEO',v:31},{l:'Instagram',v:18},{l:'Direto / ImobChat',v:9}]" :key="o.l"><div class="mb-2"><div class="flex justify-between text-[12px] font-semibold"><span x-text="o.l"></span><span x-text="o.v+'%'"></span></div><div class="h-2 bg-gray-100 rounded-full mt-1"><div class="h-2 bg-waGreen rounded-full" :style="'width:'+o.v+'%'"></div></div></div></template>
+          <template x-for="o in [{l:'WhatsApp',v:42},{l:'Google / SEO',v:31},{l:'Instagram',v:18},{l:'Direto / ChatImov',v:9}]" :key="o.l"><div class="mb-2"><div class="flex justify-between text-[12px] font-semibold"><span x-text="o.l"></span><span x-text="o.v+'%'"></span></div><div class="h-2 bg-gray-100 rounded-full mt-1"><div class="h-2 bg-waGreen rounded-full" :style="'width:'+o.v+'%'"></div></div></div></template>
         </div>
         <div class="bg-white rounded-2xl p-4 shadow-sm"><p class="font-bold text-[14px] mb-2">Top imóveis por cliques</p><template x-for="im in meusImoveis('me').slice(0,3)" :key="im.id"><div class="flex items-center gap-2 py-1.5 border-b last:border-0"><img :src="im.foto" class="w-10 h-10 rounded-lg object-cover"><p class="flex-1 text-[12.5px] font-semibold truncate" x-text="im.titulo"></p><span class="text-[12px] font-bold text-waGreen">128 cliques</span></div></template></div>
       </div>
@@ -732,7 +732,7 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
       <button @click="metodo='pix'" :class="metodo==='pix'?'border-waGreen bg-emerald-50':'border-gray-200'" class="border-2 rounded-xl py-3 font-bold text-[14px]">📱 Pix<br><span class="text-[11px] font-normal text-gray-500">Aprovação instantânea</span></button>
       <button @click="metodo='cartao'" :class="metodo==='cartao'?'border-waGreen bg-emerald-50':'border-gray-200'" class="border-2 rounded-xl py-3 font-bold text-[14px]">💳 Cartão<br><span class="text-[11px] font-normal text-gray-500">Crédito / Débito</span></button>
     </div>
-    <div x-show="metodo==='pix'" class="mt-3 bg-white border rounded-xl p-3 text-center"><div class="w-32 h-32 mx-auto bg-gray-900 rounded-lg flex items-center justify-center text-white text-[10px] text-center p-2">QR CODE PIX<br>Mercado Pago<br><span x-text="checkoutPlano"></span></div><p class="text-[12px] text-gray-500 mt-2">Escaneie no app do seu banco ou copie o código abaixo</p><p class="text-[11px] bg-gray-100 rounded-lg p-2 mt-1 break-all">00020126...MP-IMOBCHAT-<span x-text="checkoutPlano"></span>-PIX</p></div>
+    <div x-show="metodo==='pix'" class="mt-3 bg-white border rounded-xl p-3 text-center"><div class="w-32 h-32 mx-auto bg-gray-900 rounded-lg flex items-center justify-center text-white text-[10px] text-center p-2">QR CODE PIX<br>Mercado Pago<br><span x-text="checkoutPlano"></span></div><p class="text-[12px] text-gray-500 mt-2">Escaneie no app do seu banco ou copie o código abaixo</p><p class="text-[11px] bg-gray-100 rounded-lg p-2 mt-1 break-all">00020126...MP-CHATIMOV-<span x-text="checkoutPlano"></span>-PIX</p></div>
     <div x-show="metodo==='cartao'" class="mt-3 space-y-2"><input placeholder="Número do cartão • 4111 1111 1111 1111" class="w-full border rounded-xl px-3 py-2.5"><div class="grid grid-cols-2 gap-2"><input placeholder="Validade MM/AA" class="border rounded-xl px-3 py-2.5"><input placeholder="CVV" class="border rounded-xl px-3 py-2.5"></div><input placeholder="Nome no cartão" class="w-full border rounded-xl px-3 py-2.5"></div>
     <button @click="confirmarPagamento()" :disabled="pagando" class="w-full mt-4 bg-[#009EE3] text-white font-extrabold py-3.5 rounded-full disabled:opacity-60"><span x-show="!pagando">Pagar <span x-text="checkoutPlano==='prata'?'R$ 29,90':'R$ 89,90'"></span> com Mercado Pago</span><span x-show="pagando">Processando pagamento... ⏳</span></button>
     <p class="text-[11px] text-gray-400 text-center mt-2">Demo: ao confirmar, simulamos o webhook do Mercado Pago → D1 atualiza o plano.</p>
@@ -774,7 +774,7 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
     <div class="absolute top-3 right-3 bg-red-500 text-white text-[11px] font-bold px-2.5 py-1 rounded-full flex items-center gap-1 z-10"><span class="w-2 h-2 bg-white rounded-full animate-ping"></span> <span x-text="tempoChamada"></span></div>
     <div class="absolute bottom-3 left-3 bg-black/60 px-2.5 py-1 rounded-full text-[11px] font-bold z-10" x-text="chamadaStatus"></div>
   </div>
-  <p class="text-center text-[12px] text-white/60 px-6 mt-2">Ligação nativa ImobChat • Áudio/vídeo direto de pessoa pra pessoa • Sem app de terceiro</p>
+  <p class="text-center text-[12px] text-white/60 px-6 mt-2">Ligação nativa ChatImov • Áudio/vídeo direto de pessoa pra pessoa • Sem app de terceiro</p>
   <div class="px-6 pt-4 pb-8 grid grid-cols-4 gap-3 max-w-[420px] w-full mx-auto">
     <button @click="toggleMute()" :class="mutado ? 'bg-white text-black' : 'bg-white/15'" class="h-[56px] rounded-full flex flex-col items-center justify-center text-[18px]"><span x-text="mutado ? '🔇' : '🎙️'"></span><span class="text-[10px] font-bold mt-0.5">Microfone</span></button>
     <button @click="toggleCamera()" :class="!cameraLigada ? 'bg-white text-black' : 'bg-white/15'" class="h-[56px] rounded-full flex flex-col items-center justify-center text-[18px]"><span x-text="cameraLigada ? '📹' : '🚫📹'"></span><span class="text-[10px] font-bold mt-0.5">Câmera</span></button>
@@ -798,24 +798,24 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
 </div>
 
 <script>
-function imobChat(){
+function chatImov(){
 return {
-view:'home', chamadaAtiva:false, salaChamada:'', linkChamada:'', visitanteId:'', promptInstalar:null, baixando:false, corretorOcupado:false, corretorOcupadoSala:null, peer:null, sinalUltimoId:0, chamadaTocando:null, _pollSinal:null, _pollPendentes:null, musicaToque:'seu-audio', _toqueCtx:null, _toqueTimer:null, _toqueOsc:null, apiBase: (localStorage.getItem('imobchat_api_url') || 'https://imobchat-api.seu-subdominio.workers.dev'), gravandoAudio:false, tempoAudio:'00:00', _audioTimer:null, _audioSeg:0, _mediaRecorder:null, _audioChunks:[], tipoChamada:'audio', chamadaStatus:'Chamando...', tempoChamada:'00:00', mutado:false, cameraLigada:true, _callTimer:null, _callStream:null, _callSeg:0, abaAdmin:'imoveis', busca:'', filtro:'', textoChat:'', digitando:false,
+view:'home', chamadaAtiva:false, salaChamada:'', linkChamada:'', visitanteId:'', promptInstalar:null, baixando:false, corretorOcupado:false, corretorOcupadoSala:null, peer:null, sinalUltimoId:0, chamadaTocando:null, _pollSinal:null, _pollPendentes:null, musicaToque:'seu-audio', _toqueCtx:null, _toqueTimer:null, _toqueOsc:null, apiBase: (localStorage.getItem('chatimov_api_url') || 'https://chatimov-api.seu-subdominio.workers.dev'), gravandoAudio:false, tempoAudio:'00:00', _audioTimer:null, _audioSeg:0, _mediaRecorder:null, _audioChunks:[], tipoChamada:'audio', chamadaStatus:'Chamando...', tempoChamada:'00:00', mutado:false, cameraLigada:true, _callTimer:null, _callStream:null, _callSeg:0, abaAdmin:'imoveis', busca:'', filtro:'', textoChat:'', digitando:false,
 meuPlano:'free', botImovelId:'me-1',
     // ===== LOGIN DO USUÁRIO (corretor) + FOTO DE PERFIL =====
-    usuarioLogado: (localStorage.getItem('imobchat_usuario_logado')==='1'),
-    usuarioEmail: (localStorage.getItem('imobchat_usuario_email') || ''),
-    nomeUsuario: (localStorage.getItem('imobchat_nome_usuario') || ''),
+    usuarioLogado: (localStorage.getItem('chatimov_usuario_logado')==='1'),
+    usuarioEmail: (localStorage.getItem('chatimov_usuario_email') || ''),
+    nomeUsuario: (localStorage.getItem('chatimov_nome_usuario') || ''),
     cadastroNomeUsuario:'', cadastroWhatsapp:'', cadastroDescricao:'', cadastroSite:'', cadastroFoto:'',
-    perfilWhatsapp: (localStorage.getItem('imobchat_whatsapp') || ''),
-    perfilDescricao: (localStorage.getItem('imobchat_descricao') || ''),
-    perfilSite: (localStorage.getItem('imobchat_site') || ''),
-    usuarioFoto: (localStorage.getItem('imobchat_usuario_foto') || ''),
+    perfilWhatsapp: (localStorage.getItem('chatimov_whatsapp') || ''),
+    perfilDescricao: (localStorage.getItem('chatimov_descricao') || ''),
+    perfilSite: (localStorage.getItem('chatimov_site') || ''),
+    usuarioFoto: (localStorage.getItem('chatimov_usuario_foto') || ''),
     loginEmail:'', loginSenha:'', loginErro:'', loginCadastro:false, loginEnviando:false,
     // ===== PAINEL MASTER - SÓ O DONO COM O E-MAIL CADASTRADO =====
     masterEmailInput:'', masterSenhaInput:'', masterLogado:false, masterAba:'usuarios', masterErro:'', masterMsg:'',
-    adminEmailDono: (localStorage.getItem('imobchat_admin_email') || ''),
-    masterSenhaDono: (localStorage.getItem('imobchat_admin_senha') || ''),
+    adminEmailDono: (localStorage.getItem('chatimov_admin_email') || ''),
+    masterSenhaDono: (localStorage.getItem('chatimov_admin_senha') || ''),
 checkoutPlano:'prata', metodo:'pix', pagando:false, pagamentoOk:false, toastMsg:'',
 novo:{titulo:'',preco:'',bairro:'',tipo:'Venda',quartos:2,area:60,foto:'',descricao:''},
 novaRegra:{pergunta:'',resposta:''},
@@ -858,7 +858,7 @@ formatPreco(v){return v>=10000?'R$ '+v.toLocaleString('pt-BR'):'R$ '+v.toLocaleS
 voltar(){if(this.view==='chat'&&this.anuncianteAtual){this.view='perfil';return} if(this.view==='perfil'){this.view='home';return} this.view='home'; window.scrollTo(0,0)},
 abrirChat(im){
 this.imovelAtual=im; this.view='chat';
-if(!this.visitanteId){ this.visitanteId = localStorage.getItem('imobchat_visitante') || ('v-' + Math.random().toString(36).slice(2,8)); localStorage.setItem('imobchat_visitante', this.visitanteId); }
+if(!this.visitanteId){ this.visitanteId = localStorage.getItem('chatimov_visitante') || ('v-' + Math.random().toString(36).slice(2,8)); localStorage.setItem('chatimov_visitante', this.visitanteId); }
 this.verificarChamadasPendentes();
 if(window.__promptInstalar) this.promptInstalar = window.__promptInstalar;
 window.addEventListener('beforeinstallprompt', (e)=>{ e.preventDefault(); this.promptInstalar = e; });
@@ -902,16 +902,16 @@ this.$nextTick(()=>{let el=document.getElementById('chatScroll'); if(el) el.scro
 },
 abrirWhatsAppChat(){
 let im=this.imovelAtual; let an=this.anuncianteDo(im);
-let msg=`Olá ${an.nome}! Vim pelo ImobChat e tenho interesse no imóvel:\n\n🏠 ${im.titulo}\n💰 ${this.formatPreco(im.preco)}\n📍 ${im.bairro} - ${im.cidade}\n🛏️ ${im.quartos} quartos • ${im.area}m²\n\nQuero mais informações e agendar uma visita. Pode me ajudar?`;
+let msg=`Olá ${an.nome}! Vim pelo ChatImov e tenho interesse no imóvel:\n\n🏠 ${im.titulo}\n💰 ${this.formatPreco(im.preco)}\n📍 ${im.bairro} - ${im.cidade}\n🛏️ ${im.quartos} quartos • ${im.area}m²\n\nQuero mais informações e agendar uma visita. Pode me ajudar?`;
 window.open(`https://wa.me/${an.whatsapp}?text=${encodeURIComponent(msg)}`,'_blank');
 this.registrarMetrica(im.id,'whatsapp_click');
 },
 abrirWhatsAppPerfil(an){
-let msg=`Olá ${an.nome}! Vim pelo seu catálogo no ImobChat (imobchat.com.br/corretor/${an.slug}) e quero conversar sobre seus imóveis.`;
+let msg=`Olá ${an.nome}! Vim pelo seu catálogo no ChatImov (chatimov.com.br/corretor/${an.slug}) e quero conversar sobre seus imóveis.`;
 window.open(`https://wa.me/${an.whatsapp}?text=${encodeURIComponent(msg)}`,'_blank');
 },
 compartilharPerfil(){
-let url=`https://imobchat.com.br/corretor/${this.anuncianteAtual.slug}`;
+let url=`https://chatimov.com.br/corretor/${this.anuncianteAtual.slug}`;
 if(navigator.share) navigator.share({title:this.anuncianteAtual.nome,url}).catch(()=>{});
 else {navigator.clipboard?.writeText(url); this.toast('Link copiado: '+url)}
 },
@@ -948,10 +948,10 @@ this.toast('🎉 Webhook Mercado Pago confirmado! Plano '+this.checkoutPlano.toU
 },
 
     async iniciarChamada(tipo){
-      // ===== LIGAÇÃO NATIVA DENTRO DO IMOBCHAT - SEM APP DE TERCEIRO =====
+      // ===== LIGAÇÃO NATIVA DENTRO DO CHATIMOV - SEM APP DE TERCEIRO =====
       // Cada ligação tem sala ÚNICA: call-IMOVEL-ANUNCIANTE-ALEATORIO
       // João->Pedro: call-12-1-a9f3 | Maurício->Paula: call-18-5-b7k2 -> NÃO SE MISTURAM
-      if(!this.visitanteId){ this.visitanteId = localStorage.getItem('imobchat_visitante') || ('v-' + Math.random().toString(36).slice(2,8)); localStorage.setItem('imobchat_visitante', this.visitanteId); }
+      if(!this.visitanteId){ this.visitanteId = localStorage.getItem('chatimov_visitante') || ('v-' + Math.random().toString(36).slice(2,8)); localStorage.setItem('chatimov_visitante', this.visitanteId); }
       const an = this.anuncianteDo(this.imovelAtual);
       // ===== SE O CORRETOR JÁ ESTÁ EM LIGAÇÃO, NÃO DEIXA ENTRAR E AVISA OCUPADO =====
       const ocupado = await this.checarSeCorretorOcupado();
@@ -1031,7 +1031,7 @@ this.toast('🎉 Webhook Mercado Pago confirmado! Plano '+this.checkoutPlano.toU
       this.tipoChamada = info.tipo;
       this.chamadaTocando = null;
       this.chamadaAtiva = true;
-      if(!this.visitanteId){ this.visitanteId = localStorage.getItem('imobchat_visitante') || ('v-' + Math.random().toString(36).slice(2,8)); localStorage.setItem('imobchat_visitante', this.visitanteId); }
+      if(!this.visitanteId){ this.visitanteId = localStorage.getItem('chatimov_visitante') || ('v-' + Math.random().toString(36).slice(2,8)); localStorage.setItem('chatimov_visitante', this.visitanteId); }
       this.pararToque();
       this.chamadaStatus='Atendendo... Conectando...';
       this.sinalUltimoId=0;
@@ -1074,7 +1074,7 @@ this.toast('🎉 Webhook Mercado Pago confirmado! Plano '+this.checkoutPlano.toU
       clearInterval(this._pollPendentes);
       this._pollPendentes = setInterval(async ()=>{
         if(!this.imovelAtual || this.chamadaAtiva || this.chamadaTocando) return;
-        if(!this.visitanteId){ this.visitanteId = localStorage.getItem('imobchat_visitante') || ('v-' + Math.random().toString(36).slice(2,8)); localStorage.setItem('imobchat_visitante', this.visitanteId); }
+        if(!this.visitanteId){ this.visitanteId = localStorage.getItem('chatimov_visitante') || ('v-' + Math.random().toString(36).slice(2,8)); localStorage.setItem('chatimov_visitante', this.visitanteId); }
         try{
           const r = await fetch(this.apiBase + '/api/salas/pendentes?imovel_id=' + this.imovelAtual.id + '&de_id=' + this.visitanteId);
           const lista = await r.json();
@@ -1145,8 +1145,8 @@ this.toast('🎉 Webhook Mercado Pago confirmado! Plano '+this.checkoutPlano.toU
       const senha = (this.masterSenhaInput||'').trim();
       if(!email || !email.includes('@')){ this.masterErro='Digite seu e-mail certinho, com @.'; return; }
       if(!senha || senha.length<4){ this.masterErro='Crie uma senha com pelo menos 4 letras.'; return; }
-      localStorage.setItem('imobchat_admin_email', email);
-      localStorage.setItem('imobchat_admin_senha', senha);
+      localStorage.setItem('chatimov_admin_email', email);
+      localStorage.setItem('chatimov_admin_senha', senha);
       this.adminEmailDono = email; this.masterSenhaDono = senha;
       this.masterLogado = true; this.masterErro=''; this.masterMsg='✅ Seu e-mail de dono foi cadastrado. Só ele entra aqui.';
       this.toast('✅ Painel Master liberado só para você.');
@@ -1174,10 +1174,10 @@ this.toast('🎉 Webhook Mercado Pago confirmado! Plano '+this.checkoutPlano.toU
       const whats = (this.perfilWhatsapp||'').replace(/[^0-9]/g,'');
       if(!nome){ this.toast('Coloque seu nome de usuário.'); return; }
       if(!whats || whats.length<10){ this.toast('Coloque seu WhatsApp com DDD, só números.'); return; }
-      localStorage.setItem('imobchat_nome_usuario', nome);
-      localStorage.setItem('imobchat_whatsapp', whats);
-      localStorage.setItem('imobchat_descricao', this.perfilDescricao||'');
-      localStorage.setItem('imobchat_site', this.perfilSite||'');
+      localStorage.setItem('chatimov_nome_usuario', nome);
+      localStorage.setItem('chatimov_whatsapp', whats);
+      localStorage.setItem('chatimov_descricao', this.perfilDescricao||'');
+      localStorage.setItem('chatimov_site', this.perfilSite||'');
       // Atualiza o anunciante 'me' para aparecer no perfil público
       const me = this.anunciantes.find(a=>a.id==='me');
       if(me){ me.nome = nome; me.slug = nome.toLowerCase().replace(/[^a-z0-9]/g,'.'); me.whatsapp = whats; me.bio = this.perfilDescricao||me.bio; }
@@ -1192,27 +1192,27 @@ this.toast('🎉 Webhook Mercado Pago confirmado! Plano '+this.checkoutPlano.toU
       if(this.loginCadastro && !(this.cadastroNomeUsuario||'').trim()){ this.loginErro='Coloque seu nome de usuário.'; return; }
       if(!email || !email.includes('@')){ this.loginErro='Digite seu e-mail certinho, com @.'; return; }
       if(!senha || senha.length<4){ this.loginErro='Senha com pelo menos 4 letras.'; return; }
-      const emailSalvo = localStorage.getItem('imobchat_usuario_email');
-      const senhaSalva = localStorage.getItem('imobchat_usuario_senha');
+      const emailSalvo = localStorage.getItem('chatimov_usuario_email');
+      const senhaSalva = localStorage.getItem('chatimov_usuario_senha');
       if(emailSalvo && emailSalvo!==email){ this.loginErro='Esse e-mail não é o cadastrado neste celular. Use ' + emailSalvo + ' ou saia e cadastre outro.'; return; }
       if(emailSalvo && senhaSalva && senha!==senhaSalva){ this.loginErro='Senha errada. Tente de novo.'; return; }
       // Cadastro novo ou login ok
-      localStorage.setItem('imobchat_usuario_email', email);
-      localStorage.setItem('imobchat_usuario_senha', senha);
+      localStorage.setItem('chatimov_usuario_email', email);
+      localStorage.setItem('chatimov_usuario_senha', senha);
       if(this.loginCadastro && this.cadastroNomeUsuario){
         const nomeU = this.cadastroNomeUsuario.trim().toLowerCase().replace(/\s+/g,'.');
-        localStorage.setItem('imobchat_nome_usuario', nomeU);
+        localStorage.setItem('chatimov_nome_usuario', nomeU);
         this.nomeUsuario = nomeU;
       }
-      localStorage.setItem('imobchat_usuario_logado', '1');
+      localStorage.setItem('chatimov_usuario_logado', '1');
       this.usuarioEmail = email; this.usuarioLogado = true; this.loginErro='';
-      const fotoSalva = localStorage.getItem('imobchat_usuario_foto');
+      const fotoSalva = localStorage.getItem('chatimov_usuario_foto');
       if(fotoSalva) this.usuarioFoto = fotoSalva;
       this.toast('✅ Logado como ' + email);
       this.view='admin';
     },
     sairUsuario(){
-      localStorage.setItem('imobchat_usuario_logado','0');
+      localStorage.setItem('chatimov_usuario_logado','0');
       this.usuarioLogado=false; this.loginEmail=''; this.loginSenha='';
       this.toast('Você saiu. Até logo!');
       this.view='login';
@@ -1222,7 +1222,7 @@ this.toast('🎉 Webhook Mercado Pago confirmado! Plano '+this.checkoutPlano.toU
       if(!file) return;
       if(this.meuPlano!=='ouro'){ this.toast('🔗 Upload direto só no OURO. No PRATA, cole o link da foto.'); return; }
       const url = await this.uploadParaR2(file, 'perfil-'+Date.now()+'-'+file.name);
-      if(url){ this.perfilForm.foto=url; this.usuarioFoto=url; localStorage.setItem('imobchat_usuario_foto', url); this.toast('✅ Foto de perfil enviada!'); }
+      if(url){ this.perfilForm.foto=url; this.usuarioFoto=url; localStorage.setItem('chatimov_usuario_foto', url); this.toast('✅ Foto de perfil enviada!'); }
     },
     async onFotoImovelChange(e){
       const files = e.target.files;
@@ -1248,19 +1248,19 @@ this.toast('🎉 Webhook Mercado Pago confirmado! Plano '+this.checkoutPlano.toU
     salvarFotoPerfil(){
       const url = (this.perfilForm.foto||'').trim();
       if(!url){ this.toast('Cole o link da foto ou envie o arquivo (Ouro).'); return; }
-      this.usuarioFoto=url; localStorage.setItem('imobchat_usuario_foto', url);
+      this.usuarioFoto=url; localStorage.setItem('chatimov_usuario_foto', url);
       // Atualiza também o anunciante 'me'
       const me = this.anunciantes.find(a=>a.id==='me'); if(me) me.foto=url;
       this.toast('✅ Foto de perfil salva!');
     },
     async baixarApp(){
       this.baixando = true;
-      this.toast('⬇️ Baixando ImobChat... Já vai aparecer na sua tela inicial!');
+      this.toast('⬇️ Baixando ChatImov... Já vai aparecer na sua tela inicial!');
       // Notificação do navegador
       try{
         if('Notification' in window){
           if(Notification.permission==='default') await Notification.requestPermission();
-          if(Notification.permission==='granted') new Notification('ImobChat baixando...', {body:'Seu próximo lar começa numa conversa.', icon:'logo-imobchat.png'});
+          if(Notification.permission==='granted') new Notification('ChatImov baixando...', {body:'Seu próximo lar começa numa conversa.', icon:'logo-chatimov.png'});
         }
       }catch(e){}
       // Tenta abrir o instalar do navegador (PWA)
@@ -1268,7 +1268,7 @@ this.toast('🎉 Webhook Mercado Pago confirmado! Plano '+this.checkoutPlano.toU
         if(this.promptInstalar){
           this.promptInstalar.prompt();
           const escolha = await this.promptInstalar.userChoice;
-          if(escolha.outcome==='accepted') this.toast('✅ ImobChat instalado! Procure o ícone na sua tela inicial.');
+          if(escolha.outcome==='accepted') this.toast('✅ ChatImov instalado! Procure o ícone na sua tela inicial.');
           else this.toast('Tudo bem! Você pode baixar depois no botão BAIXAR.');
           this.promptInstalar = null;
         } else {
@@ -1279,7 +1279,7 @@ this.toast('🎉 Webhook Mercado Pago confirmado! Plano '+this.checkoutPlano.toU
           // Baixa também o arquivo do app para garantir que "baixou"
           const blob = new Blob([document.documentElement.outerHTML], {type:'text/html'});
           const url = URL.createObjectURL(blob);
-          const a = document.createElement('a'); a.href=url; a.download='imobchat.html'; document.body.appendChild(a); a.click(); a.remove();
+          const a = document.createElement('a'); a.href=url; a.download='chatimov.html'; document.body.appendChild(a); a.click(); a.remove();
           setTimeout(()=>URL.revokeObjectURL(url), 2000);
         }
       }catch(e){ this.toast('Para baixar: Menu do navegador → Adicionar à tela inicial'); }
@@ -1304,7 +1304,7 @@ this.toast('🎉 Webhook Mercado Pago confirmado! Plano '+this.checkoutPlano.toU
     enviarLinkSalaWhatsApp(){
       const a=this.anuncianteDo(this.imovelAtual); if(!a) return;
       const label = this.tipoChamada==='video' ? 'vídeo' : 'voz';
-      const msg='Olá '+a.nome+'! Entrei na chamada de '+label+' do imóvel '+this.imovelAtual.titulo+' no ImobChat. Entra na mesma sala aqui: '+this.linkChamada;
+      const msg='Olá '+a.nome+'! Entrei na chamada de '+label+' do imóvel '+this.imovelAtual.titulo+' no ChatImov. Entra na mesma sala aqui: '+this.linkChamada;
       window.open('https://wa.me/'+a.whatsapp+'?text='+encodeURIComponent(msg),'_blank');
     },
     toggleMute(){ this.mutado=!this.mutado; this.toast(this.mutado ? '🔇 Use o botão de microfone dentro da sala para mutar' : '🎙️ Use o botão de microfone dentro da sala'); },
@@ -1314,7 +1314,7 @@ this.toast('🎉 Webhook Mercado Pago confirmado! Plano '+this.checkoutPlano.toU
       const label = this.tipoChamada==='video' ? 'vídeo' : 'telefone';
       const link = this.linkChamada;
       this.encerrarChamada();
-      const msg='Olá '+a.nome+'! Vi seu imóvel '+this.imovelAtual.titulo+' no ImobChat e tentei ligar por '+label+'. Entra na sala aqui: '+link+' Podemos falar agora?';
+      const msg='Olá '+a.nome+'! Vi seu imóvel '+this.imovelAtual.titulo+' no ChatImov e tentei ligar por '+label+'. Entra na sala aqui: '+link+' Podemos falar agora?';
       window.open('https://wa.me/'+a.whatsapp+'?text='+encodeURIComponent(msg),'_blank');
     },
 
