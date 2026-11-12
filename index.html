@@ -407,8 +407,8 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
   <p x-show="gravandoAudio" class="text-center text-[12px] font-bold text-red-600 pb-1">🔴 Gravando áudio <span x-text="tempoAudio"></span> • toque no microfone de novo para enviar</p>
   <p class="text-center text-[11px] text-gray-500 pb-1 px-4">Respostas automáticas configuradas por <span x-text="anuncianteDo(imovelAtual).nome"></span>. Para falar com humano, use o botão verde.</p>
 
-  <!-- BOTÃO FLUTUANTE WHATSAPP -->
-  <button @click="abrirWhatsAppChat()" class="pulse-ring fixed bottom-[92px] right-[calc(50%-215px+16px)] sm:right-6 z-40 w-[60px] h-[60px] bg-[#25D366] rounded-full shadow-2xl flex flex-col items-center justify-center text-white border-4 border-white" aria-label="Falar no WhatsApp">
+  <!-- BOTÃO FLUTUANTE WHATSAPP - DONO PODE LIGAR/DESLIGAR NO PAINEL MASTER -->
+  <button x-show="mostrarFlutuanteWhatsApp && anuncianteDo(imovelAtual).mostrarWhats !== false && anuncianteDo(imovelAtual).excluido !== true" @click="abrirWhatsAppChat()" class="pulse-ring fixed bottom-[92px] right-[calc(50%-215px+16px)] sm:right-6 z-40 w-[60px] h-[60px] bg-[#25D366] rounded-full shadow-2xl flex flex-col items-center justify-center text-white border-4 border-white" aria-label="Falar no WhatsApp">
     <svg width="28" height="28" viewBox="0 0 24 24" fill="white"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5.1-1.3A10 10 0 1 0 12 2zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.6-6.1c-.3-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1-.2.3-.7.8-.9 1-.1.2-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4 0-.6.1-.8l.4-.5c.1-.2.1-.3 0-.5l-.8-1.9c-.2-.5-.4-.4-.6-.4h-.5c-.2 0-.5.1-.7.3-.2.3-.9.9-.9 2.2s.9 2.5 1.1 2.7c.1.2 1.9 2.9 4.6 4 .6.3 1.1.4 1.5.6.6.2 1.2.2 1.6.1.5-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.2-1.2-.1-.1-.2-.2-.5-.3z"/></svg>
     <span class="text-[8px] font-extrabold leading-none mt-0.5">WHATSAPP</span>
   </button>
@@ -689,7 +689,53 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
         <p x-show="masterMsg" class="bg-emerald-50 text-emerald-800 text-[13px] font-bold rounded-xl p-3 text-center" x-text="masterMsg"></p>
       </div>
 
-      <!-- ABA MÉTRICAS -->
+      <!-- ABA CONTROLES - SÓ DONO: Botão flutuante WhatsApp + Incluir/Excluir usuário -->
+      <div x-show="masterAba==='controles'" class="space-y-3">
+        <div class="bg-white rounded-2xl p-4 shadow-sm">
+          <p class="font-bold text-[15px]">💬 Botão redondo flutuante do WhatsApp</p>
+          <p class="text-[12px] text-gray-500 mt-1">O botão verdinho redondo que fica flutuando no canto do chat. Você liga ou desliga quando quiser.</p>
+          <div class="flex items-center justify-between mt-3 bg-emerald-50 border border-emerald-100 rounded-xl p-3">
+            <div class="flex items-center gap-2">
+              <span class="w-12 h-12 bg-[#25D366] rounded-full flex items-center justify-center text-white text-[22px] shadow">💬</span>
+              <div><p class="font-bold text-[13px]">Botão flutuante para todos</p><p class="text-[11px] text-gray-500" x-text="mostrarFlutuanteWhatsApp ? '✅ Ligado - aparece no chat' : '⛔ Desligado - não aparece'"></p></div>
+            </div>
+            <button @click="alternarFlutuanteGlobal()" :class="mostrarFlutuanteWhatsApp ? 'bg-[#25D366] text-white' : 'bg-gray-200 text-gray-600'" class="font-bold text-[12px] px-4 py-2.5 rounded-full shrink-0" x-text="mostrarFlutuanteWhatsApp ? '✅ LIGADO' : '⛔ DESLIGADO'"></button>
+          </div>
+          <p class="text-[11px] text-gray-500 mt-2">💡 Desligou aqui, some para todos na hora. Ligou, volta na hora.</p>
+        </div>
+        <div class="bg-white rounded-2xl p-4 shadow-sm">
+          <p class="font-bold text-[15px]">➕ Incluir novo usuário / corretor</p>
+          <p class="text-[12px] text-gray-500 mt-1">Cadastra um corretor novo. Ele já entra ativo e com botão flutuante ligado.</p>
+          <input x-model="novoUsuarioNome" placeholder="Nome do corretor - ex: Ana Souza" class="w-full border rounded-xl px-3 py-2.5 mt-3 text-[14px] outline-none focus:border-waGreen">
+          <div class="grid grid-cols-2 gap-2 mt-2">
+            <input x-model="novoUsuarioWhats" placeholder="WhatsApp - ex: 5511999999999" class="border rounded-xl px-3 py-2.5 text-[14px] outline-none focus:border-waGreen">
+            <input x-model="novoUsuarioSlug" placeholder="Slug - ex: ana-souza" class="border rounded-xl px-3 py-2.5 text-[14px] outline-none focus:border-waGreen">
+          </div>
+          <button @click="incluirUsuario()" class="w-full bg-waDark text-white font-bold py-3 rounded-full mt-3">➕ Incluir usuário</button>
+          <p x-show="masterMsg" class="bg-emerald-50 text-emerald-800 text-[13px] font-bold rounded-xl p-3 text-center mt-3" x-text="masterMsg"></p>
+        </div>
+        <div class="space-y-2">
+          <p class="text-[12px] text-gray-500 px-1 font-bold">👥 Todos os usuários — controle um por um:</p>
+          <template x-for="u in anunciantes" :key="u.id">
+            <div class="bg-white rounded-2xl p-3 shadow-sm" :class="u.excluido ? 'opacity-60 border-2 border-red-200' : ''">
+              <div class="flex gap-3 items-center">
+                <img :src="u.foto" class="w-12 h-12 rounded-full object-cover shrink-0">
+                <div class="flex-1 min-w-0">
+                  <p class="font-bold text-[14px] truncate" x-text="u.nome"></p>
+                  <p class="text-[11px] text-gray-500 truncate" x-text="'@'+u.slug+' • '+u.whatsapp"></p>
+                  <span class="inline-block mt-1 text-[11px] font-bold px-2 py-0.5 rounded-full" :class="u.excluido ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700'" x-text="u.excluido ? '⛔ EXCLUÍDO / BLOQUEADO' : '✅ ATIVO'"></span>
+                </div>
+              </div>
+              <div class="grid grid-cols-2 gap-2 mt-3">
+                <button @click="alternarFlutuanteUsuario(u)" :class="u.mostrarWhats===false ? 'bg-gray-200 text-gray-600' : 'bg-[#25D366] text-white'" class="font-bold text-[12px] py-2.5 rounded-full" x-text="u.mostrarWhats===false ? '💬 Botão: DESLIGADO' : '💬 Botão: LIGADO'"></button>
+                <button @click="alternarUsuarioAtivo(u)" :class="u.excluido ? 'bg-emerald-500 text-white' : 'bg-red-500 text-white'" class="font-bold text-[12px] py-2.5 rounded-full" x-text="u.excluido ? '✅ Incluir de novo' : '⛔ Excluir usuário'"></button>
+              </div>
+              <button @click="excluirUsuarioDefinitivo(u)" class="w-full mt-2 bg-red-50 text-red-600 font-bold text-[12px] py-2 rounded-full">🗑️ Excluir definitivo (apaga da lista)</button>
+            </div>
+          </template>
+        </div>
+      </div>
+        <!-- ABA MÉTRICAS -->
       <div x-show="masterAba==='metricas'" class="space-y-3">
         <div class="bg-white rounded-2xl p-4 shadow-sm"><p class="font-bold text-[14px]">📊 Métricas gerais</p>
           <div class="mt-3 space-y-2">
@@ -820,7 +866,7 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
 <script>
 function chatImov(){
 return {
-view:'home', chamadaAtiva:false, salaChamada:'', linkChamada:'', visitanteId:'', promptInstalar:null, baixando:false, corretorOcupado:false, corretorOcupadoSala:null, peer:null, sinalUltimoId:0, chamadaTocando:null, _pollSinal:null, _pollPendentes:null, musicaToque:'seu-audio', _toqueCtx:null, _toqueTimer:null, _toqueOsc:null, apiBase: (localStorage.getItem('chatimov_api_url') || 'https://chatimov-api.seu-subdominio.workers.dev'), gravandoAudio:false, tempoAudio:'00:00', _audioTimer:null, _audioSeg:0, _mediaRecorder:null, _audioChunks:[], tipoChamada:'audio', chamadaStatus:'Chamando...', tempoChamada:'00:00', mutado:false, cameraLigada:true, _callTimer:null, _callStream:null, _callSeg:0, abaAdmin:'imoveis', busca:'', filtro:'', textoChat:'', digitando:false, mostrarAnexo:false, baixarAuto:true, _arquivoRecebendo:null, _arquivoChunks:[], _arquivoRecebido:0, _salaArquivo:'',
+view:'home', chamadaAtiva:false, salaChamada:'', linkChamada:'', visitanteId:'', promptInstalar:null, baixando:false, corretorOcupado:false, corretorOcupadoSala:null, peer:null, sinalUltimoId:0, chamadaTocando:null, _pollSinal:null, _pollPendentes:null, musicaToque:'seu-audio', _toqueCtx:null, _toqueTimer:null, _toqueOsc:null, apiBase: (localStorage.getItem('chatimov_api_url') || 'https://chatimov-api.seu-subdominio.workers.dev'), gravandoAudio:false, tempoAudio:'00:00', _audioTimer:null, _audioSeg:0, _mediaRecorder:null, _audioChunks:[], tipoChamada:'audio', chamadaStatus:'Chamando...', tempoChamada:'00:00', mutado:false, cameraLigada:true, _callTimer:null, _callStream:null, _callSeg:0, abaAdmin:'imoveis', busca:'', filtro:'', textoChat:'', digitando:false, mostrarAnexo:false, baixarAuto:true, mostrarFlutuanteWhatsApp:(localStorage.getItem('chatimov_flutuante')!=='0'), novoUsuarioNome:'', novoUsuarioWhats:'', novoUsuarioSlug:'', _arquivoRecebendo:null, _arquivoChunks:[], _arquivoRecebido:0, _salaArquivo:'',
 meuPlano:'free', botImovelId:'me-1',
     // ===== LOGIN DO USUÁRIO (corretor) + FOTO DE PERFIL =====
     usuarioLogado: (localStorage.getItem('chatimov_usuario_logado')==='1'),
@@ -1401,6 +1447,38 @@ this.toast('🎉 Webhook Mercado Pago confirmado! Plano '+this.checkoutPlano.toU
       this.toast('👑 Bem-vindo, dono! Painel Master aberto.');
     },
     sairMaster(){ this.masterLogado=false; this.masterEmailInput=''; this.masterSenhaInput=''; this.view='admin'; },
+    alternarFlutuanteGlobal(){
+      this.mostrarFlutuanteWhatsApp = !this.mostrarFlutuanteWhatsApp;
+      localStorage.setItem('chatimov_flutuante', this.mostrarFlutuanteWhatsApp ? '1' : '0');
+      this.masterMsg = this.mostrarFlutuanteWhatsApp ? '✅ Botão flutuante do WhatsApp LIGADO para todos.' : '⛔ Botão flutuante do WhatsApp DESLIGADO para todos.';
+      this.toast(this.masterMsg);
+    },
+    alternarFlutuanteUsuario(u){
+      u.mostrarWhats = u.mostrarWhats===false ? true : false;
+      this.masterMsg = u.mostrarWhats ? '✅ Botão do '+u.nome+' LIGADO.' : '⛔ Botão do '+u.nome+' DESLIGADO.';
+      this.toast(this.masterMsg);
+    },
+    alternarUsuarioAtivo(u){
+      u.excluido = !u.excluido;
+      this.masterMsg = u.excluido ? '⛔ '+u.nome+' EXCLUÍDO - não aparece mais.' : '✅ '+u.nome+' INCLUÍDO de novo.';
+      this.toast(this.masterMsg);
+    },
+    incluirUsuario(){
+      if(!this.novoUsuarioNome || !this.novoUsuarioWhats){ this.masterMsg='Preencha nome e WhatsApp.'; this.toast('Preencha nome e WhatsApp'); return; }
+      const slug = (this.novoUsuarioSlug || this.novoUsuarioNome.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')).trim() || ('user-'+Date.now());
+      const id = 'u-'+Date.now();
+      this.anunciantes.push({id, nome:this.novoUsuarioNome, slug, plano:'free', whatsapp:this.novoUsuarioWhats, bio:'', foto:'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&q=80', capa:'', seo:'', links:[], mostrarWhats:true, excluido:false});
+      this.masterMsg = '✅ Usuário '+this.novoUsuarioNome+' INCLUÍDO com sucesso!';
+      this.toast(this.masterMsg);
+      this.novoUsuarioNome=''; this.novoUsuarioWhats=''; this.novoUsuarioSlug='';
+    },
+    excluirUsuarioDefinitivo(u){
+      if(!confirm('Excluir definitivo '+u.nome+'? Vai apagar ele e os imóveis dele.')) return;
+      this.anunciantes = this.anunciantes.filter(a=>a.id!==u.id);
+      this.imoveis = this.imoveis.filter(im=>im.anunciante_id!==u.id);
+      this.masterMsg = '🗑️ '+u.nome+' excluído definitivo.';
+      this.toast(this.masterMsg);
+    },
     async liberarPlanoMaster(u, plano){
       u.plano = plano;
       if(u.id==='me') this.meuPlano = plano;
