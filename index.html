@@ -357,6 +357,7 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
         <div :class="m.de==='bot' ? 'bg-white rounded-2xl rounded-tl-md' : 'bg-waBubble rounded-2xl rounded-tr-md'" class="max-w-[82%] px-3 py-2 shadow-sm">
           <p x-show="m.texto" class="text-[13.5px] leading-snug whitespace-pre-line" x-text="m.texto"></p>
           <template x-if="m.audioUrl"><audio :src="m.audioUrl" controls class="w-full mt-1 h-8"></audio></template>
+          <p x-show="m.tipo==='audio'" class="text-[10px] mt-1 text-gray-500">🎙️ Áudio leve • Baixa automático no celular • Gasto do celular, não do servidor</p>
           <template x-if="m.tipo==='imagem'"><img :src="m.arquivoUrl" class="w-full max-w-[240px] rounded-xl mt-1 cursor-pointer" @click="window.open(m.arquivoUrl,'_blank')"></template>
           <template x-if="m.tipo==='video'"><video :src="m.arquivoUrl" controls playsinline class="w-full max-w-[260px] rounded-xl mt-1 bg-black"></video></template>
           <template x-if="m.tipo==='doc'"><a :href="m.arquivoUrl" :download="m.arquivoNome" class="flex items-center gap-2 bg-white/80 border border-gray-200 rounded-xl p-2.5 mt-1"><span class="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center text-[18px] shrink-0">📄</span><span class="min-w-0 flex-1"><span class="block text-[12.5px] font-bold truncate" x-text="m.arquivoNome"></span><span class="block text-[11px] text-gray-500" x-text="m.arquivoTamanho"></span></span><span class="text-[12px] font-bold text-waGreen shrink-0">Baixar ↓</span></a></template>
@@ -378,7 +379,7 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
   <!-- MENU ANEXO: abre ao clicar no clip -->
   <div x-show="mostrarAnexo" @click.away="mostrarAnexo=false" class="mx-3 mb-2 bg-white rounded-2xl shadow-lg border border-gray-100 p-2">
   <div class="flex items-center justify-between px-1 pb-2">
-    <p class="text-[11px] font-bold text-gray-700">📎 Enviar • Direto de celular pra celular • <span class="text-emerald-600">Não fica no servidor</span></p>
+    <p class="text-[11px] font-bold text-gray-700">📎 Enviar • Leve • Direto de celular pra celular • <span class="text-emerald-600">Não fica no servidor</span></p>
     <button @click="baixarAuto=!baixarAuto" :class="baixarAuto ? 'bg-emerald-500 text-white' : 'bg-gray-200 text-gray-600'" class="text-[11px] font-bold px-2.5 py-1 rounded-full shrink-0" x-text="baixarAuto ? '⬇️ Baixar auto: ON' : '⬇️ Baixar auto: OFF'"></button>
   </div>
   <div class="grid grid-cols-3 gap-2">
@@ -919,16 +920,96 @@ baixarAnexoAgora(m){
       if(!this.baixarAuto) return;
       this.baixarAnexoAgora(m);
     },
-    enviarAnexo(event, tipo){
-      const file = event.target.files[0];
+    comprimirImagem(file){
+      // Foto leve: max 1280px, JPEG 0.7 - de 2.5MB vira ~300KB, sem perder pra ver imóvel
+      return new Promise((resolve)=>{
+        const img = new Image();
+        const url = URL.createObjectURL(file);
+        img.onload = ()=>{
+          try{
+            const MAX = 1280;
+            let w = img.naturalWidth, h = img.naturalHeight;
+            if(w > MAX || h > MAX){
+              const ratio = Math.min(MAX/w, MAX/h);
+              w = Math.round(w*ratio); h = Math.round(h*ratio);
+            }
+            const c = document.createElement('canvas');
+            c.width = w; c.height = h;
+            c.getContext('2d').drawImage(img, 0, 0, w, h);
+            c.toBlob((blob)=>{
+              URL.revokeObjectURL(url);
+              if(!blob) return resolve(file);
+              const novo = new File([blob], file.name.replace(/\.(png|heic|heif)$/i,'.jpg'), {type:'image/jpeg'});
+              resolve(novo);
+            }, 'image/jpeg', 0.72);
+          }catch(e){ URL.revokeObjectURL(url); resolve(file); }
+        };
+        img.onerror = ()=>{ URL.revokeObjectURL(url); resolve(file); };
+        img.src = url;
+      });
+    },
+    comprimirVideo(file){
+      // Vídeo leve: 640px, 500kbps - de 15MB vira ~2MB, continua bom pra ver imóvel
+      return new Promise((resolve)=>{
+        // Se já é leve (<4MB), não comprime
+        if(file.size < 4*1024*1024) return resolve(file);
+        try{
+          const video = document.createElement('video');
+          video.muted = true; video.playsInline = true;
+          const url = URL.createObjectURL(file);
+          video.onloadedmetadata = ()=>{
+            try{
+              const MAXW = 640;
+              let w = video.videoWidth, h = video.videoHeight;
+              if(w > MAXW){ const r = MAXW/w; w = MAXW; h = Math.round(h*r); }
+              const canvas = document.createElement('canvas');
+              canvas.width = w; canvas.height = h;
+              const ctx = canvas.getContext('2d');
+              const stream = canvas.captureStream(24);
+              const rec = new MediaRecorder(stream, {mimeType:'video/webm;codecs=vp9', videoBitsPerSecond: 500000});
+              const chunks = [];
+              rec.ondataavailable = e=>{ if(e.data.size>0) chunks.push(e.data); };
+              rec.onstop = ()=>{
+                URL.revokeObjectURL(url);
+                if(!chunks.length) return resolve(file);
+                const blob = new Blob(chunks, {type:'video/webm'});
+                // Só usa comprimido se ficou menor
+                if(blob.size >= file.size) return resolve(file);
+                resolve(new File([blob], file.name.replace(/\.[a-z0-9]+$/i,'-leve.webm'), {type:'video/webm'}));
+              };
+              const desenhar = ()=>{ if(!video.paused && !video.ended){ ctx.drawImage(video,0,0,w,h); requestAnimationFrame(desenhar); } };
+              video.onplay = ()=>{ rec.start(250); desenhar(); };
+              video.onended = ()=>{ try{ rec.stop(); }catch(e){} };
+              video.src = url;
+              video.play().catch(()=>resolve(file));
+              // Trava de 60s
+              setTimeout(()=>{ if(rec.state!=='inactive'){ try{ rec.stop(); }catch(e){} } }, 60000);
+            }catch(e){ URL.revokeObjectURL(url); resolve(file); }
+          };
+          video.onerror = ()=>{ URL.revokeObjectURL(url); resolve(file); };
+        }catch(e){ resolve(file); }
+      });
+    },
+    async comprimirMidiaLeve(file, tipo){
+      if(tipo==='imagem') return await this.comprimirImagem(file);
+      if(tipo==='video') return await this.comprimirVideo(file);
+      return file;
+    },
+    async enviarAnexo(event, tipo){
+      let file = event.target.files[0];
       event.target.value = '';
       if(!file) return;
       this.mostrarAnexo = false;
+      // ===== COMPRIME ANTES DE ENVIAR - LEVE, GASTA POUCO DADO DO CELULAR =====
+      const tamanhoAntes = file.size;
+      this.toast('📦 Deixando leve... comprimindo antes de enviar');
+      file = await this.comprimirMidiaLeve(file, tipo);
+      const leve = tamanhoAntes > file.size ? ' • Leve: ' + (tamanhoAntes/1024/1024).toFixed(1) + 'MB → ' + (file.size/1024).toFixed(0) + 'KB' : ' • Leve';
       // Prévia local imediata - pra você ver na hora
       const url = URL.createObjectURL(file);
       const tam = file.size > 1024*1024 ? (file.size/1024/1024).toFixed(1)+' MB' : (file.size/1024).toFixed(0)+' KB';
       const label = tipo==='imagem' ? '📷 Foto' : tipo==='video' ? '🎬 Vídeo' : '📄 Documento';
-      const msgEnviada = {id:Date.now(), de:'eu', texto: tipo==='doc' ? '' : label, tipo: tipo, arquivoUrl: url, arquivoNome: file.name, arquivoTamanho: tam, hora: this.horaAgora(), statusEnvio:'enviando'};
+      const msgEnviada = {id:Date.now(), de:'eu', texto: tipo==='doc' ? '' : label, tipo: tipo, arquivoUrl: url, arquivoNome: file.name, arquivoTamanho: tam + leve, hora: this.horaAgora(), statusEnvio:'enviando • Leve'};
       this.mensagens.push(msgEnviada);
       this.$nextTick(()=>{ let el=document.getElementById('chatScroll'); if(el) el.scrollTop=el.scrollHeight; });
       // ===== ENVIO REAL P2P: vai os BYTES de celular pra celular, não só o nome. Servidor NÃO recebe o arquivo. =====
@@ -1484,14 +1565,14 @@ this.toast('🎉 Webhook Mercado Pago confirmado! Plano '+this.checkoutPlano.toU
         try{
           const stream = await navigator.mediaDevices.getUserMedia({audio:true});
           this._audioChunks = [];
-          this._mediaRecorder = new MediaRecorder(stream);
+          try{ this._mediaRecorder = new MediaRecorder(stream, {mimeType:'audio/webm;codecs=opus', audioBitsPerSecond: 32000}); }catch(e){ this._mediaRecorder = new MediaRecorder(stream); }
           this._mediaRecorder.ondataavailable = e=>{ if(e.data.size>0) this._audioChunks.push(e.data); };
           this._mediaRecorder.onstop = ()=>{
             stream.getTracks().forEach(tr=>tr.stop());
             const blob = new Blob(this._audioChunks, {type:'audio/webm'});
             const url = URL.createObjectURL(blob);
             const dur = this.tempoAudio;
-            this.mensagens.push({id:Date.now(), de:'eu', texto:'🎙️ Áudio enviado • '+dur, hora:this.horaAgora(), audioUrl:url});
+            this.mensagens.push({id:Date.now(), de:'eu', texto:'🎙️ Áudio leve • '+dur+' • Baixa automático no celular do outro', hora:this.horaAgora(), audioUrl:url, tipo:'audio'});
             this.$nextTick(()=>{let el=document.getElementById('chatScroll'); if(el) el.scrollTop=el.scrollHeight});
             setTimeout(()=>{ this.digitando=true; setTimeout(()=>{ this.digitando=false; this.mensagens.push({id:Date.now()+1, de:'bot', texto:'Ouvi seu áudio! Obrigado. Quer que eu agende uma visita ou te passe para o corretor no WhatsApp?', hora:this.horaAgora()}); },900); },600);
           };
