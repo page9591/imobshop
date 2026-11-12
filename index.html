@@ -745,40 +745,40 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
 
 <!-- ÁUDIO DO TOQUE - arquivo que o Jean mandou, toca quando chama -->
 <audio id="toqueChamadaAudio" src="toque-chamada.oga" loop preload="auto" style="display:none"></audio>
-<!-- ================= MODAL DE CHAMADA - TELEFONE / CÂMERA / MICROFONE ================= -->
+<!-- ================= MODAL DE CHAMADA - SIMPLES COMO ANTES ================= -->
+<!-- Só foto/nome, vídeo se for vídeo, e 3 botões embaixo. Sem card de música, sem copiar link, sem card de sala. -->
 <div x-show="chamadaAtiva" x-cloak class="fixed inset-0 z-[100] bg-[#0b141a] flex flex-col text-white" style="display:none">
   <div class="flex items-center justify-between px-4 py-3">
     <div class="flex items-center gap-3">
       <img :src="anuncianteDo(imovelAtual)?.foto" class="w-11 h-11 rounded-full object-cover border-2 border-white/30">
-      <div><p class="font-bold leading-tight" x-text="anuncianteDo(imovelAtual)?.nome"></p><p class="text-[12px] text-emerald-300" x-text="chamadaStatus"></p></div>
+      <div><p class="font-bold leading-tight" x-text="anuncianteDo(imovelAtual)?.nome"></p><p class="text-[12px] text-emerald-300" x-text="chamadaStatus + ' • ' + tempoChamada"></p></div>
     </div>
-    <span class="px-2.5 py-1 rounded-full text-[11px] font-bold" :class="tipoChamada==='video' ? 'bg-[#2563EB]' : tipoChamada==='mic' ? 'bg-[#FF8A00]' : 'bg-[#25D366]'" x-text="tipoChamada==='video' ? '📹 VÍDEO' : tipoChamada==='mic' ? '🎙️ MICROFONE' : '📞 TELEFONE'"></span>
+    <span class="px-2.5 py-1 rounded-full text-[11px] font-bold" :class="tipoChamada==='video' ? 'bg-[#2563EB]' : 'bg-[#25D366]'" x-text="tipoChamada==='video' ? '📹 VÍDEO' : '📞 ÁUDIO'"></span>
   </div>
-  <div class="mx-3 bg-white/10 rounded-2xl px-3 py-2.5">
-    <div class="flex items-center justify-center gap-2">
-      <p class="text-[12px] font-bold text-center">🎵 Tocando: <span x-text="musicaToque==='seu-audio' ? 'Seu áudio' : musicaToque"></span></p>
-      <button @click="trocarMusicaToque()" class="bg-white text-black px-2.5 py-1 rounded-full text-[11px] font-bold">Trocar música</button>
-      <button @click="pararToque()" class="bg-white/20 px-2.5 py-1 rounded-full text-[11px] font-bold">🔇 Silenciar</button>
-    </div>
-    <p class="text-[12px] font-bold text-center mt-1">Sala: <span x-text="salaChamada"></span> • Funciona dos 2 lados</p>
-    <p class="text-[11px] text-white/70 text-center">Quem clicar no mesmo imóvel entra na mesma sala. Envie o link para a outra pessoa entrar.</p>
-    <div class="flex gap-2 mt-2">
-      <button @click="copiarLinkSala()" class="flex-1 bg-white text-black font-bold py-2 rounded-full text-[12px]">🔗 Copiar link da sala</button>
-      <button @click="enviarLinkSalaWhatsApp()" class="flex-1 bg-[#25D366] text-white font-bold py-2 rounded-full text-[12px]">💬 Enviar link no WhatsApp</button>
-    </div>
+  <!-- Vídeo: só o vídeo, sem cards. Áudio: só foto grande no centro. -->
+  <div class="flex-1 flex flex-col items-center justify-center px-4 relative">
+    <template x-if="tipoChamada==='video'">
+      <div class="relative w-full max-w-[380px] flex-1 bg-black rounded-3xl overflow-hidden my-2 min-h-[320px]">
+        <video id="remoteVideo" autoplay playsinline class="absolute inset-0 w-full h-full object-cover bg-black"></video>
+        <video id="localVideo" autoplay muted playsinline class="absolute bottom-3 right-3 w-[110px] h-[150px] object-cover rounded-2xl border-2 border-white shadow-lg bg-gray-800 z-10"></video>
+      </div>
+    </template>
+    <template x-if="tipoChamada!=='video'">
+      <div class="flex flex-col items-center">
+        <img :src="anuncianteDo(imovelAtual)?.foto" class="w-28 h-28 rounded-full object-cover border-4 border-white/20">
+        <p class="font-bold text-[18px] mt-4" x-text="anuncianteDo(imovelAtual)?.nome"></p>
+        <p class="text-[13px] text-white/70 mt-1" x-text="chamadaStatus"></p>
+        <p class="text-[13px] text-white/70" x-text="tempoChamada"></p>
+        <!-- Vídeo escondido para manter o áudio funcionando, mas sem aparecer -->
+        <video id="remoteVideo" autoplay playsinline class="hidden"></video>
+        <video id="localVideo" autoplay muted playsinline class="hidden"></video>
+      </div>
+    </template>
   </div>
-  <div class="flex-1 relative bg-black mx-3 mt-2 rounded-3xl overflow-hidden min-h-[360px]">
-    <video id="remoteVideo" autoplay playsinline class="absolute inset-0 w-full h-full object-cover bg-black"></video>
-    <video id="localVideo" autoplay muted playsinline class="absolute bottom-3 right-3 w-[110px] h-[150px] object-cover rounded-2xl border-2 border-white shadow-lg bg-gray-800 z-10"></video>
-    <div class="absolute top-3 left-3 bg-black/60 px-2.5 py-1 rounded-full text-[11px] font-bold z-10" x-text="'Sala: ' + salaChamada"></div>
-    <div class="absolute top-3 right-3 bg-red-500 text-white text-[11px] font-bold px-2.5 py-1 rounded-full flex items-center gap-1 z-10"><span class="w-2 h-2 bg-white rounded-full animate-ping"></span> <span x-text="tempoChamada"></span></div>
-    <div class="absolute bottom-3 left-3 bg-black/60 px-2.5 py-1 rounded-full text-[11px] font-bold z-10" x-text="chamadaStatus"></div>
-  </div>
-  <p class="text-center text-[12px] text-white/60 px-6 mt-2">Ligação nativa ChatImov • Áudio/vídeo direto de pessoa pra pessoa • Sem app de terceiro</p>
-  <div class="px-6 pt-4 pb-8 grid grid-cols-4 gap-3 max-w-[420px] w-full mx-auto">
+  <!-- Controles simples: Microfone • Câmera • Encerrar. Sem WhatsApp, sem copiar link, sem música aqui. -->
+  <div class="px-6 pt-2 pb-8 grid grid-cols-3 gap-3 max-w-[360px] w-full mx-auto">
     <button @click="toggleMute()" :class="mutado ? 'bg-white text-black' : 'bg-white/15'" class="h-[56px] rounded-full flex flex-col items-center justify-center text-[18px]"><span x-text="mutado ? '🔇' : '🎙️'"></span><span class="text-[10px] font-bold mt-0.5">Microfone</span></button>
     <button @click="toggleCamera()" :class="!cameraLigada ? 'bg-white text-black' : 'bg-white/15'" class="h-[56px] rounded-full flex flex-col items-center justify-center text-[18px]"><span x-text="cameraLigada ? '📹' : '🚫📹'"></span><span class="text-[10px] font-bold mt-0.5">Câmera</span></button>
-    <button @click="trocarParaWhatsApp()" class="h-[56px] rounded-full bg-[#25D366] flex flex-col items-center justify-center text-[18px]"><span>💬</span><span class="text-[10px] font-bold mt-0.5">WhatsApp</span></button>
     <button @click="encerrarChamada()" class="h-[56px] rounded-full bg-red-500 flex flex-col items-center justify-center text-[18px] shadow-lg shadow-red-500/40"><span>📞</span><span class="text-[10px] font-bold mt-0.5">Encerrar</span></button>
   </div>
 </div>
