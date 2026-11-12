@@ -832,8 +832,7 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
   <button @click="view = usuarioLogado ? 'admin' : 'login'" class="flex flex-col items-center gap-0.5 flex-1"><span class="text-[20px]">👤</span><span :class="(view==='admin'||view==='login')?'text-waGreen font-bold':'text-gray-400'" class="text-[10px]">Painel</span></button>
 </nav>
 
-<!-- Toast -->
-<div x-show="toastMsg" x-transition class="absolute bottom-[84px] left-1/2 -translate-x-1/2 z-50 bg-[#111b21] text-white text-[13px] font-semibold px-4 py-2.5 rounded-full shadow-2xl max-w-[90%] text-center pointer-events-none" x-text="toastMsg"></div>
+<!-- Mancha preta (toast) removida a pedido do dono - não aparece mais -->
 
 </div>
 
@@ -1640,7 +1639,7 @@ this.toast('🎉 Webhook Mercado Pago confirmado! Plano '+this.checkoutPlano.toU
         this.toast('✅ Áudio enviado!');
       }
     },
-toast(msg){this.toastMsg=msg; setTimeout(()=>this.toastMsg='',3200)}
+toast(msg){ /* aviso desativado a pedido do dono - sem pílula preta */ }
 }
 }
 </script>
