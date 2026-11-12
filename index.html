@@ -112,10 +112,10 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
 -->
 </head>
 <body class="bg-[#0b141a] font-sans text-[#111b21] antialiased">
-<div x-data="chatImov()" x-init="init()" class="max-w-[430px] mx-auto min-h-[100dvh] bg-white relative shadow-2xl flex flex-col overflow-hidden">
+<div x-data="chatImov()" x-init="init()" class="max-w-[430px] mx-auto h-[100dvh] h-[100svh] bg-white relative shadow-2xl flex flex-col overflow-hidden">
 
 <!-- ============ HEADER HOME ============ -->
-<header x-show="view==='home'" class="bg-waDark text-white sticky top-0 z-30">
+<header x-show="view==='home'" class="bg-waDark text-white shrink-0 z-30">
   <div class="flex items-center gap-3 px-3 pt-3 pb-2">
     <div class="relative">
       <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&q=80" class="w-10 h-10 rounded-full object-cover border-2 border-white/20" alt="Ana ChatImov">
@@ -143,7 +143,7 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
 </header>
 
 <!-- ============ HEADER CHAT / PERFIL / ADMIN ============ -->
-<header x-show="view!=='home'" class="bg-waDark text-white sticky top-0 z-30">
+<header x-show="view!=='home'" class="bg-waDark text-white shrink-0 z-30">
   <div class="flex items-center gap-2 px-2 py-2.5">
     <button @click="voltar()" class="w-9 h-9 flex items-center justify-center text-xl">←</button>
     <template x-if="view==='chat' && imovelAtual">
@@ -178,10 +178,10 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
   </div>
 </header>
 
-<main class="flex-1 overflow-y-auto overflow-x-hidden pb-24 relative w-full">
+<main class="flex-1 min-h-0 overflow-y-auto overflow-x-hidden relative w-full flex flex-col">
 
 <!-- ================= HOME ================= -->
-<section x-show="view==='home'" class="fade">
+<section x-show="view==='home'" class="fade flex-1 min-h-0 overflow-y-auto">
   <div class="px-3 pt-3 flex items-center justify-between">
     <div><h1 class="font-extrabold text-[18px] leading-tight">Imóveis perto de você</h1><p class="text-[12px] text-gray-500"><span x-text="imoveisFiltrados.length"></span> anúncios • ordem de chegada (FIFO) • São Paulo</p></div>
     <span class="bg-emerald-50 text-emerald-700 text-[11px] font-bold px-2 py-1 rounded-full border border-emerald-100">⚡ NOVOS HOJE</span>
@@ -321,7 +321,7 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
 </section>
 
 <!-- ================= CHAT ================= -->
-<section x-show="view==='chat' && imovelAtual" class="fade flex flex-col chat-bg min-h-[calc(100dvh-56px)]">
+<section x-show="view==='chat' && imovelAtual" class="fade flex flex-col chat-bg flex-1 min-h-0">
   <!-- CORRETOR OCUPADO: aparece quando a Marina já está em ligação com outra pessoa -->
   <div x-show="corretorOcupado && !chamadaAtiva" class="mx-3 mt-3 bg-red-50 border border-red-200 rounded-2xl p-3 flex items-center gap-3">
     <span class="w-10 h-10 rounded-full bg-red-500 text-white flex items-center justify-center text-[18px]">🔴</span>
@@ -337,7 +337,7 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
     <button @click="recusarChamada()" class="bg-red-500 px-3.5 py-2 rounded-full font-bold text-[13px] shrink-0">Recusar</button>
   </div>
 
-  <!-- Card flutuante -->
+  <!-- Card do imóvel no chat -->
   <div class="mx-3 mt-3 bg-white rounded-2xl shadow-md overflow-hidden flex">
     <img :src="imovelAtual.foto" class="w-[92px] h-[92px] object-cover" :alt="imovelAtual.titulo">
     <div class="p-3 flex-1 min-w-0">
@@ -407,11 +407,7 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
   <p x-show="gravandoAudio" class="text-center text-[12px] font-bold text-red-600 pb-1">🔴 Gravando áudio <span x-text="tempoAudio"></span> • toque no microfone de novo para enviar</p>
   <p class="text-center text-[11px] text-gray-500 pb-1 px-4">Respostas automáticas configuradas por <span x-text="anuncianteDo(imovelAtual).nome"></span>. Para falar com humano, use o botão verde.</p>
 
-  <!-- BOTÃO FLUTUANTE WHATSAPP - DONO PODE LIGAR/DESLIGAR NO PAINEL MASTER -->
-  <button x-show="mostrarFlutuanteWhatsApp && anuncianteDo(imovelAtual).mostrarWhats !== false && anuncianteDo(imovelAtual).excluido !== true" @click="abrirWhatsAppChat()" class="pulse-ring absolute bottom-[172px] right-3 z-40 w-[56px] h-[56px] bg-[#25D366] rounded-full shadow-2xl flex flex-col items-center justify-center text-white border-4 border-white" aria-label="Falar no WhatsApp">
-    <svg width="28" height="28" viewBox="0 0 24 24" fill="white"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5.1-1.3A10 10 0 1 0 12 2zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.6-6.1c-.3-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1-.2.3-.7.8-.9 1-.1.2-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4 0-.6.1-.8l.4-.5c.1-.2.1-.3 0-.5l-.8-1.9c-.2-.5-.4-.4-.6-.4h-.5c-.2 0-.5.1-.7.3-.2.3-.9.9-.9 2.2s.9 2.5 1.1 2.7c.1.2 1.9 2.9 4.6 4 .6.3 1.1.4 1.5.6.6.2 1.2.2 1.6.1.5-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.2-1.2-.1-.1-.2-.2-.5-.3z"/></svg>
-    <span class="text-[8px] font-extrabold leading-none mt-0.5">WHATSAPP</span>
-  </button>
+  <!-- BOTÃO FLUTUANTE DO WHATSAPP REMOVIDO A PEDIDO DO DONO - não aparece mais -->
 </section>
 
 <!-- ================= LOGIN DO USUÁRIO ================= -->
@@ -689,28 +685,9 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
         <p x-show="masterMsg" class="bg-emerald-50 text-emerald-800 text-[13px] font-bold rounded-xl p-3 text-center" x-text="masterMsg"></p>
       </div>
 
-      <!-- ABA CONTROLES - SÓ DONO: Botão flutuante WhatsApp + Incluir/Excluir usuário -->
+      <!-- ABA CONTROLES - SÓ DONO: Incluir/Excluir usuário -->
       <div x-show="masterAba==='controles'" class="space-y-3">
-        <div class="bg-white rounded-2xl p-4 shadow-sm">
-          <p class="font-bold text-[15px]">💬 Botão redondo flutuante do WhatsApp</p>
-          <p class="text-[12px] text-gray-500 mt-1">O botão verdinho redondo que fica flutuando no canto do chat. Você liga ou desliga quando quiser.</p>
-          <div class="flex items-center justify-between mt-3 bg-emerald-50 border border-emerald-100 rounded-xl p-3">
-            <div class="flex items-center gap-2">
-              <span class="w-12 h-12 bg-[#25D366] rounded-full flex items-center justify-center text-white text-[22px] shadow">💬</span>
-              <div><p class="font-bold text-[13px]">Botão flutuante para todos</p><p class="text-[11px] text-gray-500" x-text="mostrarFlutuanteWhatsApp ? '✅ Ligado - aparece no chat' : '⛔ Desligado - não aparece'"></p></div>
-            </div>
-            <button @click="alternarFlutuanteGlobal()" :class="mostrarFlutuanteWhatsApp ? 'bg-[#25D366] text-white' : 'bg-gray-200 text-gray-600'" class="font-bold text-[12px] px-4 py-2.5 rounded-full shrink-0" x-text="mostrarFlutuanteWhatsApp ? '✅ LIGADO' : '⛔ DESLIGADO'"></button>
-          </div>
-          <p class="text-[11px] text-gray-500 mt-2">💡 Desligou aqui, some para todos na hora. Ligou, volta na hora.</p>
-        </div>
-        <div class="bg-white rounded-2xl p-4 shadow-sm">
-          <p class="font-bold text-[15px]">➕ Incluir novo usuário / corretor</p>
-          <p class="text-[12px] text-gray-500 mt-1">Cadastra um corretor novo. Ele já entra ativo e com botão flutuante ligado.</p>
-          <input x-model="novoUsuarioNome" placeholder="Nome do corretor - ex: Ana Souza" class="w-full border rounded-xl px-3 py-2.5 mt-3 text-[14px] outline-none focus:border-waGreen">
-          <div class="grid grid-cols-2 gap-2 mt-2">
-            <input x-model="novoUsuarioWhats" placeholder="WhatsApp - ex: 5511999999999" class="border rounded-xl px-3 py-2.5 text-[14px] outline-none focus:border-waGreen">
-            <input x-model="novoUsuarioSlug" placeholder="Slug - ex: ana-souza" class="border rounded-xl px-3 py-2.5 text-[14px] outline-none focus:border-waGreen">
-          </div>
+        <!-- Card do botão flutuante removido - botão flutuante foi tirado a pedido do dono -->
           <button @click="incluirUsuario()" class="w-full bg-waDark text-white font-bold py-3 rounded-full mt-3">➕ Incluir usuário</button>
           <p x-show="masterMsg" class="bg-emerald-50 text-emerald-800 text-[13px] font-bold rounded-xl p-3 text-center mt-3" x-text="masterMsg"></p>
         </div>
@@ -726,10 +703,7 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
                   <span class="inline-block mt-1 text-[11px] font-bold px-2 py-0.5 rounded-full" :class="u.excluido ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700'" x-text="u.excluido ? '⛔ EXCLUÍDO / BLOQUEADO' : '✅ ATIVO'"></span>
                 </div>
               </div>
-              <div class="grid grid-cols-2 gap-2 mt-3">
-                <button @click="alternarFlutuanteUsuario(u)" :class="u.mostrarWhats===false ? 'bg-gray-200 text-gray-600' : 'bg-[#25D366] text-white'" class="font-bold text-[12px] py-2.5 rounded-full" x-text="u.mostrarWhats===false ? '💬 Botão: DESLIGADO' : '💬 Botão: LIGADO'"></button>
-                <button @click="alternarUsuarioAtivo(u)" :class="u.excluido ? 'bg-emerald-500 text-white' : 'bg-red-500 text-white'" class="font-bold text-[12px] py-2.5 rounded-full" x-text="u.excluido ? '✅ Incluir de novo' : '⛔ Excluir usuário'"></button>
-              </div>
+              <button @click="alternarUsuarioAtivo(u)" :class="u.excluido ? 'bg-emerald-500 text-white' : 'bg-red-500 text-white'" class="w-full mt-3 font-bold text-[13px] py-2.5 rounded-full" x-text="u.excluido ? '✅ Incluir de novo' : '⛔ Excluir usuário'"></button>
               <button @click="excluirUsuarioDefinitivo(u)" class="w-full mt-2 bg-red-50 text-red-600 font-bold text-[12px] py-2 rounded-full">🗑️ Excluir definitivo (apaga da lista)</button>
             </div>
           </template>
@@ -814,7 +788,7 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
 <!-- ================= MODAL DE CHAMADA - SIMPLES COMO ANTES ================= -->
 <!-- Só foto/nome, vídeo se for vídeo, e 3 botões embaixo. Sem card de música, sem copiar link, sem card de sala. -->
 <div x-show="chamadaAtiva" x-cloak class="absolute inset-0 z-[100] bg-[#0b141a] flex flex-col text-white" style="display:none">
-  <div class="flex items-center justify-between px-4 py-3">
+  <div class="shrink-0 flex items-center justify-between px-4 py-3">
     <div class="flex items-center gap-3">
       <img :src="anuncianteDo(imovelAtual)?.foto" class="w-11 h-11 rounded-full object-cover border-2 border-white/30">
       <div><p class="font-bold leading-tight" x-text="anuncianteDo(imovelAtual)?.nome"></p><p class="text-[12px] text-emerald-300" x-text="chamadaStatus + ' • ' + tempoChamada"></p></div>
@@ -822,9 +796,9 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
     <span class="px-2.5 py-1 rounded-full text-[11px] font-bold" :class="tipoChamada==='video' ? 'bg-[#2563EB]' : 'bg-[#25D366]'" x-text="tipoChamada==='video' ? '📹 VÍDEO' : '📞 ÁUDIO'"></span>
   </div>
   <!-- Vídeo: só o vídeo, sem cards. Áudio: só foto grande no centro. -->
-  <div class="flex-1 flex flex-col items-center justify-center px-4 relative">
+  <div class="flex-1 min-h-0 flex flex-col items-center justify-center px-4 relative overflow-hidden">
     <template x-if="tipoChamada==='video'">
-      <div class="relative w-full max-w-[380px] flex-1 bg-black rounded-3xl overflow-hidden my-2 min-h-[320px]">
+      <div class="relative w-full max-w-[380px] flex-1 min-h-0 bg-black rounded-3xl overflow-hidden my-2">
         <video id="remoteVideo" autoplay playsinline class="absolute inset-0 w-full h-full object-cover bg-black"></video>
         <video id="localVideo" autoplay muted playsinline class="absolute bottom-3 right-3 w-[110px] h-[150px] object-cover rounded-2xl border-2 border-white shadow-lg bg-gray-800 z-10"></video>
       </div>
@@ -842,7 +816,7 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
     </template>
   </div>
   <!-- Controles simples: Microfone • Câmera • Encerrar. Sem WhatsApp, sem copiar link, sem música aqui. -->
-  <div class="px-6 pt-2 pb-8 grid grid-cols-3 gap-3 max-w-[360px] w-full mx-auto">
+  <div class="shrink-0 px-6 pt-2 pb-4 grid grid-cols-3 gap-3 max-w-[360px] w-full mx-auto" style="padding-bottom:calc(16px + env(safe-area-inset-bottom))">
     <button @click="toggleMute()" :class="mutado ? 'bg-white text-black' : 'bg-white/15'" class="h-[56px] rounded-full flex flex-col items-center justify-center text-[18px]"><span x-text="mutado ? '🔇' : '🎙️'"></span><span class="text-[10px] font-bold mt-0.5">Microfone</span></button>
     <button @click="toggleCamera()" :class="!cameraLigada ? 'bg-white text-black' : 'bg-white/15'" class="h-[56px] rounded-full flex flex-col items-center justify-center text-[18px]"><span x-text="cameraLigada ? '📹' : '🚫📹'"></span><span class="text-[10px] font-bold mt-0.5">Câmera</span></button>
     <button @click="encerrarChamada()" class="h-[56px] rounded-full bg-red-500 flex flex-col items-center justify-center text-[18px] shadow-lg shadow-red-500/40"><span>📞</span><span class="text-[10px] font-bold mt-0.5">Encerrar</span></button>
@@ -850,7 +824,7 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
 </div>
 
 <!-- ============ BOTTOM NAV ============ -->
-<nav class="absolute bottom-0 left-0 right-0 bg-white border-t border-gray-100 flex justify-around py-2 px-2 z-30" style="padding-bottom:calc(8px + env(safe-area-inset-bottom))">
+<nav class="shrink-0 bg-white border-t border-gray-100 flex justify-around py-2 px-2 z-30" style="padding-bottom:calc(8px + env(safe-area-inset-bottom))">
   <button @click="view='home'" class="flex flex-col items-center gap-0.5 flex-1"><span class="text-[20px]">🏠</span><span :class="view==='home'?'text-waGreen font-bold':'text-gray-400'" class="text-[10px]">Início</span></button>
   <button @click="view='home'; busca=''; $nextTick(()=>document.querySelector('input[placeholder*=\'Buscar\']')?.focus())" class="flex flex-col items-center gap-0.5 flex-1"><span class="text-[20px]">🔍</span><span class="text-[10px] text-gray-400">Buscar</span></button>
   <button @click="view='admin'; abaAdmin='novo'" class="flex flex-col items-center -mt-6 flex-1"><span class="w-12 h-12 bg-waGreen text-white rounded-full flex items-center justify-center text-[22px] shadow-lg border-4 border-white">+</span><span class="text-[10px] text-gray-500 font-semibold">Anunciar</span></button>
@@ -866,7 +840,7 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
 <script>
 function chatImov(){
 return {
-view:'home', chamadaAtiva:false, salaChamada:'', linkChamada:'', visitanteId:'', promptInstalar:null, baixando:false, corretorOcupado:false, corretorOcupadoSala:null, peer:null, sinalUltimoId:0, chamadaTocando:null, _pollSinal:null, _pollPendentes:null, musicaToque:'seu-audio', _toqueCtx:null, _toqueTimer:null, _toqueOsc:null, apiBase: (localStorage.getItem('chatimov_api_url') || 'https://chatimov-api.seu-subdominio.workers.dev'), gravandoAudio:false, tempoAudio:'00:00', _audioTimer:null, _audioSeg:0, _mediaRecorder:null, _audioChunks:[], tipoChamada:'audio', chamadaStatus:'Chamando...', tempoChamada:'00:00', mutado:false, cameraLigada:true, _callTimer:null, _callStream:null, _callSeg:0, abaAdmin:'imoveis', busca:'', filtro:'', textoChat:'', digitando:false, mostrarAnexo:false, baixarAuto:true, mostrarFlutuanteWhatsApp:(localStorage.getItem('chatimov_flutuante')!=='0'), novoUsuarioNome:'', novoUsuarioWhats:'', novoUsuarioSlug:'', _arquivoRecebendo:null, _arquivoChunks:[], _arquivoRecebido:0, _salaArquivo:'',
+view:'home', chamadaAtiva:false, salaChamada:'', linkChamada:'', visitanteId:'', promptInstalar:null, baixando:false, corretorOcupado:false, corretorOcupadoSala:null, peer:null, sinalUltimoId:0, chamadaTocando:null, _pollSinal:null, _pollPendentes:null, musicaToque:'seu-audio', _toqueCtx:null, _toqueTimer:null, _toqueOsc:null, apiBase: (localStorage.getItem('chatimov_api_url') || 'https://chatimov-api.seu-subdominio.workers.dev'), gravandoAudio:false, tempoAudio:'00:00', _audioTimer:null, _audioSeg:0, _mediaRecorder:null, _audioChunks:[], tipoChamada:'audio', chamadaStatus:'Chamando...', tempoChamada:'00:00', mutado:false, cameraLigada:true, _callTimer:null, _callStream:null, _callSeg:0, abaAdmin:'imoveis', busca:'', filtro:'', textoChat:'', digitando:false, mostrarAnexo:false, baixarAuto:true, mostrarFlutuanteWhatsApp:false, novoUsuarioNome:'', novoUsuarioWhats:'', novoUsuarioSlug:'', _arquivoRecebendo:null, _arquivoChunks:[], _arquivoRecebido:0, _salaArquivo:'',
 meuPlano:'free', botImovelId:'me-1',
     // ===== LOGIN DO USUÁRIO (corretor) + FOTO DE PERFIL =====
     usuarioLogado: (localStorage.getItem('chatimov_usuario_logado')==='1'),
