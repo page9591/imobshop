@@ -26,7 +26,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>ChatImov — Marketplace Imobiliário Conversacional</title>
-<meta name="theme-color" content="#B91C1C">
+<meta name="theme-color" content="#075E54">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="logo-chatimov.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -38,7 +38,7 @@
 <meta name="description" content="ChatImov — Encontre seu imóvel conversando. Chatbot por anúncio, catálogo do corretor e WhatsApp direto.">
 <script src="https://cdn.tailwindcss.com"></script>
 <script>
-tailwind.config={theme:{extend:{colors:{waDark:'#B91C1C',waGreen:'#128C7E',waLight:'#25D366',waChat:'#ECE5DD',waBubble:'#DCF8C6',waTeal:'#00A884'},fontFamily:{sans:['Inter','system-ui','sans-serif']}}}}
+tailwind.config={theme:{extend:{colors:{waDark:'#075E54',waGreen:'#128C7E',waLight:'#25D366',waChat:'#ECE5DD',waBubble:'#DCF8C6',waTeal:'#00A884'},fontFamily:{sans:['Inter','system-ui','sans-serif']}}}}
 </script>
 <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -155,7 +155,7 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
         </div>
         <!-- TOPO: SÓ LIGAÇÃO DE ÁUDIO + LIGAÇÃO DE VÍDEO - MODELO NOVO BONITO (não é o cinza feio) -->
         <div class="flex items-center gap-1.5 shrink-0">
-          <button @click="iniciarChamada('audio')" title="Ligar para o corretor - Chamada de voz" style="background:#ffffff;color:#B91C1C;box-shadow:0 2px 10px rgba(0,0,0,.35);border:2px solid #25D366;" class="flex items-center gap-1 font-extrabold text-[11px] pl-1 pr-2.5 py-2 rounded-full active:scale-95 transition">
+          <button @click="iniciarChamada('audio')" title="Ligar para o corretor - Chamada de voz" style="background:#ffffff;color:#075E54;box-shadow:0 2px 10px rgba(0,0,0,.35);border:2px solid #25D366;" class="flex items-center gap-1 font-extrabold text-[11px] pl-1 pr-2.5 py-2 rounded-full active:scale-95 transition">
             <span style="background:#25D366;" class="w-[24px] h-[24px] rounded-full flex items-center justify-center text-[14px] leading-none">📞</span>
             LIGAR
           </button>
@@ -188,7 +188,7 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
   </div>
 
   <!-- HERO: LOGO + SLOGAN + BOTÃO BAIXAR -->
-  <div class="mx-3 mt-3 bg-[#B91C1C] rounded-2xl p-4 flex items-center gap-3 text-white shadow-md">
+  <div class="mx-3 mt-3 bg-[#075E54] rounded-2xl p-4 flex items-center gap-3 text-white shadow-md">
     <img src="logo-chatimov.png" class="w-[58px] h-[58px] rounded-2xl object-contain bg-white/10 shrink-0" alt="ChatImov">
     <div class="flex-1 min-w-0">
       <p class="font-extrabold text-[18px] leading-tight">ChatImov</p>
@@ -330,7 +330,7 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
   </div>
 
   <!-- CHAMADA ENTRANTE: aparece para quem vai atender, sem misturar com outras ligações -->
-  <div x-show="chamadaTocando" class="mx-3 mt-3 bg-[#B91C1C] text-white rounded-2xl p-3 flex items-center gap-3 shadow-lg">
+  <div x-show="chamadaTocando" class="mx-3 mt-3 bg-[#075E54] text-white rounded-2xl p-3 flex items-center gap-3 shadow-lg">
     <span class="w-11 h-11 rounded-full bg-white flex items-center justify-center text-[20px] animate-pulse" x-text="chamadaTocando?.tipo==='video' ? '📹' : '📞'"></span>
     <div class="flex-1 min-w-0"><p class="font-bold text-[14px] leading-tight" x-text="'🎵📞 ' + (chamadaTocando?.de_nome || 'Alguém') + ' está ligando'"></p><p class="text-[12px] text-white/80" x-text="'Imóvel: ' + (imovelAtual?.titulo || '') + ' • Sala: ' + (chamadaTocando?.sala || '')"></p></div>
     <button @click="aceitarChamada()" class="bg-[#25D366] px-3.5 py-2 rounded-full font-bold text-[13px] shrink-0">Aceitar</button>
@@ -418,7 +418,7 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
 <section x-show="view==='login'" class="fade bg-[#f0f2f5] min-h-full">
   <div class="p-4 space-y-3">
     <div class="bg-white rounded-2xl p-5 shadow-sm text-center">
-      <img src="logo-chatimov.png" class="w-[64px] h-[64px] mx-auto rounded-2xl object-contain bg-[#B91C1C]/5" alt="ChatImov">
+      <img src="logo-chatimov.png" class="w-[64px] h-[64px] mx-auto rounded-2xl object-contain bg-[#075E54]/5" alt="ChatImov">
       <p class="font-extrabold text-[18px] mt-2">Entrar no ChatImov</p>
       <p class="text-[13px] text-gray-500 mt-1">Corretor, entre com seu e-mail para anunciar, trocar foto de perfil e gerenciar seus imóveis.</p>
     </div>
