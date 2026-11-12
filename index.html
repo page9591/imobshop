@@ -44,7 +44,7 @@ tailwind.config={theme:{extend:{colors:{waDark:'#075E54',waGreen:'#128C7E',waLig
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 @keyframes pulseSlow{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}} .animate-pulse-slow{animation:pulseSlow 1.6s ease-in-out infinite}
-html{scrollbar-width:none}::-webkit-scrollbar{display:none}
+html,body{overflow-x:hidden;max-width:100vw} html{scrollbar-width:none}::-webkit-scrollbar{display:none}
 .chat-bg{background-color:#ECE5DD;background-image:url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23d4c9b8' fill-opacity='0.18'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")}
 .line-clamp-2{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .pulse-ring{animation:pulseRing 1.8s infinite}
@@ -178,7 +178,7 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
   </div>
 </header>
 
-<main class="flex-1 overflow-y-auto pb-24 relative">
+<main class="flex-1 overflow-y-auto overflow-x-hidden pb-24 relative w-full">
 
 <!-- ================= HOME ================= -->
 <section x-show="view==='home'" class="fade">
@@ -408,7 +408,7 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
   <p class="text-center text-[11px] text-gray-500 pb-1 px-4">Respostas automáticas configuradas por <span x-text="anuncianteDo(imovelAtual).nome"></span>. Para falar com humano, use o botão verde.</p>
 
   <!-- BOTÃO FLUTUANTE WHATSAPP - DONO PODE LIGAR/DESLIGAR NO PAINEL MASTER -->
-  <button x-show="mostrarFlutuanteWhatsApp && anuncianteDo(imovelAtual).mostrarWhats !== false && anuncianteDo(imovelAtual).excluido !== true" @click="abrirWhatsAppChat()" class="pulse-ring fixed bottom-[92px] right-[calc(50%-215px+16px)] sm:right-6 z-40 w-[60px] h-[60px] bg-[#25D366] rounded-full shadow-2xl flex flex-col items-center justify-center text-white border-4 border-white" aria-label="Falar no WhatsApp">
+  <button x-show="mostrarFlutuanteWhatsApp && anuncianteDo(imovelAtual).mostrarWhats !== false && anuncianteDo(imovelAtual).excluido !== true" @click="abrirWhatsAppChat()" class="pulse-ring absolute bottom-[172px] right-3 z-40 w-[56px] h-[56px] bg-[#25D366] rounded-full shadow-2xl flex flex-col items-center justify-center text-white border-4 border-white" aria-label="Falar no WhatsApp">
     <svg width="28" height="28" viewBox="0 0 24 24" fill="white"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5.1-1.3A10 10 0 1 0 12 2zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.6-6.1c-.3-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1-.2.3-.7.8-.9 1-.1.2-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4 0-.6.1-.8l.4-.5c.1-.2.1-.3 0-.5l-.8-1.9c-.2-.5-.4-.4-.6-.4h-.5c-.2 0-.5.1-.7.3-.2.3-.9.9-.9 2.2s.9 2.5 1.1 2.7c.1.2 1.9 2.9 4.6 4 .6.3 1.1.4 1.5.6.6.2 1.2.2 1.6.1.5-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.2-1.2-.1-.1-.2-.2-.5-.3z"/></svg>
     <span class="text-[8px] font-extrabold leading-none mt-0.5">WHATSAPP</span>
   </button>
@@ -813,7 +813,7 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
 <audio id="toqueChamadaAudio" src="toque-chamada.oga" loop preload="auto" style="display:none"></audio>
 <!-- ================= MODAL DE CHAMADA - SIMPLES COMO ANTES ================= -->
 <!-- Só foto/nome, vídeo se for vídeo, e 3 botões embaixo. Sem card de música, sem copiar link, sem card de sala. -->
-<div x-show="chamadaAtiva" x-cloak class="fixed inset-0 z-[100] bg-[#0b141a] flex flex-col text-white" style="display:none">
+<div x-show="chamadaAtiva" x-cloak class="absolute inset-0 z-[100] bg-[#0b141a] flex flex-col text-white" style="display:none">
   <div class="flex items-center justify-between px-4 py-3">
     <div class="flex items-center gap-3">
       <img :src="anuncianteDo(imovelAtual)?.foto" class="w-11 h-11 rounded-full object-cover border-2 border-white/30">
@@ -859,7 +859,7 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
 </nav>
 
 <!-- Toast -->
-<div x-show="toastMsg" x-transition class="fixed bottom-[84px] left-1/2 -translate-x-1/2 z-50 bg-[#111b21] text-white text-[13px] font-semibold px-4 py-2.5 rounded-full shadow-2xl max-w-[90%] text-center" x-text="toastMsg"></div>
+<div x-show="toastMsg" x-transition class="absolute bottom-[140px] left-1/2 -translate-x-1/2 z-50 bg-[#111b21] text-white text-[13px] font-semibold px-4 py-2.5 rounded-full shadow-2xl max-w-[90%] text-center" x-text="toastMsg"></div>
 
 </div>
 
