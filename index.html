@@ -44,7 +44,7 @@ tailwind.config={theme:{extend:{colors:{waDark:'#075E54',waGreen:'#128C7E',waLig
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 @keyframes pulseSlow{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}} .animate-pulse-slow{animation:pulseSlow 1.6s ease-in-out infinite}
-html,body{overflow-x:hidden;max-width:100vw} html{scrollbar-width:none}::-webkit-scrollbar{display:none}
+[x-cloak]{display:none!important} html,body{overflow-x:hidden;max-width:100vw} html{scrollbar-width:none}::-webkit-scrollbar{display:none}
 .chat-bg{background-color:#ECE5DD;background-image:url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23d4c9b8' fill-opacity='0.18'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")}
 .line-clamp-2{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .pulse-ring{animation:pulseRing 1.8s infinite}
@@ -178,10 +178,10 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
   </div>
 </header>
 
-<main class="flex-1 min-h-0 overflow-y-auto overflow-x-hidden relative w-full flex flex-col">
+<main class="flex-1 min-h-0 overflow-y-auto overflow-x-hidden relative w-full">
 
 <!-- ================= HOME ================= -->
-<section x-show="view==='home'" class="fade flex-1 min-h-0 overflow-y-auto">
+<section x-show="view==='home'" class="fade" x-cloak>
   <div class="px-3 pt-3 flex items-center justify-between">
     <div><h1 class="font-extrabold text-[18px] leading-tight">Imóveis perto de você</h1><p class="text-[12px] text-gray-500"><span x-text="imoveisFiltrados.length"></span> anúncios • ordem de chegada (FIFO) • São Paulo</p></div>
     <span class="bg-emerald-50 text-emerald-700 text-[11px] font-bold px-2 py-1 rounded-full border border-emerald-100">⚡ NOVOS HOJE</span>
@@ -243,7 +243,7 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
 </section>
 
 <!-- ================= PERFIL / CATÁLOGO ================= -->
-<section x-show="view==='perfil' && anuncianteAtual" class="fade">
+<section x-cloak x-show="view==='perfil' && anuncianteAtual" class="fade">
   <!-- CAPA: só Prata/Ouro. Free = sem capa -->
   <template x-if="anuncianteAtual.plano!=='free'">
     <div class="relative">
@@ -321,7 +321,7 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
 </section>
 
 <!-- ================= CHAT ================= -->
-<section x-show="view==='chat' && imovelAtual" class="fade flex flex-col chat-bg flex-1 min-h-0">
+<section x-show="view==='chat' && imovelAtual" class="fade flex flex-col chat-bg h-full" x-cloak>
   <!-- CORRETOR OCUPADO: aparece quando a Marina já está em ligação com outra pessoa -->
   <div x-show="corretorOcupado && !chamadaAtiva" class="mx-3 mt-3 bg-red-50 border border-red-200 rounded-2xl p-3 flex items-center gap-3">
     <span class="w-10 h-10 rounded-full bg-red-500 text-white flex items-center justify-center text-[18px]">🔴</span>
@@ -392,17 +392,17 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
   </div>
   </div>
   <!-- EMBAIXO BONITO IGUAL WHATSAPP: [😊 Digite... 📎] [🎙️] [➤] - Clip abre Foto/Vídeo/Doc, Mic grava áudio leve -->
-  <div class="px-3 pb-2 flex items-center gap-2">
-    <div class="flex-1 bg-white rounded-full flex items-center px-3 py-1.5 shadow-sm border border-gray-100">
+  <div class="px-2 pb-2 flex items-center gap-1.5 w-full max-w-full overflow-hidden">
+    <div class="flex-1 min-w-0 bg-white rounded-full flex items-center px-2.5 py-1.5 shadow-sm border border-gray-100">
       <span class="text-[20px]">😊</span>
       <input x-model="textoChat" @keydown.enter="enviarTexto()" :placeholder="gravandoAudio ? 'Gravando áudio... toque no microfone para parar' : 'Digite sua dúvida...'" class="flex-1 px-2 py-2 text-[14px] outline-none bg-transparent">
       <button @click="mostrarAnexo=!mostrarAnexo" :class="mostrarAnexo ? 'bg-[#128C7E] text-white scale-110' : 'bg-gray-100 text-gray-600'" class="w-[36px] h-[36px] rounded-full flex items-center justify-center text-[20px] shrink-0 active:scale-90 transition shadow-sm" title="Clique: Foto, Vídeo ou Documento">📎</button>
     </div>
     <!-- MICROFONE SEMPRE VISÍVEL - igual WhatsApp, do lado de enviar -->
-    <button @click="alternarGravacaoAudio()" :title="gravandoAudio ? 'Parar gravação' : 'Clique para falar - enviar áudio leve'" :class="gravandoAudio ? 'bg-red-500 scale-110 animate-pulse' : 'bg-[#128C7E]'" class="w-[48px] h-[48px] text-white rounded-full flex items-center justify-center text-[22px] shadow-lg shrink-0 transition active:scale-95 border-2 border-white">
+    <button @click="alternarGravacaoAudio()" :title="gravandoAudio ? 'Parar gravação' : 'Clique para falar - enviar áudio leve'" :class="gravandoAudio ? 'bg-red-500 scale-110 animate-pulse' : 'bg-[#128C7E]'" class="w-[44px] h-[44px] text-white rounded-full flex items-center justify-center text-[20px] shadow-lg shrink-0 transition active:scale-95 border-2 border-white">
       <span x-text="gravandoAudio ? '⏹️' : '🎙️'"></span>
     </button>
-    <button @click="enviarTexto()" class="w-[48px] h-[48px] bg-[#25D366] text-white rounded-full flex items-center justify-center text-[20px] shadow-lg shrink-0 border-2 border-white">➤</button>
+    <button @click="enviarTexto()" class="w-[44px] h-[44px] bg-[#25D366] text-white rounded-full flex items-center justify-center text-[19px] shadow-lg shrink-0 border-2 border-white">➤</button>
   </div>
   <p x-show="gravandoAudio" class="text-center text-[12px] font-bold text-red-600 pb-1">🔴 Gravando áudio <span x-text="tempoAudio"></span> • toque no microfone de novo para enviar</p>
   <p class="text-center text-[11px] text-gray-500 pb-1 px-4">Respostas automáticas configuradas por <span x-text="anuncianteDo(imovelAtual).nome"></span>. Para falar com humano, use o botão verde.</p>
@@ -411,7 +411,7 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
 </section>
 
 <!-- ================= LOGIN DO USUÁRIO ================= -->
-<section x-show="view==='login'" class="fade bg-[#f0f2f5] min-h-full">
+<section x-cloak x-show="view==='login'" class="fade bg-[#f0f2f5] min-h-full">
   <div class="p-4 space-y-3">
     <div class="bg-white rounded-2xl p-5 shadow-sm text-center">
       <img src="logo-chatimov.png" class="w-[64px] h-[64px] mx-auto rounded-2xl object-contain bg-[#075E54]/5" alt="ChatImov">
@@ -476,7 +476,7 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
 </section>
 
 <!-- ================= ADMIN ================= -->
-<section x-show="view==='admin'" class="fade bg-[#f0f2f5] min-h-full">
+<section x-cloak x-show="view==='admin'" class="fade bg-[#f0f2f5] min-h-full">
   <div class="p-3 space-y-3">
     <!-- SE NÃO ESTÁ LOGADO, PEDE LOGIN -->
     <div x-show="!usuarioLogado" class="bg-white rounded-2xl p-5 shadow-sm text-center">
@@ -617,7 +617,7 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
 </section>
 
 <!-- ================= PAINEL MASTER - SÓ DONO COM E-MAIL ================= -->
-<section x-show="view==='master'" class="fade bg-[#f0f2f5] min-h-full">
+<section x-cloak x-show="view==='master'" class="fade bg-[#f0f2f5] min-h-full">
   <div class="p-3 space-y-3">
 
     <!-- LOGIN / CADASTRO DO DONO -->
@@ -738,7 +738,7 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
 </section>
 
 <!-- ================= PLANOS ================= -->
-<section x-show="view==='planos'" class="fade p-3 space-y-3 bg-[#f0f2f5] min-h-full">
+<section x-cloak x-show="view==='planos'" class="fade p-3 space-y-3 bg-[#f0f2f5] min-h-full">
   <div class="bg-white rounded-2xl p-4 shadow-sm text-center"><p class="font-extrabold text-[17px]">Escolha seu plano 🚀</p><p class="text-[13px] text-gray-500 mt-1">Cancele quando quiser • Pagamento seguro via Mercado Pago • Ativação automática por webhook</p><p class="text-[12px] mt-2">Plano atual: <span class="font-bold" x-text="meuPlanoLabel()"></span></p></div>
 
   <div class="bg-white rounded-2xl p-4 shadow-sm border-2" :class="meuPlano==='free'?'border-waGreen':'border-gray-100'">
@@ -763,7 +763,7 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
 </section>
 
 <!-- ================= CHECKOUT MERCADO PAGO ================= -->
-<section x-show="view==='checkout'" class="fade p-3 bg-[#f0f2f5] min-h-full">
+<section x-cloak x-show="view==='checkout'" class="fade p-3 bg-[#f0f2f5] min-h-full">
   <div class="bg-white rounded-2xl p-4 shadow-sm">
     <div class="flex items-center gap-2"><div class="w-10 h-10 bg-[#009EE3] rounded-xl flex items-center justify-center text-white font-extrabold text-[13px]">MP</div><div><p class="font-extrabold">Mercado Pago</p><p class="text-[11px] text-gray-500">Checkout seguro • Ambiente simulado para demo</p></div><span class="ml-auto bg-emerald-50 text-emerald-700 text-[11px] font-bold px-2 py-1 rounded-full">🔒 SSL</span></div>
     <div class="bg-gray-50 rounded-xl p-3 mt-4 flex justify-between"><span class="font-semibold text-[14px]">Plano <span x-text="checkoutPlano.toUpperCase()"></span> • Mensal</span><span class="font-extrabold" x-text="checkoutPlano==='prata'?'R$ 29,90':'R$ 89,90'"></span></div>
@@ -827,13 +827,13 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
 <nav class="shrink-0 bg-white border-t border-gray-100 flex justify-around py-2 px-2 z-30" style="padding-bottom:calc(8px + env(safe-area-inset-bottom))">
   <button @click="view='home'" class="flex flex-col items-center gap-0.5 flex-1"><span class="text-[20px]">🏠</span><span :class="view==='home'?'text-waGreen font-bold':'text-gray-400'" class="text-[10px]">Início</span></button>
   <button @click="view='home'; busca=''; $nextTick(()=>document.querySelector('input[placeholder*=\'Buscar\']')?.focus())" class="flex flex-col items-center gap-0.5 flex-1"><span class="text-[20px]">🔍</span><span class="text-[10px] text-gray-400">Buscar</span></button>
-  <button @click="view='admin'; abaAdmin='novo'" class="flex flex-col items-center -mt-6 flex-1"><span class="w-12 h-12 bg-waGreen text-white rounded-full flex items-center justify-center text-[22px] shadow-lg border-4 border-white">+</span><span class="text-[10px] text-gray-500 font-semibold">Anunciar</span></button>
+  <button @click="view='admin'; abaAdmin='novo'" class="flex flex-col items-center flex-1"><span class="w-12 h-12 bg-waGreen text-white rounded-full flex items-center justify-center text-[22px] shadow-lg border-4 border-white">+</span><span class="text-[10px] text-gray-500 font-semibold">Anunciar</span></button>
   <button @click="view='planos'" class="flex flex-col items-center gap-0.5 flex-1"><span class="text-[20px]">⭐</span><span :class="view==='planos'?'text-waGreen font-bold':'text-gray-400'" class="text-[10px]">Planos</span></button>
   <button @click="view = usuarioLogado ? 'admin' : 'login'" class="flex flex-col items-center gap-0.5 flex-1"><span class="text-[20px]">👤</span><span :class="(view==='admin'||view==='login')?'text-waGreen font-bold':'text-gray-400'" class="text-[10px]">Painel</span></button>
 </nav>
 
 <!-- Toast -->
-<div x-show="toastMsg" x-transition class="absolute bottom-[140px] left-1/2 -translate-x-1/2 z-50 bg-[#111b21] text-white text-[13px] font-semibold px-4 py-2.5 rounded-full shadow-2xl max-w-[90%] text-center" x-text="toastMsg"></div>
+<div x-show="toastMsg" x-transition class="absolute bottom-[84px] left-1/2 -translate-x-1/2 z-50 bg-[#111b21] text-white text-[13px] font-semibold px-4 py-2.5 rounded-full shadow-2xl max-w-[90%] text-center pointer-events-none" x-text="toastMsg"></div>
 
 </div>
 
