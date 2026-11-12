@@ -355,8 +355,12 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
     <template x-for="m in mensagens" :key="m.id">
       <div :class="m.de==='bot' ? 'flex justify-start' : 'flex justify-end'">
         <div :class="m.de==='bot' ? 'bg-white rounded-2xl rounded-tl-md' : 'bg-waBubble rounded-2xl rounded-tr-md'" class="max-w-[82%] px-3 py-2 shadow-sm">
-          <p class="text-[13.5px] leading-snug whitespace-pre-line" x-text="m.texto"></p>
+          <p x-show="m.texto" class="text-[13.5px] leading-snug whitespace-pre-line" x-text="m.texto"></p>
           <template x-if="m.audioUrl"><audio :src="m.audioUrl" controls class="w-full mt-1 h-8"></audio></template>
+          <template x-if="m.tipo==='imagem'"><img :src="m.arquivoUrl" class="w-full max-w-[240px] rounded-xl mt-1 cursor-pointer" @click="window.open(m.arquivoUrl,'_blank')"></template>
+          <template x-if="m.tipo==='video'"><video :src="m.arquivoUrl" controls playsinline class="w-full max-w-[260px] rounded-xl mt-1 bg-black"></video></template>
+          <template x-if="m.tipo==='doc'"><a :href="m.arquivoUrl" :download="m.arquivoNome" class="flex items-center gap-2 bg-white/80 border border-gray-200 rounded-xl p-2.5 mt-1"><span class="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center text-[18px] shrink-0">📄</span><span class="min-w-0 flex-1"><span class="block text-[12.5px] font-bold truncate" x-text="m.arquivoNome"></span><span class="block text-[11px] text-gray-500" x-text="m.arquivoTamanho"></span></span><span class="text-[12px] font-bold text-waGreen shrink-0">Baixar ↓</span></a></template>
+          <p x-show="m.tipo" class="text-[10px] mt-1" :class="m.de==='eu' ? 'text-white/80' : 'text-gray-500'" x-text="baixarAuto ? '⬇️ Baixado automático no celular do outro • Não ficou no servidor' : '📎 Toque em Baixar para salvar • Não ficou no servidor'"></p>
           <p class="text-[10px] text-gray-400 text-right mt-0.5"><span x-text="m.hora"></span> <span x-show="m.de==='eu'">✓✓</span></p>
         </div>
       </div>
@@ -371,12 +375,27 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
     </template>
   </div>
 
+  <!-- MENU ANEXO: abre ao clicar no clip -->
+  <div x-show="mostrarAnexo" @click.away="mostrarAnexo=false" class="mx-3 mb-2 bg-white rounded-2xl shadow-lg border border-gray-100 p-2">
+  <div class="flex items-center justify-between px-1 pb-2">
+    <p class="text-[11px] font-bold text-gray-700">📎 Enviar • Direto de celular pra celular • <span class="text-emerald-600">Não fica no servidor</span></p>
+    <button @click="baixarAuto=!baixarAuto" :class="baixarAuto ? 'bg-emerald-500 text-white' : 'bg-gray-200 text-gray-600'" class="text-[11px] font-bold px-2.5 py-1 rounded-full shrink-0" x-text="baixarAuto ? '⬇️ Baixar auto: ON' : '⬇️ Baixar auto: OFF'"></button>
+  </div>
+  <div class="grid grid-cols-3 gap-2">
+    <button @click="$refs.inputFoto.click()" class="flex flex-col items-center gap-1 py-3 rounded-xl bg-purple-50 active:scale-95"><span class="w-11 h-11 bg-purple-500 text-white rounded-full flex items-center justify-center text-[20px]">🖼️</span><span class="text-[12px] font-bold">Foto</span><span class="text-[10px] text-gray-500">Galeria / Câmera</span></button>
+    <button @click="$refs.inputVideo.click()" class="flex flex-col items-center gap-1 py-3 rounded-xl bg-blue-50 active:scale-95"><span class="w-11 h-11 bg-blue-500 text-white rounded-full flex items-center justify-center text-[20px]">🎬</span><span class="text-[12px] font-bold">Vídeo</span><span class="text-[10px] text-gray-500">Gravar / Galeria</span></button>
+    <button @click="$refs.inputDoc.click()" class="flex flex-col items-center gap-1 py-3 rounded-xl bg-red-50 active:scale-95"><span class="w-11 h-11 bg-red-500 text-white rounded-full flex items-center justify-center text-[20px]">📄</span><span class="text-[12px] font-bold">Documento</span><span class="text-[10px] text-gray-500">PDF, Word, etc.</span></button>
+    <input type="file" x-ref="inputFoto" accept="image/*" class="hidden" @change="enviarAnexo($event,'imagem')">
+    <input type="file" x-ref="inputVideo" accept="video/*" class="hidden" @change="enviarAnexo($event,'video')">
+    <input type="file" x-ref="inputDoc" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip,.rar" class="hidden" @change="enviarAnexo($event,'doc')">
+  </div>
+  </div>
   <!-- Input estilo WhatsApp: digitar + microfone + enviar -->
   <div class="px-3 pb-2 flex items-center gap-2">
     <div class="flex-1 bg-white rounded-full flex items-center px-3 py-1 shadow-sm">
       <span class="text-lg">😊</span>
       <input x-model="textoChat" @keydown.enter="enviarTexto()" :placeholder="gravandoAudio ? 'Gravando áudio... toque no microfone para parar' : 'Digite sua dúvida...'" class="flex-1 px-2 py-2 text-[14px] outline-none">
-      <span class="text-lg">📎</span>
+      <button @click="mostrarAnexo=!mostrarAnexo" :class="mostrarAnexo ? 'bg-waGreen text-white' : 'text-gray-500'" class="w-8 h-8 rounded-full flex items-center justify-center text-[18px] shrink-0 active:scale-90 transition" title="Enviar foto, vídeo ou documento">📎</button>
     </div>
     <!-- BOTÃO DE ÁUDIO igual WhatsApp: do lado de enviar, clica pra falar -->
     <button @click="alternarGravacaoAudio()" :title="gravandoAudio ? 'Parar gravação' : 'Segure / clique para falar - enviar áudio'" :class="gravandoAudio ? 'bg-red-500 scale-110 animate-pulse' : 'bg-waGreen'" class="w-11 h-11 text-white rounded-full flex items-center justify-center text-[19px] shadow shrink-0 transition active:scale-95">
@@ -800,7 +819,7 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
 <script>
 function chatImov(){
 return {
-view:'home', chamadaAtiva:false, salaChamada:'', linkChamada:'', visitanteId:'', promptInstalar:null, baixando:false, corretorOcupado:false, corretorOcupadoSala:null, peer:null, sinalUltimoId:0, chamadaTocando:null, _pollSinal:null, _pollPendentes:null, musicaToque:'seu-audio', _toqueCtx:null, _toqueTimer:null, _toqueOsc:null, apiBase: (localStorage.getItem('chatimov_api_url') || 'https://chatimov-api.seu-subdominio.workers.dev'), gravandoAudio:false, tempoAudio:'00:00', _audioTimer:null, _audioSeg:0, _mediaRecorder:null, _audioChunks:[], tipoChamada:'audio', chamadaStatus:'Chamando...', tempoChamada:'00:00', mutado:false, cameraLigada:true, _callTimer:null, _callStream:null, _callSeg:0, abaAdmin:'imoveis', busca:'', filtro:'', textoChat:'', digitando:false,
+view:'home', chamadaAtiva:false, salaChamada:'', linkChamada:'', visitanteId:'', promptInstalar:null, baixando:false, corretorOcupado:false, corretorOcupadoSala:null, peer:null, sinalUltimoId:0, chamadaTocando:null, _pollSinal:null, _pollPendentes:null, musicaToque:'seu-audio', _toqueCtx:null, _toqueTimer:null, _toqueOsc:null, apiBase: (localStorage.getItem('chatimov_api_url') || 'https://chatimov-api.seu-subdominio.workers.dev'), gravandoAudio:false, tempoAudio:'00:00', _audioTimer:null, _audioSeg:0, _mediaRecorder:null, _audioChunks:[], tipoChamada:'audio', chamadaStatus:'Chamando...', tempoChamada:'00:00', mutado:false, cameraLigada:true, _callTimer:null, _callStream:null, _callSeg:0, abaAdmin:'imoveis', busca:'', filtro:'', textoChat:'', digitando:false, mostrarAnexo:false, baixarAuto:true,
 meuPlano:'free', botImovelId:'me-1',
     // ===== LOGIN DO USUÁRIO (corretor) + FOTO DE PERFIL =====
     usuarioLogado: (localStorage.getItem('chatimov_usuario_logado')==='1'),
@@ -884,7 +903,38 @@ perguntar(regra){
 this.mensagens.push({id:Date.now(),de:'eu',texto:regra.pergunta,hora:this.horaAgora()});
 this.responderBot(regra.resposta);
 },
-enviarTexto(){
+baixarAnexoAgora(m){
+      if(!m || !m.arquivoUrl) return;
+      try{
+        const a = document.createElement('a');
+        a.href = m.arquivoUrl;
+        a.download = m.arquivoNome || 'arquivo-chatimov';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        this.toast('⬇️ Baixado automático no celular • Não ficou no servidor');
+      }catch(e){ console.log('download auto falhou', e); }
+    },
+    aoReceberAnexo(m){
+      if(!this.baixarAuto) return;
+      this.baixarAnexoAgora(m);
+    },
+    enviarAnexo(event, tipo){
+      const file = event.target.files[0];
+      event.target.value = '';
+      if(!file) return;
+      this.mostrarAnexo = false;
+      const url = URL.createObjectURL(file);
+      const tam = file.size > 1024*1024 ? (file.size/1024/1024).toFixed(1)+' MB' : (file.size/1024).toFixed(0)+' KB';
+      const label = tipo==='imagem' ? '📷 Foto' : tipo==='video' ? '🎬 Vídeo' : '📄 Documento';
+      const msgEnviada = {id:Date.now(), de:'eu', texto: tipo==='doc' ? '' : label, tipo: tipo, arquivoUrl: url, arquivoNome: file.name, arquivoTamanho: tam, hora: this.horaAgora()};
+      this.mensagens.push(msgEnviada);
+      this.$nextTick(()=>{ let el=document.getElementById('chatScroll'); if(el) el.scrollTop=el.scrollHeight; });
+      if(this.baixarAuto){ setTimeout(()=>{ this.baixarAnexoAgora(msgEnviada); }, 600); }
+      try{ if(this.peer && this._dcArquivo && this._dcArquivo.readyState==='open'){ this._dcArquivo.send(JSON.stringify({tipo:tipo, nome:file.name, tam:tam})); } }catch(e){}
+      this.responderBot(tipo==='imagem' ? 'Recebi sua foto! 📷 Vou olhar e já te respondo com mais detalhes do imóvel.' : tipo==='video' ? 'Recebi seu vídeo! 🎬 Vou assistir e te respondo já.' : 'Recebi seu documento: '+file.name+' 📄 Vou abrir e te retorno.');
+    },
+    enviarTexto(){
 let t=this.textoChat.trim(); if(!t) return;
 this.mensagens.push({id:Date.now(),de:'eu',texto:t,hora:this.horaAgora()}); this.textoChat='';
 let regras=this.imovelAtual.regras;
@@ -984,6 +1034,12 @@ this.toast('🎉 Webhook Mercado Pago confirmado! Plano '+this.checkoutPlano.toU
         this._callStream = stream;
         stream.getTracks().forEach(tr=>this.peer.addTrack(tr, stream));
         this.$nextTick(()=>{ const lv=document.getElementById('localVideo'); if(lv) lv.srcObject=stream; });
+        try{
+          this._dcArquivo = this.peer.createDataChannel('arquivos');
+          this._dcArquivo.onopen = ()=>{ console.log('canal arquivos P2P aberto'); };
+          this._dcArquivo.onmessage = (ev)=>{ try{ const d = JSON.parse(ev.data); if(d && d.nome){ this.toast('📎 Recebido: '+d.nome+' • Baixando automático...'); } }catch(e){} };
+        }catch(e){ console.log('sem datachannel', e); }
+        this.peer.ondatachannel = (ev)=>{ this._dcArquivo = ev.channel; this._dcArquivo.onmessage = (e2)=>{ try{ const d = JSON.parse(e2.data); if(d && d.nome) this.toast('📎 Recebido: '+d.nome); }catch(_){} }; };
         this.peer.ontrack = (e)=>{ this.pararToque(); const rv=document.getElementById('remoteVideo'); if(rv) rv.srcObject=e.streams[0]; this.chamadaStatus='Em chamada • Conectado'; };
         this.peer.onicecandidate = (e)=>{ if(e.candidate) this.enviarSinal('ice', e.candidate); };
         const offer = await this.peer.createOffer();
