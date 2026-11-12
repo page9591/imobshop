@@ -360,7 +360,7 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
           <template x-if="m.tipo==='imagem'"><img :src="m.arquivoUrl" class="w-full max-w-[240px] rounded-xl mt-1 cursor-pointer" @click="window.open(m.arquivoUrl,'_blank')"></template>
           <template x-if="m.tipo==='video'"><video :src="m.arquivoUrl" controls playsinline class="w-full max-w-[260px] rounded-xl mt-1 bg-black"></video></template>
           <template x-if="m.tipo==='doc'"><a :href="m.arquivoUrl" :download="m.arquivoNome" class="flex items-center gap-2 bg-white/80 border border-gray-200 rounded-xl p-2.5 mt-1"><span class="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center text-[18px] shrink-0">📄</span><span class="min-w-0 flex-1"><span class="block text-[12.5px] font-bold truncate" x-text="m.arquivoNome"></span><span class="block text-[11px] text-gray-500" x-text="m.arquivoTamanho"></span></span><span class="text-[12px] font-bold text-waGreen shrink-0">Baixar ↓</span></a></template>
-          <p x-show="m.tipo" class="text-[10px] mt-1" :class="m.de==='eu' ? 'text-white/80' : 'text-gray-500'" x-text="baixarAuto ? '⬇️ Baixado automático no celular do outro • Não ficou no servidor' : '📎 Toque em Baixar para salvar • Não ficou no servidor'"></p>
+          <p x-show="m.tipo" class="text-[10px] mt-1" :class="m.de==='eu' ? 'text-white/80' : 'text-gray-500'" x-text="m.statusEnvio ? '📡 '+m.statusEnvio+' • Gasto do celular, não do servidor' : (baixarAuto ? '⬇️ Baixado automático no celular do outro • Não ficou no servidor' : '📎 Toque em Baixar para salvar • Não ficou no servidor')"></p>
           <p class="text-[10px] text-gray-400 text-right mt-0.5"><span x-text="m.hora"></span> <span x-show="m.de==='eu'">✓✓</span></p>
         </div>
       </div>
@@ -819,7 +819,7 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
 <script>
 function chatImov(){
 return {
-view:'home', chamadaAtiva:false, salaChamada:'', linkChamada:'', visitanteId:'', promptInstalar:null, baixando:false, corretorOcupado:false, corretorOcupadoSala:null, peer:null, sinalUltimoId:0, chamadaTocando:null, _pollSinal:null, _pollPendentes:null, musicaToque:'seu-audio', _toqueCtx:null, _toqueTimer:null, _toqueOsc:null, apiBase: (localStorage.getItem('chatimov_api_url') || 'https://chatimov-api.seu-subdominio.workers.dev'), gravandoAudio:false, tempoAudio:'00:00', _audioTimer:null, _audioSeg:0, _mediaRecorder:null, _audioChunks:[], tipoChamada:'audio', chamadaStatus:'Chamando...', tempoChamada:'00:00', mutado:false, cameraLigada:true, _callTimer:null, _callStream:null, _callSeg:0, abaAdmin:'imoveis', busca:'', filtro:'', textoChat:'', digitando:false, mostrarAnexo:false, baixarAuto:true,
+view:'home', chamadaAtiva:false, salaChamada:'', linkChamada:'', visitanteId:'', promptInstalar:null, baixando:false, corretorOcupado:false, corretorOcupadoSala:null, peer:null, sinalUltimoId:0, chamadaTocando:null, _pollSinal:null, _pollPendentes:null, musicaToque:'seu-audio', _toqueCtx:null, _toqueTimer:null, _toqueOsc:null, apiBase: (localStorage.getItem('chatimov_api_url') || 'https://chatimov-api.seu-subdominio.workers.dev'), gravandoAudio:false, tempoAudio:'00:00', _audioTimer:null, _audioSeg:0, _mediaRecorder:null, _audioChunks:[], tipoChamada:'audio', chamadaStatus:'Chamando...', tempoChamada:'00:00', mutado:false, cameraLigada:true, _callTimer:null, _callStream:null, _callSeg:0, abaAdmin:'imoveis', busca:'', filtro:'', textoChat:'', digitando:false, mostrarAnexo:false, baixarAuto:true, _arquivoRecebendo:null, _arquivoChunks:[], _arquivoRecebido:0, _salaArquivo:'',
 meuPlano:'free', botImovelId:'me-1',
     // ===== LOGIN DO USUÁRIO (corretor) + FOTO DE PERFIL =====
     usuarioLogado: (localStorage.getItem('chatimov_usuario_logado')==='1'),
@@ -924,15 +924,119 @@ baixarAnexoAgora(m){
       event.target.value = '';
       if(!file) return;
       this.mostrarAnexo = false;
+      // Prévia local imediata - pra você ver na hora
       const url = URL.createObjectURL(file);
       const tam = file.size > 1024*1024 ? (file.size/1024/1024).toFixed(1)+' MB' : (file.size/1024).toFixed(0)+' KB';
       const label = tipo==='imagem' ? '📷 Foto' : tipo==='video' ? '🎬 Vídeo' : '📄 Documento';
-      const msgEnviada = {id:Date.now(), de:'eu', texto: tipo==='doc' ? '' : label, tipo: tipo, arquivoUrl: url, arquivoNome: file.name, arquivoTamanho: tam, hora: this.horaAgora()};
+      const msgEnviada = {id:Date.now(), de:'eu', texto: tipo==='doc' ? '' : label, tipo: tipo, arquivoUrl: url, arquivoNome: file.name, arquivoTamanho: tam, hora: this.horaAgora(), statusEnvio:'enviando'};
       this.mensagens.push(msgEnviada);
       this.$nextTick(()=>{ let el=document.getElementById('chatScroll'); if(el) el.scrollTop=el.scrollHeight; });
-      if(this.baixarAuto){ setTimeout(()=>{ this.baixarAnexoAgora(msgEnviada); }, 600); }
-      try{ if(this.peer && this._dcArquivo && this._dcArquivo.readyState==='open'){ this._dcArquivo.send(JSON.stringify({tipo:tipo, nome:file.name, tam:tam})); } }catch(e){}
+      // ===== ENVIO REAL P2P: vai os BYTES de celular pra celular, não só o nome. Servidor NÃO recebe o arquivo. =====
+      this.enviarArquivoP2P(file, tipo, msgEnviada);
+      // Demo: se não houver outro celular online, o bot responde texto (não é o arquivo)
       this.responderBot(tipo==='imagem' ? 'Recebi sua foto! 📷 Vou olhar e já te respondo com mais detalhes do imóvel.' : tipo==='video' ? 'Recebi seu vídeo! 🎬 Vou assistir e te respondo já.' : 'Recebi seu documento: '+file.name+' 📄 Vou abrir e te retorno.');
+    },
+    async enviarArquivoP2P(file, tipo, msgEnviada){
+      // Se já tem canal P2P aberto (ex: durante ligação), usa ele. Senão cria um só pra arquivo.
+      try{
+        if(!this._dcArquivo || this._dcArquivo.readyState!=='open'){
+          await this.conectarP2PParaArquivo();
+        }
+        if(!this._dcArquivo || this._dcArquivo.readyState!=='open'){
+          msgEnviada.statusEnvio = 'aguardando';
+          this.toast('📎 Aguardando o outro celular entrar para enviar direto • Sem usar servidor');
+          // Tenta de novo em 3s quando o outro entrar
+          setTimeout(()=>{ this.enviarArquivoP2P(file, tipo, msgEnviada); }, 3000);
+          return;
+        }
+        // 1) Avisa o outro celular: vai chegar arquivo
+        this._dcArquivo.send(JSON.stringify({tipo:'arquivo-inicio', nome:file.name, tipoArquivo:tipo, tamanho:file.size, mime:file.type}));
+        // 2) Envia em pedaços de 16KB - vai pela internet do celular, não pelo servidor
+        const CHUNK = 16*1024;
+        let offset = 0;
+        const buf = await file.arrayBuffer();
+        while(offset < buf.byteLength){
+          // Espera o canal esvaziar um pouco pra não travar
+          while(this._dcArquivo.bufferedAmount > 256*1024){ await new Promise(r=>setTimeout(r,50)); }
+          const pedaco = buf.slice(offset, offset+CHUNK);
+          this._dcArquivo.send(pedaco);
+          offset += CHUNK;
+          const pct = Math.floor(offset/buf.byteLength*100);
+          msgEnviada.statusEnvio = pct<100 ? 'enviando '+pct+'%' : 'enviado';
+        }
+        // 3) Avisa que acabou
+        this._dcArquivo.send(JSON.stringify({tipo:'arquivo-fim', nome:file.name}));
+        msgEnviada.statusEnvio = 'enviado • Chegou no outro celular';
+        this.toast('✅ Enviado direto de celular pra celular • Gasto foi do seu celular, não do servidor');
+      }catch(e){ console.log('P2P arquivo falhou', e); msgEnviada.statusEnvio='erro'; this.toast('⚠️ Outro celular ainda não entrou. Deixa o chat aberto que envia direto quando ele entrar.'); }
+    },
+    async conectarP2PParaArquivo(){
+      // Cria sala única só pra esse arquivo - servidor só passa o endereço, não o arquivo
+      try{
+        if(!this.visitanteId){ this.visitanteId = localStorage.getItem('chatimov_visitante') || ('v-' + Math.random().toString(36).slice(2,8)); localStorage.setItem('chatimov_visitante', this.visitanteId); }
+        const an = this.anuncianteDo(this.imovelAtual);
+        const codigo = Math.random().toString(36).slice(2,6);
+        const sala = 'arq-' + this.imovelAtual.id + '-' + (an?.id || '0') + '-' + codigo;
+        this._salaArquivo = sala;
+        this.salaChamada = sala;
+        // Avisa o servidor só que tem arquivo pra enviar - NÃO manda o arquivo pro servidor
+        try{ await fetch(this.apiBase + '/api/salas', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({sala, imovel_id:this.imovelAtual.id, anunciante_id:an?.id||null, de_id:this.visitanteId, de_nome:'Visitante', tipo:'arquivo'})}); }catch(e){}
+        const pc = new RTCPeerConnection({iceServers:[{urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun1.l.google.com:19302'}]});
+        this.peer = pc;
+        this._dcArquivo = pc.createDataChannel('arquivos');
+        this._dcArquivo.binaryType = 'arraybuffer';
+        this._dcArquivo.onopen = ()=>{ console.log('canal arquivo P2P aberto'); };
+        this._dcArquivo.onmessage = (ev)=>{ this.aoReceberDadosP2P(ev); };
+        pc.ondatachannel = (ev)=>{ this._dcArquivo = ev.channel; this._dcArquivo.binaryType='arraybuffer'; this._dcArquivo.onmessage = (e2)=>{ this.aoReceberDadosP2P(e2); }; };
+        pc.onicecandidate = (e)=>{ if(e.candidate) this.enviarSinal('ice', e.candidate); };
+        const offer = await pc.createOffer();
+        await pc.setLocalDescription(offer);
+        await this.enviarSinal('offer', offer);
+        this.pollSinal();
+        // Espera 1.5s pro outro lado responder
+        await new Promise(r=>setTimeout(r,1500));
+      }catch(e){ console.log('conectar P2P arquivo falhou', e); }
+    },
+    aoReceberDadosP2P(ev){
+      // ===== CHEGADA REAL: bytes vieram direto do outro celular, sem passar pelo servidor =====
+      try{
+        if(typeof ev.data === 'string'){
+          const d = JSON.parse(ev.data);
+          if(d.tipo==='arquivo-inicio'){
+            this._arquivoRecebendo = {nome:d.nome, tipoArquivo:d.tipoArquivo, tamanho:d.tamanho, mime:d.mime};
+            this._arquivoChunks = [];
+            this._arquivoRecebido = 0;
+            this.toast('📎 Recebendo '+d.nome+' direto do celular do outro...');
+            return;
+          }
+          if(d.tipo==='arquivo-fim' && this._arquivoRecebendo){
+            this.finalizarArquivoRecebido();
+            return;
+          }
+          if(d.tipo && d.nome && !d.tipo.startsWith('arquivo')){ this.toast('📎 Recebido: '+d.nome); return; }
+          return;
+        }
+        // É pedaço do arquivo (ArrayBuffer)
+        if(this._arquivoRecebendo){
+          this._arquivoChunks.push(ev.data);
+          this._arquivoRecebido += ev.data.byteLength;
+        }
+      }catch(e){ console.log('receber P2P falhou', e); }
+    },
+    finalizarArquivoRecebido(){
+      const info = this._arquivoRecebendo;
+      if(!info) return;
+      const blob = new Blob(this._arquivoChunks, {type: info.mime || 'application/octet-stream'});
+      const url = URL.createObjectURL(blob);
+      const tam = blob.size > 1024*1024 ? (blob.size/1024/1024).toFixed(1)+' MB' : (blob.size/1024).toFixed(0)+' KB';
+      const msg = {id:Date.now(), de:'bot', texto: info.tipoArquivo==='doc' ? '' : (info.tipoArquivo==='imagem' ? '📷 Foto' : '🎬 Vídeo'), tipo: info.tipoArquivo, arquivoUrl: url, arquivoNome: info.nome, arquivoTamanho: tam, hora: this.horaAgora()};
+      this.mensagens.push(msg);
+      this.$nextTick(()=>{ let el=document.getElementById('chatScroll'); if(el) el.scrollTop=el.scrollHeight; });
+      this._arquivoRecebendo = null; this._arquivoChunks = []; this._arquivoRecebido = 0;
+      // Baixa automático no seu celular - gasto foi do celular do outro, não do servidor
+      if(this.baixarAuto){ setTimeout(()=>{ this.baixarAnexoAgora(msg); }, 500); }
+      this.toast('✅ Recebido direto do celular do outro • Já baixou automático');
+    },
     },
     enviarTexto(){
 let t=this.textoChat.trim(); if(!t) return;
@@ -1036,10 +1140,11 @@ this.toast('🎉 Webhook Mercado Pago confirmado! Plano '+this.checkoutPlano.toU
         this.$nextTick(()=>{ const lv=document.getElementById('localVideo'); if(lv) lv.srcObject=stream; });
         try{
           this._dcArquivo = this.peer.createDataChannel('arquivos');
+          this._dcArquivo.binaryType = 'arraybuffer';
           this._dcArquivo.onopen = ()=>{ console.log('canal arquivos P2P aberto'); };
-          this._dcArquivo.onmessage = (ev)=>{ try{ const d = JSON.parse(ev.data); if(d && d.nome){ this.toast('📎 Recebido: '+d.nome+' • Baixando automático...'); } }catch(e){} };
+          this._dcArquivo.onmessage = (ev)=>{ this.aoReceberDadosP2P(ev); };
         }catch(e){ console.log('sem datachannel', e); }
-        this.peer.ondatachannel = (ev)=>{ this._dcArquivo = ev.channel; this._dcArquivo.onmessage = (e2)=>{ try{ const d = JSON.parse(e2.data); if(d && d.nome) this.toast('📎 Recebido: '+d.nome); }catch(_){} }; };
+        this.peer.ondatachannel = (ev)=>{ this._dcArquivo = ev.channel; this._dcArquivo.binaryType='arraybuffer'; this._dcArquivo.onmessage = (e2)=>{ this.aoReceberDadosP2P(e2); }; };
         this.peer.ontrack = (e)=>{ this.pararToque(); const rv=document.getElementById('remoteVideo'); if(rv) rv.srcObject=e.streams[0]; this.chamadaStatus='Em chamada • Conectado'; };
         this.peer.onicecandidate = (e)=>{ if(e.candidate) this.enviarSinal('ice', e.candidate); };
         const offer = await this.peer.createOffer();
