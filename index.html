@@ -155,11 +155,11 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
         </div>
         <!-- TOPO BONITO: LIGAR + VÍDEO grandes, coloridos, igual WhatsApp - NÃO é o cinza feio pequeno -->
         <div class="flex items-center gap-2 shrink-0">
-          <button @click="iniciarChamada('audio')" title="Ligar - Chamada de voz" style="background:#ffffff;color:#075E54;box-shadow:0 3px 12px rgba(0,0,0,.35);border:2px solid #25D366;" class="flex items-center gap-1.5 font-extrabold text-[12px] pl-1.5 pr-3 py-2.5 rounded-full active:scale-95 transition">
+          <button @click="chamadaAtiva=true; tipoChamada='audio'; chamadaStatus='Chamando por voz...'; tempoChamada='00:00'; iniciarChamada('audio')" title="Ligar - Chamada de voz" style="background:#ffffff;color:#075E54;box-shadow:0 3px 12px rgba(0,0,0,.35);border:2px solid #25D366;" class="flex items-center gap-1.5 font-extrabold text-[12px] pl-1.5 pr-3 py-2.5 rounded-full active:scale-95 transition">
             <span style="background:#25D366;" class="w-[28px] h-[28px] rounded-full flex items-center justify-center text-[16px] leading-none">📞</span>
             LIGAR
           </button>
-          <button @click="iniciarChamada('video')" title="Chamada de vídeo" style="background:#2563EB;color:#ffffff;box-shadow:0 3px 12px rgba(0,0,0,.35);border:2px solid #ffffff;" class="flex items-center gap-1.5 font-extrabold text-[12px] pl-1.5 pr-3 py-2.5 rounded-full active:scale-95 transition">
+          <button @click="chamadaAtiva=true; tipoChamada='video'; chamadaStatus='Chamando por vídeo...'; tempoChamada='00:00'; iniciarChamada('video')" title="Chamada de vídeo" style="background:#2563EB;color:#ffffff;box-shadow:0 3px 12px rgba(0,0,0,.35);border:2px solid #ffffff;" class="flex items-center gap-1.5 font-extrabold text-[12px] pl-1.5 pr-3 py-2.5 rounded-full active:scale-95 transition">
             <span style="background:#ffffff;" class="w-[28px] h-[28px] rounded-full flex items-center justify-center text-[16px] leading-none">📹</span>
             VÍDEO
           </button>
