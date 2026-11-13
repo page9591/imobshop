@@ -820,7 +820,7 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
   <div class="shrink-0 px-6 pt-2 pb-4 grid grid-cols-3 gap-3 max-w-[360px] w-full mx-auto" style="padding-bottom:calc(16px + env(safe-area-inset-bottom))">
     <button @click="toggleMute()" :class="mutado ? 'bg-white text-black' : 'bg-white/15'" class="h-[56px] rounded-full flex flex-col items-center justify-center text-[18px]"><span x-text="mutado ? '🔇' : '🎙️'"></span><span class="text-[10px] font-bold mt-0.5">Microfone</span></button>
     <button @click="toggleCamera()" :class="!cameraLigada ? 'bg-white text-black' : 'bg-white/15'" class="h-[56px] rounded-full flex flex-col items-center justify-center text-[18px]"><span x-text="cameraLigada ? '📹' : '🚫📹'"></span><span class="text-[10px] font-bold mt-0.5">Câmera</span></button>
-    <button @click="encerrarChamada()" class="h-[56px] rounded-full bg-red-500 flex flex-col items-center justify-center text-[18px] shadow-lg shadow-red-500/40"><span>📞</span><span class="text-[10px] font-bold mt-0.5">Encerrar</span></button>
+    <button onclick="document.getElementById('telaChamada').style.display='none'; try{var _lv=document.getElementById('localVideo'); if(_lv&&_lv.srcObject){_lv.srcObject.getTracks().forEach(function(tr){try{tr.stop()}catch(e){}}); _lv.srcObject=null;} var _rv=document.getElementById('remoteVideo'); if(_rv) _rv.srcObject=null; var _a=document.getElementById('toqueChamadaAudio'); if(_a){try{_a.pause()}catch(e){}} }catch(e){}" @click="encerrarChamada()" class="h-[56px] rounded-full bg-red-500 flex flex-col items-center justify-center text-[18px] shadow-lg shadow-red-500/40 active:scale-95"><span>📞</span><span class="text-[10px] font-bold mt-0.5">Encerrar</span></button>
   </div>
 </div>
 
@@ -1577,16 +1577,18 @@ this.toast('🎉 Webhook Mercado Pago confirmado! Plano '+this.checkoutPlano.toU
       setTimeout(()=>{ this.baixando=false; }, 2500);
     },
     async encerrarChamada(){
-      try{document.getElementById('telaChamada').style.display='none';}catch(e){} this.pararToque();
+      try{document.getElementById('telaChamada').style.display='none';}catch(e){}
+      this.chamadaAtiva=false;
+      try{this.pararToque();}catch(e){}
       clearInterval(this._callTimer); clearInterval(this._pollSinal);
-      if(this.salaChamada) await this.enviarSinalChamada(this.salaChamada, 'fim');
-      if(this.salaChamada){ try{ await fetch(this.apiBase + '/api/salas/atender', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({sala:this.salaChamada, status:'encerrada'})}); }catch(e){} }
-      if(this.peer){ try{ this.peer.close(); }catch(e){} this.peer=null; }
-      if(this._callStream){ try{ this._callStream.getTracks().forEach(tr=>tr.stop()); }catch(e){} this._callStream=null; }
-      const rv=document.getElementById('remoteVideo'); if(rv) rv.srcObject=null;
-      const lv=document.getElementById('localVideo'); if(lv) lv.srcObject=null;
-      this.chamadaAtiva=false; this.linkChamada=''; this.salaChamada='';
-      this.toast('Chamada encerrada • O corretor recebeu seu contato');
+      // Fecha peer e câmera na hora, sem esperar servidor
+      try{if(this.peer){this.peer.close();} this.peer=null;}catch(e){}
+      try{if(this._callStream){this._callStream.getTracks().forEach(function(tr){try{tr.stop()}catch(e){}});} this._callStream=null;}catch(e){}
+      try{var _rv2=document.getElementById('remoteVideo'); if(_rv2) _rv2.srcObject=null; var _lv2=document.getElementById('localVideo'); if(_lv2) _lv2.srcObject=null;}catch(e){}
+      const _sala=this.salaChamada; this.salaChamada=''; this.linkChamada='';
+      // Avisa o servidor em segundo plano, sem travar - não espera responder
+      if(_sala){ try{this.enviarSinalChamada(_sala, 'fim');}catch(e){} try{fetch(this.apiBase + '/api/salas/atender', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({sala:_sala, status:'encerrada'})}).catch(function(){});}catch(e){} }
+      try{this.toast('Chamada encerrada • O corretor recebeu seu contato');}catch(e){}
     },
     copiarLinkSala(){
       if(navigator.clipboard && this.linkChamada) navigator.clipboard.writeText(this.linkChamada).then(()=>this.toast('🔗 Link da sala copiado! Envie para a outra pessoa entrar na mesma ligação'));
