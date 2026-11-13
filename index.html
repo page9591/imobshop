@@ -169,6 +169,7 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
     </template>
     <template x-if="view==='login'"><div class="flex-1"><p class="font-bold">👤 Login do Usuário</p><p class="text-[12px] text-white/80">Entre com seu e-mail para anunciar</p></div></template>
 
+    <template x-if="view==='master'"><div class="flex-1"><p class="font-bold">Painel Principal</p><p class="text-[12px] text-white/80" x-text="masterLogado ? 'Todos os dados do site' : 'Acesso restrito'"></p></div></template>
     <template x-if="view==='admin'"><div class="flex-1"><p class="font-bold">Painel do Anunciante</p><p class="text-[12px] text-white/80">Jean Aguiar • <span x-text="meuPlanoLabel()"></span></p></div></template>
     <template x-if="view==='planos'"><div class="flex-1"><p class="font-bold">Planos & Mercado Pago</p><p class="text-[12px] text-white/80">Ative Prata ou Ouro em segundos</p></div></template>
     <template x-if="view==='checkout'"><div class="flex-1"><p class="font-bold">Checkout Seguro</p><p class="text-[12px] text-white/80">Mercado Pago • Pix ou Cartão</p></div></template>
@@ -235,7 +236,7 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
   <div class="mx-3 mb-3 bg-waDark rounded-2xl p-4 text-white">
     <p class="font-extrabold">Você é corretor? Anuncie aqui 🚀</p>
     <p class="text-[13px] text-white/85 mt-1">Comece grátis com até 15 anúncios + chatbot por anúncio. Upgrade para Prata e Ouro com Mercado Pago.</p>
-    <div class="flex gap-2 mt-3"><button @click="view='admin'" class="flex-1 bg-white text-waDark font-bold py-2 rounded-full text-[13px]">Criar anúncio grátis</button><button @click="view='planos'" class="flex-1 bg-waLight text-white font-bold py-2 rounded-full text-[13px]">Ver Planos</button></div>
+    <div class="flex gap-2 mt-3"><button @click="irParaAnunciar()" class="flex-1 bg-white text-waDark font-bold py-2 rounded-full text-[13px]">Criar anúncio grátis</button><button @click="view='planos'" class="flex-1 bg-waLight text-white font-bold py-2 rounded-full text-[13px]">Ver Planos</button></div>
   </div>
   <p class="text-center text-[11px] text-gray-400 px-4 pb-2">ChatImov • Cloudflare Pages + D1 + R2 • Pagamentos via Mercado Pago • Feito para mobile</p>
 </section>
@@ -463,6 +464,7 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
         <button @click="loginCadastro=!loginCadastro" class="w-full bg-gray-100 text-gray-700 font-bold py-2.5 rounded-full mt-2 text-[13px]" x-text="loginCadastro ? 'Já tenho conta • Fazer login' : 'Não tenho conta • Abrir conta'"></button>
         <p x-show="loginCadastro" class="text-[12px] text-gray-500 text-center mt-2">Ao abrir conta, você vai para preencher seu perfil: foto, WhatsApp, descrição e site.</p>
         <p class="text-[11px] text-gray-400 text-center mt-3">Seu e-mail fica salvo só no seu celular.</p>
+        <button @click="view='master'" class="w-full text-[11px] text-gray-400 text-center mt-1 underline">Admin Principal</button>
       </div>
       <!-- COMPLETAR PERFIL: aparece quando abre conta -->
       <div x-show="usuarioLogado" class="bg-white rounded-2xl p-5 shadow-sm mt-3 text-left">
@@ -519,7 +521,7 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
 
     <!-- Abas -->
     <div class="flex gap-2 overflow-x-auto">
-      <template x-for="t in [{id:'imoveis',label:'🏠 Meus Imóveis'},{id:'novo',label:'➕ Novo Anúncio'},{id:'bot',label:'🤖 Chatbot'},{id:'perfil',label:'🖼️ Perfil & Capa'},{id:'seo',label:'🔍 SEO & Portais'},{id:'metricas',label:'📊 Métricas'}]" :key="t.id">
+      <template x-for="t in [{id:'imoveis',label:'🏠 Meus Imóveis'},{id:'novo',label:'➕ Novo Anúncio'},{id:'bot',label:'🤖 Chatbot'},{id:'perfil',label:'🖼️ Perfil & Capa'},{id:'seo',label:'🔍 SEO & Portais'},{id:'metricas',label:'📊 Métricas'},{id:'leads',label:'📩 Leads'}]" :key="t.id">
         <button @click="abaAdmin=t.id" :class="abaAdmin===t.id?'bg-waDark text-white':'bg-white'" class="shrink-0 px-3.5 py-2 rounded-full text-[13px] font-semibold shadow-sm" x-text="t.label"></button>
       </template>
     </div>
@@ -542,25 +544,45 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
       <input x-model="novo.titulo" placeholder="Ex: Apto 2 quartos Vila Mariana" class="w-full border rounded-xl px-3 py-2.5 text-[14px] outline-none focus:border-waGreen">
       <div class="grid grid-cols-2 gap-2"><input x-model="novo.preco" type="number" placeholder="Preço R$" class="border rounded-xl px-3 py-2.5"><input x-model="novo.bairro" placeholder="Bairro" class="border rounded-xl px-3 py-2.5"></div>
       <div class="grid grid-cols-3 gap-2"><select x-model="novo.tipo" class="border rounded-xl px-2 py-2.5 text-[13px]"><option>Venda</option><option>Aluguel</option></select><input x-model="novo.quartos" type="number" placeholder="Quartos" class="border rounded-xl px-3 py-2.5"><input x-model="novo.area" type="number" placeholder="Área m²" class="border rounded-xl px-3 py-2.5"></div>
-      <!-- FOTO DO IMÓVEL: OURO = upload arquivo / PRATA = só link -->
-      <div x-show="meuPlano==='ouro'" class="bg-amber-50 border border-amber-200 rounded-xl p-3">
-        <p class="text-[12px] font-bold text-amber-800">⭐ OURO • Upload de imagens liberado</p>
-        <label class="block bg-amber-400 text-amber-950 font-bold text-[13px] text-center py-2.5 rounded-xl cursor-pointer mt-2">📸 Enviar foto do celular / computador <input type="file" accept="image/*" multiple @change="onFotoImovelChange($event)" class="hidden"></label>
-        <p class="text-[11px] text-gray-500 mt-1">Ou cole um link abaixo, se preferir:</p>
+      <!-- FOTOS DO IMÓVEL: upload - Grátis 3, Prata 15, Ouro ilimitado -->
+      <div class="bg-slate-50 border border-slate-200 rounded-xl p-3">
+        <p class="text-[12px] font-bold text-slate-700">📸 Fotos do imóvel • <span x-text="textoLimiteFotos()"></span></p>
+        <p class="text-[11px] text-gray-500 mt-1">Grátis 3 fotos. Prata R$ 29,90 até 15 fotos. Ouro R$ 89,90 fotos ilimitadas.</p>
+        <input id="inputFotosNovo" type="file" accept="image/*" multiple @change="onFotosChange($event)" class="hidden">
+        <div class="flex flex-wrap gap-2 mt-2">
+          <template x-for="(f,i) in novoFotos" :key="i">
+            <div class="relative w-[72px] h-[72px]">
+              <img :src="f" class="w-full h-full object-cover rounded-xl">
+              <button @click="removerFotoNova(i)" class="absolute -top-1 -right-1 bg-red-500 text-white w-5 h-5 rounded-full text-[11px] font-bold">✕</button>
+            </div>
+          </template>
+          <button @click="clicarAddFoto()" class="w-[72px] h-[72px] border-2 border-dashed border-gray-300 rounded-xl flex flex-col items-center justify-center text-gray-500 bg-white">
+            <span class="text-xl">+</span><span class="text-[10px] font-bold">Adicionar</span>
+          </button>
+        </div>
+        <p x-show="novoFotos.length>=limiteFotos() && meuPlano!=='ouro'" class="text-[11px] text-amber-700 mt-2">Você chegou no limite. Toque em Adicionar para ver Prata e Ouro.</p>
       </div>
-      <div x-show="meuPlano!=='ouro'" class="bg-slate-50 border border-slate-200 rounded-xl p-3">
-        <p class="text-[12px] font-bold text-slate-700">🔗 PRATA / FREE • Só link da imagem</p>
-        <p class="text-[11px] text-gray-500 mt-1">Cole o link da foto do imóvel. Upload direto de arquivo é só no plano OURO.</p>
-        <button @click="view='planos'" class="mt-2 bg-waDark text-white font-bold px-3 py-1.5 rounded-full text-[12px]">⬆️ Assinar Ouro para liberar upload</button>
-      </div>
-      <input x-model="novo.foto" placeholder="Foto (link) — ex: https://pub.../foto.jpg" class="w-full border rounded-xl px-3 py-2.5 text-[13px]">
-      <img x-show="novo.foto" :src="novo.foto" class="w-full h-36 object-cover rounded-xl">
       <textarea x-model="novo.descricao" placeholder="Descrição completa do imóvel..." rows="3" class="w-full border rounded-xl px-3 py-2.5 text-[14px]"></textarea>
       <button @click="publicarImovel()" class="w-full bg-waGreen text-white font-bold py-3 rounded-full">🚀 Publicar anúncio (FIFO)</button>
       <p class="text-[11px] text-gray-400 text-center">No deploy real, a foto sobe para o R2 via Worker e a URL salva no D1.</p>
     </div>
 
-    <!-- Chatbot builder -->
+    <!-- Leads que caíram na conta do corretor -->
+      <div x-show="abaAdmin==='leads'" class="space-y-2">
+        <div class="bg-white rounded-2xl p-4 shadow-sm">
+          <p class="font-bold text-[14px]">📩 Meus contatos</p>
+          <p class="text-[12px] text-gray-500">Quem clicou no seu anúncio e deixou nome + WhatsApp.</p>
+          <div x-show="leadsDoCorretor().length===0" class="text-center py-6"><p class="text-3xl">📩</p><p class="text-[13px] text-gray-500 mt-2">Nenhum contato ainda. Quando alguém clicar no seu anúncio, cai aqui.</p></div>
+          <template x-for="l in leadsDoCorretor()" :key="l.id">
+            <div class="flex gap-3 py-3 border-b last:border-0">
+              <div class="w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center font-bold text-emerald-700 shrink-0" x-text="l.nome.slice(0,1).toUpperCase()"></div>
+              <div class="flex-1 min-w-0"><p class="font-bold text-[13px]" x-text="l.nome"></p><p class="text-[12px] text-gray-500" x-text="l.imovel_titulo"></p><p class="text-[11px] text-gray-400" x-text="l.data"></p></div>
+              <a :href="'https://wa.me/'+l.whatsapp" target="_blank" class="bg-[#25D366] text-white text-[11px] font-bold px-3 py-2 rounded-full h-fit shrink-0">WhatsApp</a>
+            </div>
+          </template>
+        </div>
+      </div>
+      <!-- Chatbot builder -->
     <div x-show="abaAdmin==='bot'" class="space-y-3">
       <div class="bg-white rounded-2xl p-4 shadow-sm">
         <p class="font-bold text-[14px]">Construtor de Chatbot por anúncio</p><p class="text-[12px] text-gray-500">Disponível no Free e no Pago. O bot responde na hora no chat do imóvel.</p>
@@ -638,26 +660,90 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
 
 
 
-<!-- ================= PLANOS ================= -->
+<!-- ================= PAINEL PRINCIPAL - todos os dados do site ================= -->
+  <section x-cloak x-show="view==='master'" class="fade bg-[#f0f2f5] min-h-full">
+    <div class="p-3 space-y-3">
+      <div x-show="!masterLogado" class="bg-white rounded-2xl p-5 shadow-sm">
+        <p class="text-3xl text-center">🔐</p>
+        <p class="font-extrabold text-[17px] text-center mt-1">Painel Principal</p>
+        <p class="text-[13px] text-gray-500 text-center mt-1">Aqui cai tudo que é feito no site: contas, anúncios e contatos.</p>
+        <div x-show="!adminEmailDono" class="mt-4 bg-amber-50 border border-amber-200 rounded-xl p-3">
+          <p class="font-bold text-[13px]">Primeiro acesso — cadastre seu e-mail principal:</p>
+          <p class="text-[12px] text-gray-600 mt-1">Digite seu e-mail e crie uma senha. Depois disso, só esse e-mail entra aqui.</p>
+        </div>
+        <label class="text-[12px] font-bold mt-4 block">Seu e-mail principal</label>
+        <input x-model="masterEmailInput" type="email" placeholder="Ex: seuemail@gmail.com" class="w-full border rounded-xl px-3 py-3 mt-1 text-[14px] outline-none focus:border-waGreen">
+        <label class="text-[12px] font-bold mt-3 block">Senha do painel principal</label>
+        <input x-model="masterSenhaInput" type="password" placeholder="Crie uma senha forte" class="w-full border rounded-xl px-3 py-3 mt-1 text-[14px] outline-none focus:border-waGreen">
+        <p x-show="masterErro" class="text-[13px] font-bold text-red-600 bg-red-50 rounded-xl p-2.5 mt-3" x-text="masterErro"></p>
+        <button x-show="!adminEmailDono" @click="cadastrarEmailDono()" class="w-full bg-waDark text-white font-bold py-3 rounded-full mt-4">✅ Cadastrar e entrar</button>
+        <button x-show="adminEmailDono" @click="entrarMaster()" class="w-full bg-waDark text-white font-bold py-3 rounded-full mt-4">🔐 Entrar no Painel Principal</button>
+        <button @click="view='admin'" class="w-full bg-gray-100 text-gray-700 font-bold py-2.5 rounded-full mt-2 text-[13px]">← Voltar para Painel do Anunciante</button>
+      </div>
+      <div x-show="masterLogado" class="space-y-3">
+        <div class="bg-[#111b21] text-white rounded-2xl p-4 flex items-center gap-3">
+          <span class="text-3xl">👑</span>
+          <div class="flex-1 min-w-0"><p class="font-extrabold">Painel Principal</p><p class="text-[12px] text-white/70">Todos os dados do site • Acesso total</p></div>
+          <button @click="sairMaster()" class="bg-white/15 px-3 py-2 rounded-full text-[12px] font-bold">Sair</button>
+        </div>
+        <div class="grid grid-cols-3 gap-2">
+          <div class="bg-white rounded-2xl p-3 text-center shadow-sm"><p class="text-[11px] text-gray-500">Anunciantes</p><p class="font-extrabold text-[18px]" x-text="anunciantes.length"></p></div>
+          <div class="bg-white rounded-2xl p-3 text-center shadow-sm"><p class="text-[11px] text-gray-500">Anúncios</p><p class="font-extrabold text-[18px]" x-text="imoveis.length"></p></div>
+          <div class="bg-white rounded-2xl p-3 text-center shadow-sm"><p class="text-[11px] text-gray-500">Contatos</p><p class="font-extrabold text-[18px]" x-text="leads.length"></p></div>
+        </div>
+        <div class="flex gap-2 overflow-x-auto">
+          <button @click="masterAba='usuarios'" :class="masterAba==='usuarios'?'bg-waDark text-white':'bg-white'" class="shrink-0 px-3.5 py-2 rounded-full text-[13px] font-semibold shadow-sm">👥 Anunciantes</button>
+          <button @click="masterAba='leads'" :class="masterAba==='leads'?'bg-waDark text-white':'bg-white'" class="shrink-0 px-3.5 py-2 rounded-full text-[13px] font-semibold shadow-sm">📩 Todos os contatos</button>
+          <button @click="masterAba='anuncios'" :class="masterAba==='anuncios'?'bg-waDark text-white':'bg-white'" class="shrink-0 px-3.5 py-2 rounded-full text-[13px] font-semibold shadow-sm">🏠 Todos os anúncios</button>
+        </div>
+        <div x-show="masterAba==='usuarios'" class="bg-white rounded-2xl p-4 shadow-sm">
+          <p class="font-bold text-[14px]">Anunciantes</p>
+          <template x-for="u in anunciantes" :key="u.id">
+            <div class="flex items-center gap-3 py-2 border-b last:border-0"><img :src="u.foto" class="w-10 h-10 rounded-full object-cover"><div class="flex-1 min-w-0"><p class="font-bold text-[13px]" x-text="u.nome"></p><p class="text-[11px] text-gray-500" x-text="u.plano + ' • ' + meusImoveis(u.id).length + ' anúncios'"></p></div></div>
+          </template>
+        </div>
+        <div x-show="masterAba==='leads'" class="bg-white rounded-2xl p-4 shadow-sm">
+          <p class="font-bold text-[14px]">📩 Todos os contatos do site</p>
+          <p class="text-[12px] text-gray-500">Quem deixou nome + WhatsApp em qualquer anúncio.</p>
+          <div x-show="leads.length===0" class="text-center py-6"><p class="text-[13px] text-gray-500">Nenhum contato ainda.</p></div>
+          <template x-for="l in leads" :key="l.id">
+            <div class="flex gap-3 py-3 border-b last:border-0">
+              <div class="w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center font-bold text-emerald-700 shrink-0" x-text="l.nome.slice(0,1).toUpperCase()"></div>
+              <div class="flex-1 min-w-0"><p class="font-bold text-[13px]" x-text="l.nome"></p><p class="text-[12px] text-gray-500" x-text="l.imovel_titulo + ' • ' + l.corretor_nome"></p><p class="text-[11px] text-gray-400" x-text="l.data"></p></div>
+              <a :href="'https://wa.me/'+l.whatsapp" target="_blank" class="bg-[#25D366] text-white text-[11px] font-bold px-3 py-2 rounded-full h-fit shrink-0">WhatsApp</a>
+            </div>
+          </template>
+        </div>
+        <div x-show="masterAba==='anuncios'" class="bg-white rounded-2xl p-4 shadow-sm">
+          <p class="font-bold text-[14px]">Todos os anúncios</p>
+          <template x-for="im in imoveis" :key="im.id">
+            <div class="flex gap-3 py-2 border-b last:border-0"><img :src="im.foto" class="w-12 h-12 rounded-xl object-cover"><div class="flex-1 min-w-0"><p class="font-bold text-[13px] truncate" x-text="im.titulo"></p><p class="text-[11px] text-gray-500" x-text="anuncianteDo(im).nome + ' • ' + formatPreco(im.preco)"></p></div></div>
+          </template>
+        </div>
+        <p x-show="masterMsg" class="bg-emerald-50 text-emerald-800 text-[13px] font-bold rounded-xl p-3 text-center" x-text="masterMsg"></p>
+      </div>
+    </div>
+  </section>
+  <!-- ================= PLANOS ================= -->
 <section x-cloak x-show="view==='planos'" class="fade p-3 space-y-3 bg-[#f0f2f5] min-h-full">
   <div class="bg-white rounded-2xl p-4 shadow-sm text-center"><p class="font-extrabold text-[17px]">Escolha seu plano 🚀</p><p class="text-[13px] text-gray-500 mt-1">Cancele quando quiser • Pagamento seguro via Mercado Pago • Ativação automática por webhook</p><p class="text-[12px] mt-2">Plano atual: <span class="font-bold" x-text="meuPlanoLabel()"></span></p></div>
 
   <div class="bg-white rounded-2xl p-4 shadow-sm border-2" :class="meuPlano==='free'?'border-waGreen':'border-gray-100'">
     <div class="flex justify-between"><h3 class="font-extrabold">FREE</h3><span class="font-extrabold">R$ 0</span></div><p class="text-[12px] text-gray-500">Para começar</p>
-    <ul class="text-[13px] space-y-1.5 mt-3"><li>✓ Até 15 anúncios ativos</li><li>✓ Chatbot por anúncio (perguntas/respostas)</li><li>✓ Foto de perfil circular + bio básica</li><li>✕ Sem capa de perfil</li><li>✕ Sem métricas e sem SEO</li></ul>
+    <ul class="text-[13px] space-y-1.5 mt-3"><li>✓ Até 15 anúncios ativos</li><li>✓ Chatbot por anúncio (perguntas/respostas)</li><li>✓ Foto de perfil circular + bio básica</li><li>✓ 📸 3 fotos por anúncio</li><li>✕ Sem capa de perfil</li><li>✕ Sem métricas e sem SEO</li></ul>
     <button @click="meuPlano='free'; toast('Você está no plano Free')" class="w-full mt-3 py-2.5 rounded-full font-bold border-2 border-gray-200">Usar Free</button>
   </div>
 
   <div class="bg-waDark text-white rounded-2xl p-4 shadow-lg border-2 border-waGreen relative overflow-hidden">
     <span class="absolute top-3 right-3 bg-waLight text-[11px] font-extrabold px-2 py-1 rounded-full">MAIS POPULAR</span>
     <div class="flex justify-between"><h3 class="font-extrabold">PRATA</h3><div class="text-right"><span class="font-extrabold text-[18px]">R$ 29,90</span><span class="text-[12px] text-white/80">/mês</span></div></div>
-    <ul class="text-[13px] space-y-1.5 mt-3"><li>✓ Anúncios ilimitados</li><li>✓ Painel de Admin completo</li><li>✓ Portal de Métricas (cliques, origem, conversões)</li><li>✓ Capa de perfil personalizada</li><li>✓ Links externos + botão WhatsApp no perfil</li></ul>
+    <ul class="text-[13px] space-y-1.5 mt-3"><li>✓ Anúncios ilimitados</li><li>✓ 📸 Até 15 fotos por anúncio</li><li>✓ Painel de Admin completo</li><li>✓ Portal de Métricas (cliques, origem, conversões)</li><li>✓ Capa de perfil personalizada</li><li>✓ Links externos + botão WhatsApp no perfil</li></ul>
     <button @click="iniciarCheckout('prata')" class="w-full mt-3 bg-white text-waDark py-3 rounded-full font-extrabold">💳 Assinar Prata • Mercado Pago</button><p class="text-[11px] text-white/70 text-center mt-1.5">Pix ou Cartão • Ativação instantânea após pagamento</p>
   </div>
 
   <div class="bg-gradient-to-br from-amber-400 to-yellow-500 text-amber-950 rounded-2xl p-4 shadow-lg">
     <div class="flex justify-between"><h3 class="font-extrabold">OURO ⭐</h3><div class="text-right"><span class="font-extrabold text-[18px]">R$ 89,90</span><span class="text-[12px]">/mês</span></div></div>
-    <ul class="text-[13px] space-y-1.5 mt-3 font-medium"><li>✓ Tudo do Prata +</li><li>✓ SEO Avançado — Palavras-chave, título e descrição para Google</li><li>✓ Integração com portais externos (VivaReal, Zap, OLX)</li><li>✓ Perfil completo com capa + máxima personalização</li><li>✓ Prioridade no feed (selo OURO)</li></ul>
+    <ul class="text-[13px] space-y-1.5 mt-3 font-medium"><li>✓ Tudo do Prata +</li><li>✓ 📸 Fotos ilimitadas por anúncio</li><li>✓ SEO Avançado — Palavras-chave, título e descrição para Google</li><li>✓ Integração com portais externos (VivaReal, Zap, OLX)</li><li>✓ Perfil completo com capa + máxima personalização</li><li>✓ Prioridade no feed (selo OURO)</li></ul>
     <button @click="iniciarCheckout('ouro')" class="w-full mt-3 bg-black text-white py-3 rounded-full font-extrabold">⭐ Assinar Ouro • Mercado Pago</button>
   </div>
   <div class="bg-blue-50 border border-blue-100 rounded-2xl p-3 text-[12px] text-blue-800"><b>Como funciona o pagamento?</b><br>1. Você clica em Assinar → 2. Escolhe Pix ou Cartão no Mercado Pago → 3. Webhook confirma o pagamento → 4. D1 atualiza seu plano de <b>free → prata/ouro</b> e libera métricas, capa e SEO na hora.</div>
@@ -684,7 +770,26 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
 </main>
 
 
-<!-- ÁUDIO DO TOQUE - arquivo que o Jean mandou, toca quando chama -->
+<!-- POP-UP CAPTURA DE CONTATO - visitante sem conta -->
+  <div x-show="mostrarLead" x-cloak class="fixed inset-0 z-[100] bg-black/60 flex items-end sm:items-center justify-center p-4" @click.self="fecharLead()">
+    <div class="bg-white rounded-2xl p-5 w-full max-w-[400px] shadow-2xl">
+      <div class="flex justify-between items-start">
+        <p class="font-extrabold text-[17px]">Quero esse imóvel 🏠</p>
+        <button @click="fecharLead()" class="bg-gray-100 w-8 h-8 rounded-full font-bold">✕</button>
+      </div>
+      <p class="text-[13px] text-gray-500 mt-1">Deixe seu nome e WhatsApp que o corretor fala com você. Sem criar conta.</p>
+      <p class="text-[12px] text-gray-500 mt-1" x-show="leadImovel">Anúncio: <b x-text="leadImovel ? leadImovel.titulo : ''"></b></p>
+      <label class="text-[12px] font-bold block mt-3">Seu nome</label>
+      <input x-model="leadNome" placeholder="Ex: Maria" class="w-full border rounded-xl px-3 py-3 mt-1 text-[14px] outline-none focus:border-waGreen">
+      <label class="text-[12px] font-bold block mt-3">Seu WhatsApp</label>
+      <input x-model="leadWhatsapp" type="tel" placeholder="Ex: 11999991111" class="w-full border rounded-xl px-3 py-3 mt-1 text-[14px] outline-none focus:border-waGreen">
+      <p x-show="leadErro" class="text-[13px] font-bold text-red-600 bg-red-50 rounded-xl p-2.5 mt-3" x-text="leadErro"></p>
+      <button @click="salvarLead()" class="w-full bg-waDark text-white font-bold py-3 rounded-full mt-4">Continuar → Falar com corretor</button>
+      <button @click="fecharLead()" class="w-full bg-gray-100 text-gray-700 font-bold py-2.5 rounded-full mt-2 text-[13px]">Fechar</button>
+      <p class="text-[11px] text-gray-400 text-center mt-2">Seu contato vai para o corretor do anúncio.</p>
+    </div>
+  </div>
+  <!-- ÁUDIO DO TOQUE - arquivo que o Jean mandou, toca quando chama -->
 <audio id="toqueChamadaAudio" src="toque-chamada.oga" loop preload="auto" style="display:none"></audio>
 <!-- ================= MODAL DE CHAMADA - SIMPLES COMO ANTES ================= -->
 <!-- Só foto/nome, vídeo se for vídeo, e 3 botões embaixo. Sem card de música, sem copiar link, sem card de sala. -->
@@ -722,7 +827,7 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
 <nav class="shrink-0 bg-white border-t border-gray-100 flex justify-around py-2 px-2 z-40 relative" style="padding-bottom:calc(8px + env(safe-area-inset-bottom)); pointer-events:auto">
   <button onclick="try{var d=document.querySelector('[x-data]').__x.$data; d.view='home'; window.scrollTo(0,0);}catch(e){}" @click="view='home'" class="flex flex-col items-center gap-0.5 flex-1 active:scale-95"><span class="text-[20px]">🏠</span><span :class="view==='home'?'text-waGreen font-bold':'text-gray-400'" class="text-[10px]">Início</span></button>
   <button onclick="try{var d=document.querySelector('[x-data]').__x.$data; d.view='home'; d.busca=''; setTimeout(function(){var i=document.querySelector('input[placeholder*=\'Buscar\']'); if(i) i.focus();},100);}catch(e){}" @click="view='home'; busca=''; $nextTick(()=>document.querySelector('input[placeholder*=\'Buscar\']')?.focus())" class="flex flex-col items-center gap-0.5 flex-1 active:scale-95"><span class="text-[20px]">🔍</span><span class="text-[10px] text-gray-400">Buscar</span></button>
-  <button onclick="try{var d=document.querySelector('[x-data]').__x.$data; if(d.usuarioLogado){d.view='admin'; d.abaAdmin='novo';}else{d.view='login'; d.loginCadastro=true;}}catch(e){}" @click="if(usuarioLogado){view='admin'; abaAdmin='novo'}else{view='login'; loginCadastro=true}" class="flex flex-col items-center flex-1 active:scale-95"><span class="w-12 h-12 bg-waGreen text-white rounded-full flex items-center justify-center text-[22px] shadow-lg border-4 border-white">+</span><span class="text-[10px] text-gray-500 font-semibold">Anunciar</span></button>
+  <button onclick="try{var d=document.querySelector('[x-data]').__x.$data; d.irParaAnunciar();}catch(e){}" @click="irParaAnunciar()" class="flex flex-col items-center flex-1 active:scale-95"><span class="w-12 h-12 bg-waGreen text-white rounded-full flex items-center justify-center text-[22px] shadow-lg border-4 border-white">+</span><span class="text-[10px] text-gray-500 font-semibold">Anunciar</span></button>
   <button onclick="try{var d=document.querySelector('[x-data]').__x.$data; d.view='planos';}catch(e){}" @click="view='planos'" class="flex flex-col items-center gap-0.5 flex-1 active:scale-95"><span class="text-[20px]">⭐</span><span :class="view==='planos'?'text-waGreen font-bold':'text-gray-400'" class="text-[10px]">Planos</span></button>
   <button onclick="try{var d=document.querySelector('[x-data]').__x.$data; d.view=d.usuarioLogado ? 'admin' : 'login';}catch(e){}" @click="view = usuarioLogado ? 'admin' : 'login'" class="flex flex-col items-center gap-0.5 flex-1 active:scale-95"><span class="text-[20px]">👤</span><span :class="(view==='admin'||view==='login')?'text-waGreen font-bold':'text-gray-400'" class="text-[10px]">Painel</span></button>
 </nav>
@@ -745,8 +850,8 @@ meuPlano:'free', botImovelId:'me-1',
     perfilDescricao: (localStorage.getItem('chatimov_descricao') || ''),
     perfilSite: (localStorage.getItem('chatimov_site') || ''),
     usuarioFoto: (localStorage.getItem('chatimov_usuario_foto') || ''),
-    loginEmail:'', loginSenha:'', loginErro:'', loginCadastro:false, loginEnviando:false, mostrarRecuperar:false, novaSenha:'', msgRecuperar:'',
-    // ===== PAINEL MASTER - SÓ O DONO COM O E-MAIL CADASTRADO =====
+    loginEmail:'', loginSenha:'', loginErro:'', loginCadastro:false, loginEnviando:false, mostrarRecuperar:false, novaSenha:'', msgRecuperar:'', mostrarLead:false, leadNome:'', leadWhatsapp:'', leadImovel:null, leadErro:'', leads: (JSON.parse(localStorage.getItem('chatimov_leads')||'[]')), novoFotos:[],
+    // ===== PAINEL PRINCIPAL - TODOS OS DADOS =====
     masterEmailInput:'', masterSenhaInput:'', masterLogado:false, masterAba:'usuarios', masterErro:'', masterMsg:'',
     adminEmailDono: (localStorage.getItem('chatimov_admin_email') || ''),
     masterSenhaDono: (localStorage.getItem('chatimov_admin_senha') || ''),
@@ -791,7 +896,14 @@ meuPlanoLabel(){return this.meuPlano==='free'?'FREE':this.meuPlano==='prata'?'PR
 formatPreco(v){return v>=10000?'R$ '+v.toLocaleString('pt-BR'):'R$ '+v.toLocaleString('pt-BR')+'/mês'},
 voltar(){if(this.view==='chat'&&this.anuncianteAtual){this.view='perfil';return} if(this.view==='perfil'){this.view='home';return} this.view='home'; window.scrollTo(0,0)},
 abrirChat(im){
-this.imovelAtual=im; this.view='chat';
+      if(!this.usuarioLogado){
+        const jaDeixou = localStorage.getItem('chatimov_lead_nome') && localStorage.getItem('chatimov_lead_whatsapp');
+        if(!jaDeixou){ this.leadImovel=im; this.leadNome = localStorage.getItem('chatimov_lead_nome')||''; this.leadWhatsapp = localStorage.getItem('chatimov_lead_whatsapp')||''; this.leadErro=''; this.mostrarLead=true; return; }
+      }
+      this.abrirChatDireto(im);
+    },
+    abrirChatDireto(im){
+      this.imovelAtual=im; this.view='chat';
 if(!this.visitanteId){ this.visitanteId = localStorage.getItem('chatimov_visitante') || ('v-' + Math.random().toString(36).slice(2,8)); localStorage.setItem('chatimov_visitante', this.visitanteId); }
 this.verificarChamadasPendentes();
 if(window.__promptInstalar) this.promptInstalar = window.__promptInstalar;
@@ -1068,7 +1180,7 @@ publicarImovel(){
 if(!this.novo.titulo||!this.novo.preco||!this.novo.bairro){this.toast('Preencha título, preço e bairro');return}
 if(this.meuPlano==='free'&&this.meusImoveis('me').length>=15){this.toast('Limite Free: 15 anúncios. Faça upgrade para ilimitado.'); this.view='planos'; return}
 let id='me-'+Date.now();
-this.imoveis.push({id,anunciante_id:'me',titulo:this.novo.titulo,preco:Number(this.novo.preco),tipo:this.novo.tipo,bairro:this.novo.bairro,cidade:'São Paulo - SP',quartos:Number(this.novo.quartos)||2,banheiros:1,area:Number(this.novo.area)||60,foto:this.novo.foto||'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800&q=80',fotos:['1'],descricao:this.novo.descricao,criado:new Date().toISOString().slice(0,10),regras:[{pergunta:'Agendar visita',resposta:'Claro! Me fala qual dia e horário prefere que já confirmo.'},{pergunta:'Valor da entrada',resposta:'Posso simular entrada e financiamento para você agora.'}]});
+this.imoveis.push({id,anunciante_id:'me',titulo:this.novo.titulo,preco:Number(this.novo.preco),tipo:this.novo.tipo,bairro:this.novo.bairro,cidade:'São Paulo - SP',quartos:Number(this.novo.quartos)||2,banheiros:1,area:Number(this.novo.area)||60,foto:(this.novoFotos.length ? this.novoFotos[0] : 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800&q=80'),fotos:this.novoFotos.length ? this.novoFotos.slice() : ['1'],descricao:this.novo.descricao,criado:new Date().toISOString().slice(0,10),regras:[{pergunta:'Agendar visita',resposta:'Claro! Me fala qual dia e horário prefere que já confirmo.'},{pergunta:'Valor da entrada',resposta:'Posso simular entrada e financiamento para você agora.'}]});
 this.novo={titulo:'',preco:'',bairro:'',tipo:'Venda',quartos:2,area:60,foto:'',descricao:''};
 this.abaAdmin='imoveis'; this.toast('✅ Anúncio publicado! Já aparece no feed (FIFO).');
 },
@@ -1292,7 +1404,7 @@ this.toast('🎉 Webhook Mercado Pago confirmado! Plano '+this.checkoutPlano.toU
       this.iniciarToque('entrada');
       setTimeout(()=>this.pararToque(), 1200);
     },
-    // ===== MASTER - SÓ DONO =====
+    // ===== PAINEL PRINCIPAL =====
     cadastrarEmailDono(){
       const email = (this.masterEmailInput||'').trim().toLowerCase();
       const senha = (this.masterSenhaInput||'').trim();
@@ -1301,8 +1413,8 @@ this.toast('🎉 Webhook Mercado Pago confirmado! Plano '+this.checkoutPlano.toU
       localStorage.setItem('chatimov_admin_email', email);
       localStorage.setItem('chatimov_admin_senha', senha);
       this.adminEmailDono = email; this.masterSenhaDono = senha;
-      this.masterLogado = true; this.masterErro=''; this.masterMsg='✅ Seu e-mail de dono foi cadastrado. Só ele entra aqui.';
-      this.toast('✅ Painel Master liberado só para você.');
+      this.masterLogado = true; this.masterErro=''; this.masterMsg='✅ Seu e-mail principal foi cadastrado. Só ele entra aqui.';
+      this.toast('✅ Painel Principal liberado.');
     },
     entrarMaster(){
       const email = (this.masterEmailInput||'').trim().toLowerCase();
@@ -1310,7 +1422,7 @@ this.toast('🎉 Webhook Mercado Pago confirmado! Plano '+this.checkoutPlano.toU
       if(email !== this.adminEmailDono){ this.masterErro='⛔ Acesso negado.'; return; }
       if(senha !== this.masterSenhaDono){ this.masterErro='⛔ Senha errada. Tente de novo.'; return; }
       this.masterLogado = true; this.masterErro='';
-      this.toast('👑 Bem-vindo, dono! Painel Master aberto.');
+      this.toast('👑 Painel Principal aberto.');
     },
     sairMaster(){ this.masterLogado=false; this.masterEmailInput=''; this.masterSenhaInput=''; this.view='admin'; },
     alternarFlutuanteGlobal(){
@@ -1370,6 +1482,48 @@ this.toast('🎉 Webhook Mercado Pago confirmado! Plano '+this.checkoutPlano.toU
       this.perfilWhatsapp = whats;
       this.toast('✅ Perfil salvo! Seu WhatsApp já virou link no seu perfil.');
       this.view='admin';
+    },
+    irParaAnunciar(){
+      if(this.usuarioLogado){ this.view='admin'; this.abaAdmin='novo'; return; }
+      const temConta = !!localStorage.getItem('chatimov_usuario_email');
+      this.view='login'; this.loginCadastro = !temConta;
+    },
+    limiteFotos(){ if(this.meuPlano==='ouro') return 999; if(this.meuPlano==='prata') return 15; return 3; },
+    textoLimiteFotos(){ if(this.meuPlano==='ouro') return 'Fotos ilimitadas'; if(this.meuPlano==='prata') return this.novoFotos.length + ' / 15 fotos'; return this.novoFotos.length + ' / 3 fotos grátis'; },
+    async onFotosChange(e){
+      const files = e.target.files; if(!files) return;
+      const limite = this.limiteFotos();
+      for(let f of files){
+        if(this.novoFotos.length >= limite){ this.view='planos'; return; }
+        const base64 = await new Promise((res,rej)=>{ const r=new FileReader(); r.onload=()=>res(r.result); r.onerror=rej; r.readAsDataURL(f); });
+        this.novoFotos.push(base64);
+      }
+      e.target.value='';
+    },
+    removerFotoNova(i){ this.novoFotos.splice(i,1); },
+    clicarAddFoto(){
+      if(this.novoFotos.length >= this.limiteFotos()){ this.view='planos'; return; }
+      const el = document.getElementById('inputFotosNovo'); if(el) el.click();
+    },
+    leadsDoCorretor(){ return (this.leads||[]).filter(l=>l.corretor_id==='me' || l.corretor_nome==='Jean Aguiar'); },
+    fecharLead(){
+      this.mostrarLead=false; this.leadErro='';
+      const im = this.leadImovel; this.leadImovel=null;
+      if(im) this.abrirChatDireto(im);
+    },
+    salvarLead(){
+      const nome = (this.leadNome||'').trim();
+      const whats = (this.leadWhatsapp||'').trim().replace(/\D/g,'');
+      if(!nome){ this.leadErro='Coloque seu nome.'; return; }
+      if(!whats || whats.length<10){ this.leadErro='Coloque seu WhatsApp com DDD.'; return; }
+      const im = this.leadImovel;
+      const an = im ? this.anuncianteDo(im) : {id:'me', nome:'Jean Aguiar'};
+      const lead = {id:'lead-'+Date.now(), nome, whatsapp: whats, imovel_id: im?im.id:'', imovel_titulo: im?im.titulo:'', corretor_id: an.id, corretor_nome: an.nome, data: new Date().toISOString().slice(0,10)+' '+new Date().toTimeString().slice(0,5)};
+      const lista = [...(this.leads||[]), lead];
+      this.leads = lista; localStorage.setItem('chatimov_leads', JSON.stringify(lista));
+      localStorage.setItem('chatimov_lead_nome', nome); localStorage.setItem('chatimov_lead_whatsapp', whats);
+      this.mostrarLead=false; this.leadErro=''; this.leadImovel=null;
+      if(im) this.abrirChatDireto(im);
     },
     entrarUsuario(){
       const email = (this.loginEmail||'').trim().toLowerCase();
