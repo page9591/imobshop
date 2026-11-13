@@ -44,7 +44,7 @@ tailwind.config={theme:{extend:{colors:{waDark:'#075E54',waGreen:'#128C7E',waLig
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 @keyframes pulseSlow{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}} .animate-pulse-slow{animation:pulseSlow 1.6s ease-in-out infinite}
-[x-cloak]{display:none!important} html,body{overflow-x:hidden;max-width:100vw} html{scrollbar-width:none}::-webkit-scrollbar{display:none}
+[x-cloak]{display:none!important} html{background:#075E54} body{background:#075E54} html,body{overflow-x:hidden;max-width:100vw} html{scrollbar-width:none}::-webkit-scrollbar{display:none}
 .chat-bg{background-color:#ECE5DD;background-image:url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23d4c9b8' fill-opacity='0.18'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")}
 .line-clamp-2{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .pulse-ring{animation:pulseRing 1.8s infinite}
@@ -111,7 +111,7 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
 ================================================================================
 -->
 </head>
-<body class="bg-[#0b141a] font-sans text-[#111b21] antialiased">
+<body class="bg-[#075E54] font-sans text-[#111b21] antialiased">
 <div x-data="chatImov()" x-init="init()" class="max-w-[430px] mx-auto h-[100dvh] h-[100svh] bg-white relative shadow-2xl flex flex-col overflow-hidden">
 
 <!-- ============ HEADER HOME ============ -->
@@ -187,7 +187,7 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
 
   <!-- HERO: LOGO + SLOGAN + BOTÃO BAIXAR -->
   <div class="mx-3 mt-3 bg-[#075E54] rounded-2xl p-4 flex items-center gap-3 text-white shadow-md">
-    <img src="logo-chatimov.png" class="w-[58px] h-[58px] rounded-2xl object-contain bg-white/10 shrink-0" alt="ChatImov">
+    <span class="shrink-0 inline-flex items-center justify-center w-[58px] h-[58px] rounded-2xl bg-white/10" aria-label="ChatImov"><svg width="44" height="44" viewBox="0 0 64 64" fill="none"><path d="M8 14C8 9.6 11.6 6 16 6H48C52.4 6 56 9.6 56 14V40C56 44.4 52.4 48 48 48H36L50 58C52 59.5 50 62 47.5 60L33 48H16C11.6 48 8 44.4 8 40V14Z" fill="#075E54"/><path d="M32 18L18 30H22V42H42V30H46L32 18Z" fill="white"/><rect x="27" y="31" width="4" height="4" rx="1" fill="#075E54"/><rect x="33" y="31" width="4" height="4" rx="1" fill="#075E54"/></svg></span>
     <div class="flex-1 min-w-0">
       <p class="font-extrabold text-[18px] leading-tight">ChatImov</p>
       <p class="text-[13px] leading-snug text-white/90 font-medium">Seu próximo lar começa numa conversa.</p>
@@ -406,8 +406,9 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
       <button @click="mostrarAnexo=!mostrarAnexo" :class="mostrarAnexo ? 'bg-[#128C7E] text-white scale-110' : 'bg-gray-100 text-gray-600'" class="w-[36px] h-[36px] rounded-full flex items-center justify-center text-[20px] shrink-0 active:scale-90 transition shadow-sm" title="Clique: Foto, Vídeo ou Documento">📎</button>
     </div>
     <!-- MICROFONE SEMPRE VISÍVEL - igual WhatsApp, do lado de enviar -->
-    <button @click="alternarGravacaoAudio()" :title="gravandoAudio ? 'Parar gravação' : 'Clique para falar - enviar áudio leve'" :class="gravandoAudio ? 'bg-red-500 scale-110 animate-pulse' : 'bg-[#128C7E]'" class="w-[44px] h-[44px] text-white rounded-full flex items-center justify-center text-[20px] shadow-lg shrink-0 transition active:scale-95 border-2 border-white">
-      <span x-text="gravandoAudio ? '⏹️' : '🎙️'"></span>
+    <button @click="alternarGravacaoAudio()" :title="gravandoAudio ? 'Parar gravação' : 'Clique para falar - enviar áudio'" :class="gravandoAudio ? 'bg-[#FF3B30] scale-110 animate-pulse' : 'bg-[#00A884]'" class="w-[44px] h-[44px] text-white rounded-full flex items-center justify-center shadow-lg shrink-0 transition active:scale-95">
+      <span x-show="!gravandoAudio"><svg width="22" height="22" viewBox="0 0 24 24" fill="white"><path d="M12 15c1.66 0 3-1.34 3-3V6c0-1.66-1.34-3-3-3S9 4.34 9 6v6c0 1.66 1.34 3 3 3zm5.91-3c-.49 0-.9.36-.98.85C16.52 14.2 14.47 15 12 15s-4.52-.8-4.93-2.15c-.08-.49-.49-.85-.98-.85-.61 0-1.09.54-1 1.14.49 3 2.89 5.35 5.91 5.78V20c0 .55.45 1 1 1s1-.45 1-1v-1.08c3.02-.43 5.42-2.78 5.91-5.78.1-.6-.39-1.14-1-1.14z"/></svg></span>
+      <span x-show="gravandoAudio" class="w-[14px] h-[14px] bg-white rounded-[3px] block"></span>
     </button>
     <button @click="enviarTexto()" class="w-[44px] h-[44px] bg-[#25D366] text-white rounded-full flex items-center justify-center text-[19px] shadow-lg shrink-0 border-2 border-white">➤</button>
   </div>
@@ -421,7 +422,7 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
 <section x-cloak x-show="view==='login'" class="fade bg-[#f0f2f5] min-h-full">
   <div class="p-4 space-y-3">
     <div class="bg-white rounded-2xl p-5 shadow-sm text-center">
-      <img src="logo-chatimov.png" class="w-[64px] h-[64px] mx-auto rounded-2xl object-contain bg-[#075E54]/5" alt="ChatImov">
+      <span class="mx-auto inline-flex items-center justify-center w-[64px] h-[64px] rounded-2xl bg-[#075E54]/5" aria-label="ChatImov"><svg width="48" height="48" viewBox="0 0 64 64" fill="none"><path d="M8 14C8 9.6 11.6 6 16 6H48C52.4 6 56 9.6 56 14V40C56 44.4 52.4 48 48 48H36L50 58C52 59.5 50 62 47.5 60L33 48H16C11.6 48 8 44.4 8 40V14Z" fill="#075E54"/><path d="M32 18L18 30H22V42H42V30H46L32 18Z" fill="white"/><rect x="27" y="31" width="4" height="4" rx="1" fill="#075E54"/><rect x="33" y="31" width="4" height="4" rx="1" fill="#075E54"/></svg></span>
       <p class="font-extrabold text-[18px] mt-2">Entrar no ChatImov</p>
       <p class="text-[13px] text-gray-500 mt-1">Corretor, entre com seu e-mail para anunciar, trocar foto de perfil e gerenciar seus imóveis.</p>
     </div>
@@ -483,15 +484,9 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
 </section>
 
 <!-- ================= ADMIN ================= -->
-<section x-cloak x-show="view==='admin'" class="fade bg-[#f0f2f5] min-h-full">
+<section x-cloak x-show="view==='admin'" x-effect="if(view==='admin' && !usuarioLogado) view='login'" class="fade bg-[#f0f2f5] min-h-full">
   <div class="p-3 space-y-3">
-    <!-- SE NÃO ESTÁ LOGADO, PEDE LOGIN -->
-    <div x-show="!usuarioLogado" class="bg-white rounded-2xl p-5 shadow-sm text-center">
-      <p class="text-3xl">🔒</p>
-      <p class="font-extrabold text-[16px] mt-1">Faça login para ver seu painel</p>
-      <p class="text-[13px] text-gray-500 mt-1">Só o usuário logado com seu e-mail vê seus imóveis, sua foto e suas métricas.</p>
-      <button @click="view='login'" class="w-full bg-waDark text-white font-bold py-3 rounded-full mt-3">👤 Fazer Login</button>
-    </div>
+    <!-- SEM BOTÃO AQUI - vai direto pra página de login/cadastrar -->
     <div x-show="usuarioLogado">
     <!-- BOTÃO PAINEL MASTER - SÓ DONO -->
     <button @click="view='master'" class="w-full bg-[#111b21] text-white font-bold py-3 rounded-2xl flex items-center justify-center gap-2 shadow-md">
