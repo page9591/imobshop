@@ -1216,7 +1216,7 @@ let im=this.imovelBotAtual(); im.regras.push({pergunta:this.novaRegra.pergunta,r
 this.novaRegra={pergunta:'',resposta:''}; this.toast('✅ Pergunta adicionada ao chatbot!');
 },
 removerRegra(i){this.imovelBotAtual().regras.splice(i,1)},
-salvarPerfil(){let me=this.meuAnunciante(); me.bio=this.perfilForm.bio; me.foto=this.perfilForm.foto; me.capa=this.perfilForm.capa; try{ const em3 = localStorage.getItem('chatimov_usuario_email'); if(em3){ let cs3 = JSON.parse(localStorage.getItem('chatimov_contas')||'{}'); cs3[em3] = {...(cs3[em3]||{}), bio: me.bio, foto: me.foto, capa: me.capa||'', link1: this.perfilForm.link1||'', link2: this.perfilForm.link2||'', plano: this.meuPlano||cs3[em3].plano||'free'}; localStorage.setItem('chatimov_contas', JSON.stringify(cs3)); } }catch(e){} if(this.meuPlano!=='free'){me.capa=this.perfilForm.capa; me.plano=this.meuPlano; me.links=[{label:this.perfilForm.link1||'Instagram',icon:'📸',url:'https://instagram.com'},{label:this.perfilForm.link2||'Site',icon:'🌐',url:'https://example.com'}]} this.toast('✅ Perfil salvo! (D1: anunciantes atualizado)')},
+salvarPerfil(){let me=this.meuAnunciante(); me.bio=this.perfilForm.bio; me.foto=this.perfilForm.foto; me.capa=this.perfilForm.capa; try{ const em3 = localStorage.getItem('chatimov_usuario_email'); if(em3){ let cs3 = JSON.parse(localStorage.getItem('chatimov_contas')||'{}'); cs3[em3] = {...(cs3[em3]||{}), bio: me.bio, foto: me.foto, capa: me.capa||'', link1: this.perfilForm.link1||'', link2: this.perfilForm.link2||'', plano: this.meuPlano||cs3[em3].plano||'free'}; localStorage.setItem('chatimov_contas', JSON.stringify(cs3)); } }catch(e){} if(this.meuPlano!=='free'){me.capa=this.perfilForm.capa; me.plano=this.meuPlano; me.links=[{label:this.perfilForm.link1||'Instagram',icon:'📸',url:'https://instagram.com'},{label:this.perfilForm.link2||'Site',icon:'🌐',url:'https://example.com'}]} this.syncPerfilD1(); this.toast('✅ Perfil salvo! (D1: anunciantes atualizado)')},
 salvarSEO(){this.toast('✅ SEO & Portais salvos! Google vai indexar: '+this.seoForm.keywords.slice(0,40)+'...')},
 iniciarCheckout(plano){this.checkoutPlano=plano; this.pagamentoOk=false; this.pagando=false; this.view='checkout'; window.scrollTo(0,0)},
 confirmarPagamento(){
@@ -1587,13 +1587,61 @@ this.toast('🎉 Webhook Mercado Pago confirmado! Plano '+this.checkoutPlano.toU
       contas[email] = {nome, slug: slugUrl, slugUser, whatsapp: (whatsapp||'').trim(), tipo: tipo||'corretor', foto: fotoNeutro, bio: bioNovo, capa: '', plano: 'free', link1:'', link2:'', links:[]};
       localStorage.setItem('chatimov_contas', JSON.stringify(contas));
     },
-    entrarUsuario(){
+    async tentarLoginD1(email, senha, isCadastro, nome, whatsapp, tipo){
+      // Tenta o D1 primeiro. Se o Worker não estiver no ar, retorna null e cai no localStorage.
+      try{
+        if(!this.apiBase || this.apiBase.includes('seu-subdominio')) return null;
+        const url = isCadastro ? (this.apiBase + '/api/auth/cadastro') : (this.apiBase + '/api/auth/login');
+        const r = await fetch(url, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({email, senha, nome: nome||'', whatsapp: whatsapp||'', tipo: tipo||'corretor'})});
+        const j = await r.json().catch(()=>({}));
+        if(!r.ok || !j.ok) return {erro: j.erro || 'Erro no D1'};
+        return {anunciante: j.anunciante};
+      }catch(e){ return null; }
+    },
+    async syncPerfilD1(){
+      // Salva perfil no D1 sem travar a tela (fire-and-forget)
+      try{
+        if(!this.apiBase || this.apiBase.includes('seu-subdominio')) return;
+        const em = this.usuarioEmail; if(!em) return;
+        const me = this.meuAnunciante();
+        await fetch(this.apiBase + '/api/anunciantes/me', {method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({email: em, nome: me.nome, whatsapp: me.whatsapp, bio: me.bio, foto_perfil: me.foto, capa_url: me.capa, plano: this.meuPlano})});
+      }catch(e){}
+    },
+    async entrarUsuario(){
       const email = (this.loginEmail||'').trim().toLowerCase();
       const senha = (this.loginSenha||'').trim();
       if(this.loginCadastro && !(this.cadastroNomeUsuario||'').trim()){ this.loginErro='Coloque seu nome.'; return; }
       if(this.loginCadastro && !(this.cadastroWhatsapp||'').trim()){ this.loginErro='Coloque seu WhatsApp.'; return; }
       if(!email || !email.includes('@')){ this.loginErro='Digite seu e-mail certinho, com @.'; return; }
       if(!senha || senha.length<4){ this.loginErro='Senha com pelo menos 4 letras.'; return; }
+      // D1 PRIMEIRO: 1 e-mail = 1 perfil no banco. Se o Worker responder, usa o D1 e não o localStorage.
+      const d1 = await this.tentarLoginD1(email, senha, !!this.loginCadastro, this.cadastroNomeUsuario||'', this.cadastroWhatsapp||'', this.cadastroTipo||'corretor');
+      if(d1 && d1.anunciante){
+        const an = d1.anunciante;
+        // Salva também no localStorage para funcionar offline
+        let smD1={}; try{ smD1=JSON.parse(localStorage.getItem('chatimov_senhas')||'{}'); }catch(e){ smD1={}; }
+        smD1[email]=senha; localStorage.setItem('chatimov_senhas', JSON.stringify(smD1));
+        localStorage.setItem('chatimov_usuario_email', email); localStorage.setItem('chatimov_usuario_senha', senha); localStorage.setItem('chatimov_usuario_logado','1');
+        // Garante que o perfil no localStorage seja o DO D1, não o do outro e-mail
+        let csD1={}; try{ csD1=JSON.parse(localStorage.getItem('chatimov_contas')||'{}'); }catch(e){ csD1={}; }
+        csD1[email]={nome: an.nome, slug: an.slug, slugUser: (an.slug||'').replace(/-/g,'.'), whatsapp: an.whatsapp||'', tipo: an.tipo||'corretor', foto: an.foto_perfil||'', bio: an.bio||'', capa: an.capa_url||'', plano: an.plano||'free', link1:'', link2:'', links:[]};
+        localStorage.setItem('chatimov_contas', JSON.stringify(csD1));
+        this.usuarioEmail=email; this.usuarioLogado=true; this.loginErro=''; this.meuPlano=an.plano||'free';
+        this.aplicarContaAoMe(email, an.nome, an.whatsapp, an.tipo||'corretor', false);
+        this.toast('✅ Logado como ' + email + ' (D1)');
+        if(email==='pagenegocio@gmail.com'){ this.masterLogado=true; this.adminEmailDono='pagenegocio@gmail.com'; this.masterEmailInput='pagenegocio@gmail.com'; this.masterSenhaDono=senha; } else { this.masterLogado=false; }
+        this.view='admin'; this.abaAdmin = this.loginCadastro ? 'perfil' : 'imoveis';
+        this.cadastroNomeUsuario=''; this.cadastroWhatsapp=''; this.loginEmail=''; this.loginSenha='';
+        return;
+      }
+      if(d1 && d1.erro){
+        // D1 respondeu e disse que não existe / senha errada — mostra o erro do D1, não cai no localStorage errado
+        if(d1.erro.includes('Nenhuma conta') || d1.erro.includes('Senha errada') || d1.erro.includes('já existe')){
+          this.loginErro = d1.erro + (d1.erro.includes('Nenhuma conta') ? ' Toque em "Não tenho conta • Abrir conta".' : '');
+          return;
+        }
+      }
+      // Se o Worker não respondeu (null), cai no localStorage como antes
       // VÁRIAS CONTAS POR CELULAR: cada e-mail tem sua senha, guardada em chatimov_senhas. Não trava no e-mail antigo.
       let senhasMap = {}; try{ senhasMap = JSON.parse(localStorage.getItem('chatimov_senhas')||'{}'); }catch(e){ senhasMap={}; }
       const emailSalvo = localStorage.getItem('chatimov_usuario_email');
