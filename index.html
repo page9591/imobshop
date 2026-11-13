@@ -884,7 +884,7 @@ init(){
         if(logado && emailLogado && contas[emailLogado]){
           const c = contas[emailLogado];
           const me0 = this.anunciantes.find(a=>a.id==='me');
-          if(me0){ me0.nome=c.nome; me0.slug=c.slug; me0.whatsapp=c.whatsapp; me0.foto=c.foto; me0.bio=c.bio; me0.capa=c.capa||''; me0.plano=c.plano||'free'; }
+          if(me0){ me0.nome=c.nome; me0.slug=c.slug; me0.whatsapp=c.whatsapp; me0.foto=c.foto; me0.bio=c.bio; me0.capa=c.capa||''; me0.plano=c.plano||'free'; } this.meuPlano=c.plano||'free';
           this.nomeUsuario=c.slugUser||''; this.perfilWhatsapp=c.whatsapp||''; this.perfilDescricao=c.bio||''; this.usuarioFoto=c.foto||''; this.perfilForm.foto=c.foto||''; this.perfilForm.bio=c.bio||''; this.perfilForm.capa=c.capa||'';
         }
       }catch(e){}
@@ -1212,14 +1212,14 @@ let im=this.imovelBotAtual(); im.regras.push({pergunta:this.novaRegra.pergunta,r
 this.novaRegra={pergunta:'',resposta:''}; this.toast('✅ Pergunta adicionada ao chatbot!');
 },
 removerRegra(i){this.imovelBotAtual().regras.splice(i,1)},
-salvarPerfil(){let me=this.anunciantes.find(a=>a.id==='me'); me.bio=this.perfilForm.bio; me.foto=this.perfilForm.foto; try{ const em3 = localStorage.getItem('chatimov_usuario_email'); if(em3){ let cs3 = JSON.parse(localStorage.getItem('chatimov_contas')||'{}'); cs3[em3] = {...(cs3[em3]||{}), bio: me.bio, foto: me.foto, capa: me.capa||''}; localStorage.setItem('chatimov_contas', JSON.stringify(cs3)); } }catch(e){} if(this.meuPlano!=='free'){me.capa=this.perfilForm.capa; me.plano=this.meuPlano; me.links=[{label:this.perfilForm.link1||'Instagram',icon:'📸',url:'https://instagram.com'},{label:this.perfilForm.link2||'Site',icon:'🌐',url:'https://example.com'}]} this.toast('✅ Perfil salvo! (D1: anunciantes atualizado)')},
+salvarPerfil(){let me=this.anunciantes.find(a=>a.id==='me'); me.bio=this.perfilForm.bio; me.foto=this.perfilForm.foto; me.capa=this.perfilForm.capa; try{ const em3 = localStorage.getItem('chatimov_usuario_email'); if(em3){ let cs3 = JSON.parse(localStorage.getItem('chatimov_contas')||'{}'); cs3[em3] = {...(cs3[em3]||{}), bio: me.bio, foto: me.foto, capa: me.capa||'', link1: this.perfilForm.link1||'', link2: this.perfilForm.link2||'', plano: this.meuPlano||cs3[em3].plano||'free'}; localStorage.setItem('chatimov_contas', JSON.stringify(cs3)); } }catch(e){} if(this.meuPlano!=='free'){me.capa=this.perfilForm.capa; me.plano=this.meuPlano; me.links=[{label:this.perfilForm.link1||'Instagram',icon:'📸',url:'https://instagram.com'},{label:this.perfilForm.link2||'Site',icon:'🌐',url:'https://example.com'}]} this.toast('✅ Perfil salvo! (D1: anunciantes atualizado)')},
 salvarSEO(){this.toast('✅ SEO & Portais salvos! Google vai indexar: '+this.seoForm.keywords.slice(0,40)+'...')},
 iniciarCheckout(plano){this.checkoutPlano=plano; this.pagamentoOk=false; this.pagando=false; this.view='checkout'; window.scrollTo(0,0)},
 confirmarPagamento(){
 this.pagando=true;
 setTimeout(()=>{
 this.pagando=false; this.pagamentoOk=true;
-this.meuPlano=this.checkoutPlano;
+this.meuPlano=this.checkoutPlano; try{ const emP = localStorage.getItem('chatimov_usuario_email'); if(emP){ let csP = JSON.parse(localStorage.getItem('chatimov_contas')||'{}'); csP[emP] = {...(csP[emP]||{}), plano: this.checkoutPlano}; localStorage.setItem('chatimov_contas', JSON.stringify(csP)); } }catch(e){}
 // Simula webhook MP -> D1: UPDATE anunciantes SET plano=...
 let me=this.anunciantes.find(a=>a.id==='me'); me.plano=this.checkoutPlano;
 if(this.checkoutPlano!=='free'&&!me.capa) me.capa=this.perfilForm.capa;
@@ -1504,10 +1504,10 @@ this.toast('🎉 Webhook Mercado Pago confirmado! Plano '+this.checkoutPlano.toU
       localStorage.setItem('chatimov_site', this.perfilSite||'');
       // Atualiza o anunciante 'me' para aparecer no perfil público
       const me = this.anunciantes.find(a=>a.id==='me');
-      if(me){ me.nome = nome; me.slug = nome.toLowerCase().replace(/[^a-z0-9]/g,'.'); me.whatsapp = whats; me.bio = this.perfilDescricao||me.bio; if(this.usuarioFoto) me.foto = this.usuarioFoto; if(this.perfilForm.capa) me.capa = this.perfilForm.capa; }
+      if(me){ const nomeBonito = nome.replace(/[._]+/g,' ').replace(/\b\w/g, c=>c.toUpperCase()); if(!me.nome || me.nome.toLowerCase().replace(/[^a-z0-9]/g,'.')===nome.toLowerCase().replace(/[^a-z0-9]/g,'.')){ me.nome = nomeBonito; } me.slug = nome.toLowerCase().replace(/[^a-z0-9]/g,'.'); me.whatsapp = whats; me.bio = this.perfilDescricao||me.bio; if(this.usuarioFoto) me.foto = this.usuarioFoto; if(this.perfilForm.capa) me.capa = this.perfilForm.capa; }
       if(this.perfilSite){ this.perfilForm.link1 = this.perfilSite; }
       this.perfilWhatsapp = whats;
-      try{ const em2 = localStorage.getItem('chatimov_usuario_email'); if(em2){ let cs2 = JSON.parse(localStorage.getItem('chatimov_contas')||'{}'); cs2[em2] = {...(cs2[em2]||{}), nome: nome, slug: me.slug, slugUser: nome.toLowerCase().replace(/\s+/g,'.'), whatsapp: whats, bio: this.perfilDescricao||'', foto: me.foto||'', capa: me.capa||''}; localStorage.setItem('chatimov_contas', JSON.stringify(cs2)); } }catch(e){}
+      try{ const em2 = localStorage.getItem('chatimov_usuario_email'); if(em2){ let cs2 = JSON.parse(localStorage.getItem('chatimov_contas')||'{}'); cs2[em2] = {...(cs2[em2]||{}), nome: me.nome, slug: me.slug, slugUser: nome.toLowerCase().replace(/\s+/g,'.'), whatsapp: whats, bio: this.perfilDescricao||'', foto: me.foto||'', capa: me.capa||'', link1: this.perfilSite||cs2[em2].link1||'', plano: this.meuPlano||cs2[em2].plano||'free'}; localStorage.setItem('chatimov_contas', JSON.stringify(cs2)); } }catch(e){}
       this.toast('✅ Perfil salvo! Seu WhatsApp já virou link no seu perfil.');
       this.view='admin';
     },
@@ -1556,20 +1556,25 @@ this.toast('🎉 Webhook Mercado Pago confirmado! Plano '+this.checkoutPlano.toU
     meuAnunciante(){ return this.anunciantes.find(a=>a.id==='me') || {nome:'', slug:'', foto:'', whatsapp:'', bio:'', plano:'free'}; },
     aplicarContaAoMe(email, nomeCompleto, whatsapp, tipo, forceNovo=false){
       const me = this.anunciantes.find(a=>a.id==='me'); if(!me) return;
+      // Se essa conta JÁ EXISTE, CARREGA o perfil dela e NÃO reseta. É isso que faz cada e-mail ter seu perfil.
+      let contasExist = {}; try{ contasExist = JSON.parse(localStorage.getItem('chatimov_contas')||'{}'); }catch(e){ contasExist={}; }
+      const salvo = contasExist[email];
+      if(salvo && salvo.nome){
+        me.nome = salvo.nome; me.slug = salvo.slug; me.whatsapp = salvo.whatsapp||''; me.foto = salvo.foto||me.foto; me.bio = salvo.bio||''; me.capa = salvo.capa||''; me.plano = salvo.plano||'free'; me.links = salvo.links||[]; this.meuPlano = salvo.plano||'free';
+        this.nomeUsuario = salvo.slugUser||''; this.perfilWhatsapp = salvo.whatsapp||''; this.perfilDescricao = salvo.bio||''; this.usuarioFoto = salvo.foto||''; this.perfilForm.foto = salvo.foto||''; this.perfilForm.bio = salvo.bio||''; this.perfilForm.capa = salvo.capa||''; this.perfilForm.link1 = salvo.link1||''; this.perfilForm.link2 = salvo.link2||'';
+        localStorage.setItem('chatimov_usuario_foto', salvo.foto||'');
+        return;
+      }
+      // Conta NOVA de verdade (e-mail nunca aberto): cria perfil novo, limpo, sem herdar do outro
       const nome = (nomeCompleto||'').trim();
       if(!nome) return;
       const slugUrl = nome.toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9-]/g,'');
       const slugUser = nome.toLowerCase().replace(/\s+/g,'.').replace(/[^a-z0-9.]/g,'');
-      // Se é conta nova (e-mail diferente do anterior), limpa os imóveis demo do Jean e usa avatar neutro
-      const emailAnterior = localStorage.getItem('chatimov_usuario_email');
-      const ehContaNova = forceNovo || (emailAnterior && emailAnterior!==email);
-      me.nome = nome; me.slug = slugUrl; me.whatsapp = (whatsapp||'').trim(); me.plano = me.plano||'free';
-      if(ehContaNova){ me.foto = 'https://images.unsplash.com/photo-1633332755192-727a05c4013d?w=300&q=80'; me.capa=''; me.bio = (tipo==='imobiliaria' ? 'Imobiliária em São Paulo' : 'Corretor em São Paulo') + ' • ' + nome; me.links=[]; this.perfilForm.link1=''; this.perfilForm.link2=''; this.imoveis = this.imoveis.filter(i=>i.anunciante_id!=='me'); this.perfilDescricao=''; this.usuarioFoto=''; localStorage.removeItem('chatimov_usuario_foto'); }
-      else { if(!me.bio) me.bio = (tipo==='imobiliaria' ? 'Imobiliária em São Paulo' : 'Corretor em São Paulo') + ' • ' + nome; }
+      me.nome = nome; me.slug = slugUrl; me.whatsapp = (whatsapp||'').trim(); me.plano = 'free'; this.meuPlano = 'free';
+      me.foto = 'https://images.unsplash.com/photo-1633332755192-727a05c4013d?w=300&q=80'; me.capa=''; me.bio = (tipo==='imobiliaria' ? 'Imobiliária em São Paulo' : 'Corretor em São Paulo') + ' • ' + nome; me.links=[]; this.perfilForm.link1=''; this.perfilForm.link2=''; this.imoveis = this.imoveis.filter(i=>i.anunciante_id!=='me'); this.perfilDescricao=''; this.usuarioFoto=''; localStorage.removeItem('chatimov_usuario_foto');
       this.nomeUsuario = slugUser; this.perfilWhatsapp = (whatsapp||'').trim(); this.perfilForm.foto = me.foto; this.perfilForm.bio = me.bio; this.perfilForm.capa = me.capa||'';
-      // Salva conta para abrir de novo depois sem cair no Jean
       let contas = {}; try{ contas = JSON.parse(localStorage.getItem('chatimov_contas')||'{}'); }catch(e){ contas={}; }
-      contas[email] = {nome, slug: slugUrl, slugUser, whatsapp: (whatsapp||'').trim(), tipo: tipo||'corretor', foto: me.foto, bio: me.bio, capa: me.capa||'', plano: me.plano};
+      contas[email] = {nome, slug: slugUrl, slugUser, whatsapp: (whatsapp||'').trim(), tipo: tipo||'corretor', foto: me.foto, bio: me.bio, capa: me.capa||'', plano: me.plano, link1:'', link2:'', links:[]};
       localStorage.setItem('chatimov_contas', JSON.stringify(contas));
     },
     entrarUsuario(){
@@ -1624,7 +1629,7 @@ this.toast('🎉 Webhook Mercado Pago confirmado! Plano '+this.checkoutPlano.toU
         }
       }
       localStorage.setItem('chatimov_usuario_logado', '1');
-      this.usuarioEmail = email; this.usuarioLogado = true; this.loginErro='';
+      this.usuarioEmail = email; this.usuarioLogado = true; this.loginErro=''; this.cadastroNomeUsuario=''; this.cadastroWhatsapp=''; this.loginEmail=''; this.loginSenha='';
       // Foto da CONTA que logou, não a do usuário anterior
       try{ const csFoto = JSON.parse(localStorage.getItem('chatimov_contas')||'{}'); if(csFoto[email] && csFoto[email].foto){ this.usuarioFoto = csFoto[email].foto; localStorage.setItem('chatimov_usuario_foto', csFoto[email].foto); } else if(this.usuarioFoto){ localStorage.setItem('chatimov_usuario_foto', this.usuarioFoto); } }catch(e){}
       this.toast('✅ Logado como ' + email);
