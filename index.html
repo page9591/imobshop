@@ -440,6 +440,15 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
         <p class="text-[11px] text-gray-400 mt-1">🔒 Seu e-mail é só para entrar. Não aparece no perfil, nem para outros usuários.</p>
         <label class="text-[12px] font-bold block mt-3">Senha</label>
         <input x-model="loginSenha" type="password" placeholder="Sua senha" class="w-full border rounded-xl px-3 py-3 mt-1 text-[14px] outline-none focus:border-waGreen">
+        <button x-show="!loginCadastro" @click="mostrarRecuperar=!mostrarRecuperar" class="text-[12px] font-bold text-waGreen mt-1.5">Esqueci minha senha? Recuperar senha</button>
+        <div x-show="!loginCadastro && mostrarRecuperar" class="bg-amber-50 border border-amber-200 rounded-xl p-3 mt-2">
+          <p class="font-bold text-[13px]">Recuperar senha</p>
+          <p class="text-[12px] text-gray-600 mt-0.5">Digite seu e-mail acima e crie uma nova senha.</p>
+          <label class="text-[12px] font-bold block mt-2">Nova senha</label>
+          <input x-model="novaSenha" type="password" placeholder="Crie uma nova senha (mín. 4 letras)" class="w-full border rounded-xl px-3 py-2.5 mt-1 text-[14px] outline-none focus:border-waGreen">
+          <p x-show="msgRecuperar" class="text-[12px] font-bold mt-2" :class="msgRecuperar.includes('✅') ? 'text-emerald-700' : 'text-red-600'" x-text="msgRecuperar"></p>
+          <button @click="recuperarSenha()" class="w-full bg-waDark text-white font-bold py-2.5 rounded-full mt-2 text-[13px]">Definir nova senha</button>
+        </div>
         <label x-show="loginCadastro" class="text-[12px] font-bold block mt-3">WhatsApp</label>
         <input x-show="loginCadastro" x-model="cadastroWhatsapp" type="tel" placeholder="Ex: 5511999991111 (só números, com DDD)" class="w-full border rounded-xl px-3 py-3 mt-1 text-[14px] outline-none focus:border-waGreen">
         <div x-show="loginCadastro" class="mt-3">
@@ -502,7 +511,10 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
     <div class="bg-white rounded-2xl p-4 shadow-sm flex gap-3">
       <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&q=80" class="w-14 h-14 rounded-full object-cover" alt="Jean Aguiar">
       <div class="flex-1"><p class="font-extrabold">Jean Aguiar</p><p class="text-[12px] text-gray-500">jean.aguiar • chatimov.com.br/corretor/jean-aguiar</p><span :class="meuPlano==='free'?'bg-gray-100 text-gray-700':'bg-amber-100 text-amber-800'" class="inline-block mt-1 text-[11px] font-bold px-2 py-0.5 rounded-full" x-text="meuPlanoLabel()+' • '+meusImoveis('me').length+' / '+(meuPlano==='free'?'15':'∞')+' anúncios'"></span></div>
-      <button @click="view='planos'" class="bg-waDark text-white text-[12px] font-bold px-3 py-2 rounded-full h-fit">⬆️ Upgrade</button>
+      <div class="flex flex-col gap-1.5 shrink-0">
+        <button @click="view='planos'" class="bg-waDark text-white text-[12px] font-bold px-3 py-2 rounded-full">⬆️ Upgrade</button>
+        <button onclick="try{var d=document.querySelector('[x-data]').__x.$data; d.sairUsuario();}catch(e){}" @click="sairUsuario()" class="bg-gray-100 text-gray-700 text-[12px] font-bold px-3 py-2 rounded-full">Sair</button>
+      </div>
     </div>
 
     <!-- Abas -->
@@ -733,7 +745,7 @@ meuPlano:'free', botImovelId:'me-1',
     perfilDescricao: (localStorage.getItem('chatimov_descricao') || ''),
     perfilSite: (localStorage.getItem('chatimov_site') || ''),
     usuarioFoto: (localStorage.getItem('chatimov_usuario_foto') || ''),
-    loginEmail:'', loginSenha:'', loginErro:'', loginCadastro:false, loginEnviando:false,
+    loginEmail:'', loginSenha:'', loginErro:'', loginCadastro:false, loginEnviando:false, mostrarRecuperar:false, novaSenha:'', msgRecuperar:'',
     // ===== PAINEL MASTER - SÓ O DONO COM O E-MAIL CADASTRADO =====
     masterEmailInput:'', masterSenhaInput:'', masterLogado:false, masterAba:'usuarios', masterErro:'', masterMsg:'',
     adminEmailDono: (localStorage.getItem('chatimov_admin_email') || ''),
@@ -1394,9 +1406,21 @@ this.toast('🎉 Webhook Mercado Pago confirmado! Plano '+this.checkoutPlano.toU
     },
     sairUsuario(){
       localStorage.setItem('chatimov_usuario_logado','0');
-      this.usuarioLogado=false; this.loginEmail=''; this.loginSenha='';
+      this.usuarioLogado=false; this.loginEmail=''; this.loginSenha=''; this.mostrarRecuperar=false; this.novaSenha=''; this.msgRecuperar='';
       this.toast('Você saiu. Até logo!');
       this.view='login';
+    },
+    recuperarSenha(){
+      const email = (this.loginEmail||'').trim().toLowerCase();
+      const nova = (this.novaSenha||'').trim();
+      if(!email || !email.includes('@')){ this.msgRecuperar='Digite seu e-mail acima primeiro.'; return; }
+      if(!nova || nova.length<4){ this.msgRecuperar='Crie uma nova senha com pelo menos 4 letras.'; return; }
+      const emailSalvo = localStorage.getItem('chatimov_usuario_email');
+      if(!emailSalvo){ this.msgRecuperar='Nenhuma conta com esse e-mail neste celular. Abra uma conta.'; return; }
+      if(emailSalvo!==email){ this.msgRecuperar='Esse e-mail não é o cadastrado neste celular. Use ' + emailSalvo; return; }
+      localStorage.setItem('chatimov_usuario_senha', nova);
+      this.loginSenha = nova; this.msgRecuperar='✅ Nova senha definida! Agora é só fazer login.';
+      this.mostrarRecuperar=false; this.novaSenha='';
     },
     async onFotoPerfilChange(e){
       const file = e.target.files && e.target.files[0];
