@@ -1,20 +1,21 @@
-name = "imobchat"
+name = "imobchat-api"
 compatibility_date = "2026-11-10"
+main = "workers-api.js"
 pages_build_output_dir = "."
-# --- Cloudflare Pages + Workers + D1 + R2 ---
-# Deploy: npx wrangler pages deploy . --project-name imobchat
-# D1: npx wrangler d1 create imobchat-db
-# Depois copie o database_id abaixo
+
+# --- ChatImov: Pages + Workers + D1 + R2 ---
+# Page usa o index.html / Worker usa o workers-api.js
+# D1: chatimov-db / R2: chatimov-imagens
 
 [[d1_databases]]
 binding = "DB"
 database_name = "imobchat-db"
-database_id = "COLE-AQUI-O-ID-DO-SEU-D1"
+database_id = "8deb244d-COLE-O-RESTO-AQUI"
 
 [[r2_buckets]]
 binding = "IMAGENS"
 bucket_name = "imobchat-imagens"
 
 [vars]
-PUBLIC_BASE_URL = "https://imobchat.pages.dev"
+PUBLIC_BASE_URL = "https://chatimov.com.br"
 MP_WEBHOOK_SECRET = "troque-por-uma-senha-forte"
