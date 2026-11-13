@@ -1380,8 +1380,15 @@ this.toast('🎉 Webhook Mercado Pago confirmado! Plano '+this.checkoutPlano.toU
       if(!senha || senha.length<4){ this.loginErro='Senha com pelo menos 4 letras.'; return; }
       const emailSalvo = localStorage.getItem('chatimov_usuario_email');
       const senhaSalva = localStorage.getItem('chatimov_usuario_senha');
-      if(emailSalvo && emailSalvo!==email){ this.loginErro='Esse e-mail não é o cadastrado neste celular. Use ' + emailSalvo + ' ou saia e cadastre outro.'; return; }
-      if(emailSalvo && senhaSalva && senha!==senhaSalva){ this.loginErro='Senha errada. Tente de novo.'; return; }
+      // ABRIR CONTA: qualquer pessoa pode abrir conta com qualquer e-mail novo, mesmo que o celular já tenha outra conta. Não trava no e-mail antigo - troca a conta.
+      if(this.loginCadastro){
+        // deixa passar, salva por cima no final
+      } else {
+        // FAZER LOGIN: só entra na conta que já foi aberta neste celular
+        if(!emailSalvo){ this.loginErro='Nenhuma conta com esse e-mail neste celular. Toque em "Não tenho conta • Abrir conta".'; return; }
+        if(emailSalvo!==email){ this.loginErro='Esse e-mail não é o da conta deste celular. Abra uma conta nova com esse e-mail.'; return; }
+        if(senhaSalva && senha!==senhaSalva){ this.loginErro='Senha errada. Tente de novo ou toque em "Esqueci minha senha?".'; return; }
+      }
       // Cadastro novo ou login ok
       localStorage.setItem('chatimov_usuario_email', email);
       localStorage.setItem('chatimov_usuario_senha', senha);
