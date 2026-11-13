@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- ChatImov-NOVO-2026-11-11-SALA-LIGAR-VIDEO-CORRIGIDO -->
+<!-- ChatImov - DONO: troque a URL do Worker em 1 lugar: procure por apiBase no arquivo e cole sua URL real. Publico nao ve isso. -->
 <html lang="pt-BR">
 <head><style>
 @font-face {
@@ -468,7 +468,7 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
         <button @click="entrarUsuario()" class="w-full bg-waDark text-white font-bold py-3 rounded-full mt-4" x-text="loginCadastro ? 'Abrir conta' : 'Fazer login'"></button>
         <button @click="loginCadastro=!loginCadastro" class="w-full bg-gray-100 text-gray-700 font-bold py-2.5 rounded-full mt-2 text-[13px]" x-text="loginCadastro ? 'Já tenho conta • Fazer login' : 'Não tenho conta • Abrir conta'"></button>
         <p x-show="loginCadastro" class="text-[12px] text-gray-500 text-center mt-2">Ao abrir conta, você vai para preencher seu perfil: foto, WhatsApp, descrição e site.</p>
-        <p class="text-[11px] text-gray-400 text-center mt-3">Seu e-mail fica salvo só no seu celular.</p>
+        <p class="text-[11px] text-gray-400 text-center mt-3">Sua conta fica salva no banco, vale em qualquer celular.</p>
         <button @click="view='master'" class="w-full text-[11px] text-gray-400 text-center mt-1 underline">Admin Principal</button>
       </div>
       <!-- COMPLETAR PERFIL: aparece quando abre conta -->
