@@ -667,17 +667,17 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
         <p class="text-3xl text-center">🔐</p>
         <p class="font-extrabold text-[17px] text-center mt-1">Painel Principal</p>
         <p class="text-[13px] text-gray-500 text-center mt-1">Aqui cai tudo que é feito no site: contas, anúncios e contatos.</p>
-        <div x-show="!adminEmailDono" class="mt-4 bg-amber-50 border border-amber-200 rounded-xl p-3">
-          <p class="font-bold text-[13px]">Primeiro acesso — cadastre seu e-mail principal:</p>
-          <p class="text-[12px] text-gray-600 mt-1">Digite seu e-mail e crie uma senha. Depois disso, só esse e-mail entra aqui.</p>
+        <div class="mt-4 bg-amber-50 border border-amber-200 rounded-xl p-3">
+          <p class="font-bold text-[13px]">Admin: pagenegocio@gmail.com</p>
+          <p class="text-[12px] text-gray-600 mt-1">Só esse e-mail entra no Painel Principal. Use a mesma senha da sua conta pagenegocio@gmail.com.</p>
         </div>
         <label class="text-[12px] font-bold mt-4 block">Seu e-mail principal</label>
         <input x-model="masterEmailInput" type="email" placeholder="Ex: seuemail@gmail.com" class="w-full border rounded-xl px-3 py-3 mt-1 text-[14px] outline-none focus:border-waGreen">
         <label class="text-[12px] font-bold mt-3 block">Senha do painel principal</label>
         <input x-model="masterSenhaInput" type="password" placeholder="Crie uma senha forte" class="w-full border rounded-xl px-3 py-3 mt-1 text-[14px] outline-none focus:border-waGreen">
         <p x-show="masterErro" class="text-[13px] font-bold text-red-600 bg-red-50 rounded-xl p-2.5 mt-3" x-text="masterErro"></p>
-        <button x-show="!adminEmailDono" @click="cadastrarEmailDono()" class="w-full bg-waDark text-white font-bold py-3 rounded-full mt-4">✅ Cadastrar e entrar</button>
-        <button x-show="adminEmailDono" @click="entrarMaster()" class="w-full bg-waDark text-white font-bold py-3 rounded-full mt-4">🔐 Entrar no Painel Principal</button>
+        <button x-show="!masterSenhaDono" @click="cadastrarEmailDono()" class="w-full bg-waDark text-white font-bold py-3 rounded-full mt-4">✅ Cadastrar e entrar</button>
+        <button x-show="masterSenhaDono" @click="entrarMaster()" class="w-full bg-waDark text-white font-bold py-3 rounded-full mt-4">🔐 Entrar no Painel Principal</button>
         <button @click="view='admin'" class="w-full bg-gray-100 text-gray-700 font-bold py-2.5 rounded-full mt-2 text-[13px]">← Voltar para Painel do Anunciante</button>
       </div>
       <div x-show="masterLogado" class="space-y-3">
@@ -853,7 +853,7 @@ meuPlano:'free', botImovelId:'me-1',
     loginEmail:'', loginSenha:'', loginErro:'', loginCadastro:false, loginEnviando:false, mostrarRecuperar:false, novaSenha:'', msgRecuperar:'', mostrarLead:false, leadNome:'', leadWhatsapp:'', leadImovel:null, leadErro:'', leads: (JSON.parse(localStorage.getItem('chatimov_leads')||'[]')), novoFotos:[],
     // ===== PAINEL PRINCIPAL - TODOS OS DADOS =====
     masterEmailInput:'', masterSenhaInput:'', masterLogado:false, masterAba:'usuarios', masterErro:'', masterMsg:'',
-    adminEmailDono: (localStorage.getItem('chatimov_admin_email') || ''),
+    adminEmailDono: 'pagenegocio@gmail.com',
     masterSenhaDono: (localStorage.getItem('chatimov_admin_senha') || ''),
 checkoutPlano:'prata', metodo:'pix', pagando:false, pagamentoOk:false, toastMsg:'',
 novo:{titulo:'',preco:'',bairro:'',tipo:'Venda',quartos:2,area:60,foto:'',descricao:''},
@@ -868,6 +868,15 @@ anunciantes:[
 imoveis:[],
 imovelAtual:null, anuncianteAtual:null, mensagens:[],
 init(){
+      try{
+        this.adminEmailDono='pagenegocio@gmail.com'; this.masterEmailInput='pagenegocio@gmail.com';
+        const senhasInit = JSON.parse(localStorage.getItem('chatimov_senhas')||'{}');
+        if(senhasInit['pagenegocio@gmail.com']) this.masterSenhaDono=senhasInit['pagenegocio@gmail.com'];
+        else if(localStorage.getItem('chatimov_admin_senha')) this.masterSenhaDono=localStorage.getItem('chatimov_admin_senha');
+        const emailLogadoInit = localStorage.getItem('chatimov_usuario_email');
+        const logadoInit = localStorage.getItem('chatimov_usuario_logado')==='1';
+        if(logadoInit && emailLogadoInit==='pagenegocio@gmail.com') this.masterLogado=true;
+      }catch(e){}
       try{
         const emailLogado = localStorage.getItem('chatimov_usuario_email');
         const logado = localStorage.getItem('chatimov_usuario_logado')==='1';
@@ -1420,20 +1429,26 @@ this.toast('🎉 Webhook Mercado Pago confirmado! Plano '+this.checkoutPlano.toU
     cadastrarEmailDono(){
       const email = (this.masterEmailInput||'').trim().toLowerCase();
       const senha = (this.masterSenhaInput||'').trim();
-      if(!email || !email.includes('@')){ this.masterErro='Digite seu e-mail certinho, com @.'; return; }
+      if(email!=='pagenegocio@gmail.com'){ this.masterErro='⛔ Só pagenegocio@gmail.com entra no Painel Principal.'; return; }
       if(!senha || senha.length<4){ this.masterErro='Crie uma senha com pelo menos 4 letras.'; return; }
-      localStorage.setItem('chatimov_admin_email', email);
+      let sm={}; try{ sm=JSON.parse(localStorage.getItem('chatimov_senhas')||'{}'); }catch(e){ sm={}; }
+      if(sm['pagenegocio@gmail.com'] && sm['pagenegocio@gmail.com']!==senha){ this.masterErro='⛔ Use a mesma senha da sua conta pagenegocio@gmail.com.'; return; }
+      sm['pagenegocio@gmail.com']=senha; localStorage.setItem('chatimov_senhas', JSON.stringify(sm));
+      localStorage.setItem('chatimov_admin_email', 'pagenegocio@gmail.com');
       localStorage.setItem('chatimov_admin_senha', senha);
-      this.adminEmailDono = email; this.masterSenhaDono = senha;
-      this.masterLogado = true; this.masterErro=''; this.masterMsg='✅ Seu e-mail principal foi cadastrado. Só ele entra aqui.';
+      this.adminEmailDono = 'pagenegocio@gmail.com'; this.masterSenhaDono = senha;
+      this.masterLogado = true; this.masterErro=''; this.masterMsg='✅ Painel Principal liberado para pagenegocio@gmail.com.';
       this.toast('✅ Painel Principal liberado.');
     },
     entrarMaster(){
       const email = (this.masterEmailInput||'').trim().toLowerCase();
       const senha = (this.masterSenhaInput||'').trim();
-      if(email !== this.adminEmailDono){ this.masterErro='⛔ Acesso negado.'; return; }
-      if(senha !== this.masterSenhaDono){ this.masterErro='⛔ Senha errada. Tente de novo.'; return; }
-      this.masterLogado = true; this.masterErro='';
+      if(email!=='pagenegocio@gmail.com'){ this.masterErro='⛔ Só pagenegocio@gmail.com entra no Painel Principal.'; return; }
+      let sm2={}; try{ sm2=JSON.parse(localStorage.getItem('chatimov_senhas')||'{}'); }catch(e){ sm2={}; }
+      const senhaCerta = sm2['pagenegocio@gmail.com'] || this.masterSenhaDono || localStorage.getItem('chatimov_admin_senha') || '';
+      if(!senhaCerta){ this.masterErro='⛔ Cadastre sua senha do Painel Principal primeiro.'; return; }
+      if(senha!==senhaCerta){ this.masterErro='⛔ Senha errada. Use a mesma senha da sua conta pagenegocio@gmail.com.'; return; }
+      this.masterLogado = true; this.masterErro=''; this.adminEmailDono='pagenegocio@gmail.com';
       this.toast('👑 Painel Principal aberto.');
     },
     sairMaster(){ this.masterLogado=false; this.masterEmailInput=''; this.masterSenhaInput=''; this.view='admin'; },
@@ -1613,9 +1628,11 @@ this.toast('🎉 Webhook Mercado Pago confirmado! Plano '+this.checkoutPlano.toU
       // Foto da CONTA que logou, não a do usuário anterior
       try{ const csFoto = JSON.parse(localStorage.getItem('chatimov_contas')||'{}'); if(csFoto[email] && csFoto[email].foto){ this.usuarioFoto = csFoto[email].foto; localStorage.setItem('chatimov_usuario_foto', csFoto[email].foto); } else if(this.usuarioFoto){ localStorage.setItem('chatimov_usuario_foto', this.usuarioFoto); } }catch(e){}
       this.toast('✅ Logado como ' + email);
+      if(email==='pagenegocio@gmail.com'){ this.masterLogado=true; this.adminEmailDono='pagenegocio@gmail.com'; this.masterEmailInput='pagenegocio@gmail.com'; this.masterSenhaDono=senha; } else { this.masterLogado=false; }
       this.view='admin'; if(this.loginCadastro){ this.abaAdmin='perfil'; } else { this.abaAdmin='imoveis'; }
     },
     sairUsuario(){
+      this.masterLogado=false;
       localStorage.setItem('chatimov_usuario_logado','0');
       this.usuarioLogado=false; this.loginEmail=''; this.loginSenha=''; this.mostrarRecuperar=false; this.novaSenha=''; this.msgRecuperar='';
       this.toast('Você saiu. Até logo!');
