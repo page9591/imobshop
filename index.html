@@ -883,9 +883,13 @@ init(){
         const contas = JSON.parse(localStorage.getItem('chatimov_contas')||'{}');
         if(logado && emailLogado && contas[emailLogado]){
           const c = contas[emailLogado];
-          const me0 = this.anunciantes.find(a=>a.id==='me');
-          if(me0){ me0.nome=c.nome; me0.slug=c.slug; me0.whatsapp=c.whatsapp; me0.foto=c.foto; me0.bio=c.bio; me0.capa=c.capa||''; me0.plano=c.plano||'free'; } this.meuPlano=c.plano||'free';
-          this.nomeUsuario=c.slugUser||''; this.perfilWhatsapp=c.whatsapp||''; this.perfilDescricao=c.bio||''; this.usuarioFoto=c.foto||''; this.perfilForm.foto=c.foto||''; this.perfilForm.bio=c.bio||''; this.perfilForm.capa=c.capa||'';
+          const baseInit = (emailLogado||'').split('@')[0].toLowerCase().replace(/[^a-z0-9]/g,'');
+          const uidInit = 'u-'+(baseInit||'me');
+          let me0 = this.anunciantes.find(a=>a.id===uidInit);
+          if(!me0){ me0={id: uidInit, nome: c.nome, slug: c.slug, plano: c.plano||'free', whatsapp: c.whatsapp||'', bio: c.bio||'', foto: c.foto||'', capa: c.capa||'', links: c.links||[]}; this.anunciantes.push(me0); }
+          else { me0.nome=c.nome; me0.slug=c.slug; me0.whatsapp=c.whatsapp; me0.foto=c.foto; me0.bio=c.bio; me0.capa=c.capa||''; me0.plano=c.plano||'free'; }
+          this.meuPlano=c.plano||'free';
+          this.nomeUsuario=c.slugUser||''; this.perfilWhatsapp=c.whatsapp||''; this.perfilDescricao=c.bio||''; this.usuarioFoto=c.foto||''; this.perfilForm.foto=c.foto||''; this.perfilForm.bio=c.bio||''; this.perfilForm.capa=c.capa||''; this.perfilForm.link1=c.link1||''; this.perfilForm.link2=c.link2||'';
         }
       }catch(e){}
       this.imoveis=[
@@ -900,7 +904,7 @@ init(){
 ];
 // FIFO: mais antigos primeiro (ordem de chegada)
 this.imoveis.sort((a,b)=>a.criado.localeCompare(b.criado));
-      try{ const em = localStorage.getItem('chatimov_usuario_email'); const cs = JSON.parse(localStorage.getItem('chatimov_contas')||'{}'); if(em && cs[em] && cs[em].nome!=='Jean Aguiar'){ this.imoveis = this.imoveis.filter(i=>!(i.anunciante_id==='me' && ['me-1','me-2','me-3'].includes(i.id))); } }catch(e){}
+      try{ const emF = localStorage.getItem('chatimov_usuario_email'); if(emF==='pagenegocio@gmail.com'){ const uidF='u-pagenegocio'; this.imoveis.forEach(im=>{ if(['me-1','me-2','me-3'].includes(im.id)) im.anunciante_id=uidF; }); } }catch(e){}
     },
 get imoveisFiltrados(){
 let l=this.imoveis.filter(im=>{
@@ -912,7 +916,7 @@ return okQ&&okF;
 return l;
 },
 anuncianteDo(im){ if(!im) return this.anunciantes[0]||{foto:'',nome:''}; return this.anunciantes.find(a=>a.id===im.anunciante_id)||this.anunciantes[0]||{foto:'',nome:''} },
-meusImoveis(id){if(id==='me')return this.imoveis.filter(i=>i.anunciante_id==='me');return this.imoveis.filter(i=>i.anunciante_id===id)},
+meusImoveis(id){if(id==='me'){ const uid=this.idDoMeuAnunciante(); return this.imoveis.filter(i=>i.anunciante_id===uid); } return this.imoveis.filter(i=>i.anunciante_id===id)},
 meuPlanoLabel(){return this.meuPlano==='free'?'FREE':this.meuPlano==='prata'?'PRATA • R$ 29,90/mês':'OURO • R$ 89,90/mês'},
 formatPreco(v){return v>=10000?'R$ '+v.toLocaleString('pt-BR'):'R$ '+v.toLocaleString('pt-BR')+'/mês'},
 voltar(){if(this.view==='chat'&&this.anuncianteAtual){this.view='perfil';return} if(this.view==='perfil'){this.view='home';return} this.view='home'; window.scrollTo(0,0)},
@@ -1201,7 +1205,7 @@ publicarImovel(){
 if(!this.novo.titulo||!this.novo.preco||!this.novo.bairro){this.toast('Preencha título, preço e bairro');return}
 if(this.meuPlano==='free'&&this.meusImoveis('me').length>=15){this.toast('Limite Free: 15 anúncios. Faça upgrade para ilimitado.'); this.view='planos'; return}
 let id='me-'+Date.now();
-this.imoveis.push({id,anunciante_id:'me',titulo:this.novo.titulo,preco:Number(this.novo.preco),tipo:this.novo.tipo,bairro:this.novo.bairro,cidade:'São Paulo - SP',quartos:Number(this.novo.quartos)||2,banheiros:1,area:Number(this.novo.area)||60,foto:(this.novoFotos.length ? this.novoFotos[0] : 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800&q=80'),fotos:this.novoFotos.length ? this.novoFotos.slice() : ['1'],descricao:this.novo.descricao,criado:new Date().toISOString().slice(0,10),regras:[{pergunta:'Agendar visita',resposta:'Claro! Me fala qual dia e horário prefere que já confirmo.'},{pergunta:'Valor da entrada',resposta:'Posso simular entrada e financiamento para você agora.'}]});
+this.imoveis.push({id,anunciante_id:this.idDoMeuAnunciante(),titulo:this.novo.titulo,preco:Number(this.novo.preco),tipo:this.novo.tipo,bairro:this.novo.bairro,cidade:'São Paulo - SP',quartos:Number(this.novo.quartos)||2,banheiros:1,area:Number(this.novo.area)||60,foto:(this.novoFotos.length ? this.novoFotos[0] : 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800&q=80'),fotos:this.novoFotos.length ? this.novoFotos.slice() : ['1'],descricao:this.novo.descricao,criado:new Date().toISOString().slice(0,10),regras:[{pergunta:'Agendar visita',resposta:'Claro! Me fala qual dia e horário prefere que já confirmo.'},{pergunta:'Valor da entrada',resposta:'Posso simular entrada e financiamento para você agora.'}]});
 this.novo={titulo:'',preco:'',bairro:'',tipo:'Venda',quartos:2,area:60,foto:'',descricao:''};
 this.abaAdmin='imoveis'; this.toast('✅ Anúncio publicado! Já aparece no feed (FIFO).');
 },
@@ -1212,7 +1216,7 @@ let im=this.imovelBotAtual(); im.regras.push({pergunta:this.novaRegra.pergunta,r
 this.novaRegra={pergunta:'',resposta:''}; this.toast('✅ Pergunta adicionada ao chatbot!');
 },
 removerRegra(i){this.imovelBotAtual().regras.splice(i,1)},
-salvarPerfil(){let me=this.anunciantes.find(a=>a.id==='me'); me.bio=this.perfilForm.bio; me.foto=this.perfilForm.foto; me.capa=this.perfilForm.capa; try{ const em3 = localStorage.getItem('chatimov_usuario_email'); if(em3){ let cs3 = JSON.parse(localStorage.getItem('chatimov_contas')||'{}'); cs3[em3] = {...(cs3[em3]||{}), bio: me.bio, foto: me.foto, capa: me.capa||'', link1: this.perfilForm.link1||'', link2: this.perfilForm.link2||'', plano: this.meuPlano||cs3[em3].plano||'free'}; localStorage.setItem('chatimov_contas', JSON.stringify(cs3)); } }catch(e){} if(this.meuPlano!=='free'){me.capa=this.perfilForm.capa; me.plano=this.meuPlano; me.links=[{label:this.perfilForm.link1||'Instagram',icon:'📸',url:'https://instagram.com'},{label:this.perfilForm.link2||'Site',icon:'🌐',url:'https://example.com'}]} this.toast('✅ Perfil salvo! (D1: anunciantes atualizado)')},
+salvarPerfil(){let me=this.meuAnunciante(); me.bio=this.perfilForm.bio; me.foto=this.perfilForm.foto; me.capa=this.perfilForm.capa; try{ const em3 = localStorage.getItem('chatimov_usuario_email'); if(em3){ let cs3 = JSON.parse(localStorage.getItem('chatimov_contas')||'{}'); cs3[em3] = {...(cs3[em3]||{}), bio: me.bio, foto: me.foto, capa: me.capa||'', link1: this.perfilForm.link1||'', link2: this.perfilForm.link2||'', plano: this.meuPlano||cs3[em3].plano||'free'}; localStorage.setItem('chatimov_contas', JSON.stringify(cs3)); } }catch(e){} if(this.meuPlano!=='free'){me.capa=this.perfilForm.capa; me.plano=this.meuPlano; me.links=[{label:this.perfilForm.link1||'Instagram',icon:'📸',url:'https://instagram.com'},{label:this.perfilForm.link2||'Site',icon:'🌐',url:'https://example.com'}]} this.toast('✅ Perfil salvo! (D1: anunciantes atualizado)')},
 salvarSEO(){this.toast('✅ SEO & Portais salvos! Google vai indexar: '+this.seoForm.keywords.slice(0,40)+'...')},
 iniciarCheckout(plano){this.checkoutPlano=plano; this.pagamentoOk=false; this.pagando=false; this.view='checkout'; window.scrollTo(0,0)},
 confirmarPagamento(){
@@ -1221,7 +1225,7 @@ setTimeout(()=>{
 this.pagando=false; this.pagamentoOk=true;
 this.meuPlano=this.checkoutPlano; try{ const emP = localStorage.getItem('chatimov_usuario_email'); if(emP){ let csP = JSON.parse(localStorage.getItem('chatimov_contas')||'{}'); csP[emP] = {...(csP[emP]||{}), plano: this.checkoutPlano}; localStorage.setItem('chatimov_contas', JSON.stringify(csP)); } }catch(e){}
 // Simula webhook MP -> D1: UPDATE anunciantes SET plano=...
-let me=this.anunciantes.find(a=>a.id==='me'); me.plano=this.checkoutPlano;
+let me=this.meuAnunciante(); me.plano=this.checkoutPlano;
 if(this.checkoutPlano!=='free'&&!me.capa) me.capa=this.perfilForm.capa;
 if(this.checkoutPlano==='ouro') me.seo=this.seoForm.keywords;
 this.toast('🎉 Webhook Mercado Pago confirmado! Plano '+this.checkoutPlano.toUpperCase()+' ativo.');
@@ -1486,7 +1490,7 @@ this.toast('🎉 Webhook Mercado Pago confirmado! Plano '+this.checkoutPlano.toU
     },
     async liberarPlanoMaster(u, plano){
       u.plano = plano;
-      if(u.id==='me') this.meuPlano = plano;
+      if(u.id===this.idDoMeuAnunciante()) this.meuPlano = plano;
       this.masterMsg = '✅ ' + u.nome + ' agora está no plano ' + plano.toUpperCase() + ' • Liberado por você.';
       this.toast(this.masterMsg);
       // Tenta salvar no D1 via Workers também
@@ -1503,7 +1507,7 @@ this.toast('🎉 Webhook Mercado Pago confirmado! Plano '+this.checkoutPlano.toU
       localStorage.setItem('chatimov_descricao', this.perfilDescricao||'');
       localStorage.setItem('chatimov_site', this.perfilSite||'');
       // Atualiza o anunciante 'me' para aparecer no perfil público
-      const me = this.anunciantes.find(a=>a.id==='me');
+      const me = this.meuAnunciante();
       if(me){ const nomeBonito = nome.replace(/[._]+/g,' ').replace(/\b\w/g, c=>c.toUpperCase()); if(!me.nome || me.nome.toLowerCase().replace(/[^a-z0-9]/g,'.')===nome.toLowerCase().replace(/[^a-z0-9]/g,'.')){ me.nome = nomeBonito; } me.slug = nome.toLowerCase().replace(/[^a-z0-9]/g,'.'); me.whatsapp = whats; me.bio = this.perfilDescricao||me.bio; if(this.usuarioFoto) me.foto = this.usuarioFoto; if(this.perfilForm.capa) me.capa = this.perfilForm.capa; }
       if(this.perfilSite){ this.perfilForm.link1 = this.perfilSite; }
       this.perfilWhatsapp = whats;
@@ -1533,7 +1537,7 @@ this.toast('🎉 Webhook Mercado Pago confirmado! Plano '+this.checkoutPlano.toU
       if(this.novoFotos.length >= this.limiteFotos()){ this.view='planos'; return; }
       const el = document.getElementById('inputFotosNovo'); if(el) el.click();
     },
-    leadsDoCorretor(){ return (this.leads||[]).filter(l=>l.corretor_id==='me'); },
+    leadsDoCorretor(){ const uid=this.idDoMeuAnunciante(); return (this.leads||[]).filter(l=>l.corretor_id===uid || (l.corretor_id==='me' && !this.usuarioLogado)); },
     fecharLead(){
       this.mostrarLead=false; this.leadErro='';
       const im = this.leadImovel; this.leadImovel=null;
@@ -1553,28 +1557,34 @@ this.toast('🎉 Webhook Mercado Pago confirmado! Plano '+this.checkoutPlano.toU
       this.mostrarLead=false; this.leadErro=''; this.leadImovel=null;
       if(im) this.abrirChatDireto(im);
     },
-    meuAnunciante(){ return this.anunciantes.find(a=>a.id==='me') || {nome:'', slug:'', foto:'', whatsapp:'', bio:'', plano:'free'}; },
+    idDoMeuAnunciante(){ if(!this.usuarioLogado || !this.usuarioEmail) return 'me'; const base = (this.usuarioEmail||'').split('@')[0].toLowerCase().replace(/[^a-z0-9]/g,''); return 'u-'+(base||'me'); },
+    meuAnunciante(){ if(this.usuarioLogado && this.usuarioEmail){ const uid=this.idDoMeuAnunciante(); const meu=this.anunciantes.find(a=>a.id===uid); if(meu) return meu; } return this.anunciantes.find(a=>a.id==='me') || {nome:'', slug:'', foto:'', whatsapp:'', bio:'', plano:'free'}; },
     aplicarContaAoMe(email, nomeCompleto, whatsapp, tipo, forceNovo=false){
-      const me = this.anunciantes.find(a=>a.id==='me'); if(!me) return;
-      // Se essa conta JÁ EXISTE, CARREGA o perfil dela e NÃO reseta. É isso que faz cada e-mail ter seu perfil.
+      // PERFIL SEPARADO POR E-MAIL: cada e-mail tem seu anunciante com id u-<e-mail>. Não mexe no 'me' demo do Jean.
+      const base = (email||'').split('@')[0].toLowerCase().replace(/[^a-z0-9]/g,'');
+      const uid = 'u-'+(base||'me');
       let contasExist = {}; try{ contasExist = JSON.parse(localStorage.getItem('chatimov_contas')||'{}'); }catch(e){ contasExist={}; }
       const salvo = contasExist[email];
+      let me = this.anunciantes.find(a=>a.id===uid);
       if(salvo && salvo.nome){
-        me.nome = salvo.nome; me.slug = salvo.slug; me.whatsapp = salvo.whatsapp||''; me.foto = salvo.foto||me.foto; me.bio = salvo.bio||''; me.capa = salvo.capa||''; me.plano = salvo.plano||'free'; me.links = salvo.links||[]; this.meuPlano = salvo.plano||'free';
-        this.nomeUsuario = salvo.slugUser||''; this.perfilWhatsapp = salvo.whatsapp||''; this.perfilDescricao = salvo.bio||''; this.usuarioFoto = salvo.foto||''; this.perfilForm.foto = salvo.foto||''; this.perfilForm.bio = salvo.bio||''; this.perfilForm.capa = salvo.capa||''; this.perfilForm.link1 = salvo.link1||''; this.perfilForm.link2 = salvo.link2||'';
+        if(!me){ me = {id: uid, nome: salvo.nome, slug: salvo.slug, plano: salvo.plano||'free', whatsapp: salvo.whatsapp||'', bio: salvo.bio||'', foto: salvo.foto||'', capa: salvo.capa||'', links: salvo.links||[]}; this.anunciantes.push(me); }
+        else { me.nome=salvo.nome; me.slug=salvo.slug; me.whatsapp=salvo.whatsapp||''; me.foto=salvo.foto||me.foto; me.bio=salvo.bio||''; me.capa=salvo.capa||''; me.plano=salvo.plano||'free'; me.links=salvo.links||[]; }
+        this.meuPlano = salvo.plano||'free'; this.nomeUsuario = salvo.slugUser||''; this.perfilWhatsapp = salvo.whatsapp||''; this.perfilDescricao = salvo.bio||''; this.usuarioFoto = salvo.foto||''; this.perfilForm.foto = salvo.foto||''; this.perfilForm.bio = salvo.bio||''; this.perfilForm.capa = salvo.capa||''; this.perfilForm.link1 = salvo.link1||''; this.perfilForm.link2 = salvo.link2||'';
         localStorage.setItem('chatimov_usuario_foto', salvo.foto||'');
         return;
       }
-      // Conta NOVA de verdade (e-mail nunca aberto): cria perfil novo, limpo, sem herdar do outro
       const nome = (nomeCompleto||'').trim();
       if(!nome) return;
       const slugUrl = nome.toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9-]/g,'');
       const slugUser = nome.toLowerCase().replace(/\s+/g,'.').replace(/[^a-z0-9.]/g,'');
-      me.nome = nome; me.slug = slugUrl; me.whatsapp = (whatsapp||'').trim(); me.plano = 'free'; this.meuPlano = 'free';
-      me.foto = 'https://images.unsplash.com/photo-1633332755192-727a05c4013d?w=300&q=80'; me.capa=''; me.bio = (tipo==='imobiliaria' ? 'Imobiliária em São Paulo' : 'Corretor em São Paulo') + ' • ' + nome; me.links=[]; this.perfilForm.link1=''; this.perfilForm.link2=''; this.imoveis = this.imoveis.filter(i=>i.anunciante_id!=='me'); this.perfilDescricao=''; this.usuarioFoto=''; localStorage.removeItem('chatimov_usuario_foto');
-      this.nomeUsuario = slugUser; this.perfilWhatsapp = (whatsapp||'').trim(); this.perfilForm.foto = me.foto; this.perfilForm.bio = me.bio; this.perfilForm.capa = me.capa||'';
+      const fotoNeutro = 'https://images.unsplash.com/photo-1633332755192-727a05c4013d?w=300&q=80';
+      const bioNovo = (tipo==='imobiliaria' ? 'Imobiliária em São Paulo' : 'Corretor em São Paulo') + ' • ' + nome;
+      if(!me){ me = {id: uid, nome, slug: slugUrl, plano: 'free', whatsapp: (whatsapp||'').trim(), bio: bioNovo, foto: fotoNeutro, capa: '', links: []}; this.anunciantes.push(me); }
+      else { me.nome=nome; me.slug=slugUrl; me.whatsapp=(whatsapp||'').trim(); me.plano='free'; me.foto=fotoNeutro; me.capa=''; me.bio=bioNovo; me.links=[]; }
+      this.meuPlano='free'; this.nomeUsuario=slugUser; this.perfilWhatsapp=(whatsapp||'').trim(); this.perfilDescricao=''; this.usuarioFoto=''; this.perfilForm.foto=fotoNeutro; this.perfilForm.bio=bioNovo; this.perfilForm.capa=''; this.perfilForm.link1=''; this.perfilForm.link2='';
+      localStorage.removeItem('chatimov_usuario_foto');
       let contas = {}; try{ contas = JSON.parse(localStorage.getItem('chatimov_contas')||'{}'); }catch(e){ contas={}; }
-      contas[email] = {nome, slug: slugUrl, slugUser, whatsapp: (whatsapp||'').trim(), tipo: tipo||'corretor', foto: me.foto, bio: me.bio, capa: me.capa||'', plano: me.plano, link1:'', link2:'', links:[]};
+      contas[email] = {nome, slug: slugUrl, slugUser, whatsapp: (whatsapp||'').trim(), tipo: tipo||'corretor', foto: fotoNeutro, bio: bioNovo, capa: '', plano: 'free', link1:'', link2:'', links:[]};
       localStorage.setItem('chatimov_contas', JSON.stringify(contas));
     },
     entrarUsuario(){
@@ -1621,7 +1631,7 @@ this.toast('🎉 Webhook Mercado Pago confirmado! Plano '+this.checkoutPlano.toU
       } else {
         let contas = {}; try{ contas = JSON.parse(localStorage.getItem('chatimov_contas')||'{}'); }catch(e){ contas={}; }
         const c = contas[email];
-        if(c){ this.aplicarContaAoMe(email, c.nome, c.whatsapp, c.tipo); const me2 = this.anunciantes.find(a=>a.id==='me'); if(me2 && c.foto) me2.foto=c.foto; if(me2 && c.bio) me2.bio=c.bio; if(me2 && c.capa) me2.capa=c.capa; this.perfilDescricao=c.bio||''; this.usuarioFoto=c.foto||''; }
+        if(c){ this.aplicarContaAoMe(email, c.nome, c.whatsapp, c.tipo); const me2 = this.meuAnunciante(); if(me2 && c.foto) me2.foto=c.foto; if(me2 && c.bio) me2.bio=c.bio; if(me2 && c.capa) me2.capa=c.capa; this.perfilDescricao=c.bio||''; this.usuarioFoto=c.foto||''; }
         else {
           // Conta antiga sem registro em contas: monta a partir do nome de usuário salvo
           const nomeAntigo = (this.nomeUsuario||'').replace(/\./g,' ');
@@ -1663,7 +1673,7 @@ this.toast('🎉 Webhook Mercado Pago confirmado! Plano '+this.checkoutPlano.toU
       if(!file) return;
       if(this.meuPlano!=='ouro'){ this.toast('🔗 Upload direto só no OURO. No PRATA, cole o link da foto.'); return; }
       const url = await this.uploadParaR2(file, 'perfil-'+Date.now()+'-'+file.name);
-      if(url){ this.perfilForm.foto=url; this.usuarioFoto=url; localStorage.setItem('chatimov_usuario_foto', url); const meF = this.anunciantes.find(a=>a.id==='me'); if(meF) meF.foto=url; try{ const emF = localStorage.getItem('chatimov_usuario_email'); if(emF){ let csF = JSON.parse(localStorage.getItem('chatimov_contas')||'{}'); csF[emF] = {...(csF[emF]||{}), foto: url}; localStorage.setItem('chatimov_contas', JSON.stringify(csF)); } }catch(e){} this.toast('✅ Foto de perfil enviada!'); }
+      if(url){ this.perfilForm.foto=url; this.usuarioFoto=url; localStorage.setItem('chatimov_usuario_foto', url); const meF = this.meuAnunciante(); if(meF) meF.foto=url; try{ const emF = localStorage.getItem('chatimov_usuario_email'); if(emF){ let csF = JSON.parse(localStorage.getItem('chatimov_contas')||'{}'); csF[emF] = {...(csF[emF]||{}), foto: url}; localStorage.setItem('chatimov_contas', JSON.stringify(csF)); } }catch(e){} this.toast('✅ Foto de perfil enviada!'); }
     },
     async onFotoImovelChange(e){
       const files = e.target.files;
@@ -1690,8 +1700,8 @@ this.toast('🎉 Webhook Mercado Pago confirmado! Plano '+this.checkoutPlano.toU
       const url = (this.perfilForm.foto||'').trim();
       if(!url){ this.toast('Cole o link da foto ou envie o arquivo (Ouro).'); return; }
       this.usuarioFoto=url; localStorage.setItem('chatimov_usuario_foto', url);
-      // Atualiza também o anunciante 'me'
-      const me = this.anunciantes.find(a=>a.id==='me'); if(me) me.foto=url;
+      // Atualiza também o anunciante DESTE e-mail
+      const me = this.meuAnunciante(); if(me) me.foto=url;
       this.toast('✅ Foto de perfil salva!');
     },
     async baixarApp(){
