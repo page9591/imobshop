@@ -1210,59 +1210,56 @@ this.toast('🎉 Webhook Mercado Pago confirmado! Plano '+this.checkoutPlano.toU
 },
 
     async iniciarChamada(tipo){
-      // ===== LIGAÇÃO NATIVA DENTRO DO CHATIMOV - SEM APP DE TERCEIRO =====
-      // Cada ligação tem sala ÚNICA: call-IMOVEL-ANUNCIANTE-ALEATORIO
-      // João->Pedro: call-12-1-a9f3 | Maurício->Paula: call-18-5-b7k2 -> NÃO SE MISTURAM
-      if(!this.visitanteId){ this.visitanteId = localStorage.getItem('chatimov_visitante') || ('v-' + Math.random().toString(36).slice(2,8)); localStorage.setItem('chatimov_visitante', this.visitanteId); }
-      const an = this.anuncianteDo(this.imovelAtual);
-      // ===== SE O CORRETOR JÁ ESTÁ EM LIGAÇÃO, NÃO DEIXA ENTRAR E AVISA OCUPADO =====
-      const ocupado = await this.checarSeCorretorOcupado();
-      if(ocupado){
-        this.pararToque();
-        const querWhats = confirm('🔴 ' + (an?.nome || 'Corretor') + ' está em ligação agora com outra pessoa.\n\nQuer ir para o WhatsApp dela e deixar recado?');
-        if(querWhats) this.trocarParaWhatsApp();
-        else this.toast('🔴 ' + (an?.nome || 'Corretor') + ' está ocupada em ligação. Tente em alguns minutos.');
-        return;
-      }
-      const codigo = Math.random().toString(36).slice(2,6);
-      const sala = 'call-' + this.imovelAtual.id + '-' + (an?.id || '0') + '-' + codigo;
-      this.salaChamada = sala;
-      this.linkChamada = window.location.origin + window.location.pathname + '?sala=' + sala + '&imovel=' + this.imovelAtual.id;
-      this.tipoChamada = tipo;
-      this.chamadaAtiva = true;
-      this.mutado = false;
-      this.cameraLigada = tipo==='video';
-      this._callSeg = 0; this.tempoChamada='00:00'; this.sinalUltimoId=0;
-      this.chamadaStatus = tipo==='video' ? 'Chamando por vídeo... Aguardando a outra pessoa atender' : 'Chamando por voz... Aguardando a outra pessoa atender';
-      this.iniciarToque('saida');
-      clearInterval(this._callTimer);
-      this._callTimer = setInterval(()=>{ this._callSeg++; const mm=String(Math.floor(this._callSeg/60)).padStart(2,'0'); const ss=String(this._callSeg%60).padStart(2,'0'); this.tempoChamada=mm+':'+ss; },1000);
-      // 1) Avisa o Workers que tem uma sala tocando (para a outra pessoa ver "estão ligando")
-      try{ await fetch(this.apiBase + '/api/salas', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({sala, imovel_id:this.imovelAtual.id, anunciante_id:an?.id||null, de_id:this.visitanteId, de_nome:'Visitante', tipo})}); }catch(e){ console.log('salas offline, segue local', e); }
-      // 2) Cria conexão P2P direta (WebRTC) - áudio/vídeo vai de pessoa pra pessoa, não passa por servidor
-      try{
-        this.peer = new RTCPeerConnection({iceServers:[{urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun1.l.google.com:19302'}]});
-        const stream = await navigator.mediaDevices.getUserMedia({video: tipo==='video', audio:true});
-        this._callStream = stream;
-        stream.getTracks().forEach(tr=>this.peer.addTrack(tr, stream));
-        this.$nextTick(()=>{ const lv=document.getElementById('localVideo'); if(lv) lv.srcObject=stream; });
-        try{
-          this._dcArquivo = this.peer.createDataChannel('arquivos');
-          this._dcArquivo.binaryType = 'arraybuffer';
-          this._dcArquivo.onopen = ()=>{ console.log('canal arquivos P2P aberto'); };
-          this._dcArquivo.onmessage = (ev)=>{ this.aoReceberDadosP2P(ev); };
-        }catch(e){ console.log('sem datachannel', e); }
-        this.peer.ondatachannel = (ev)=>{ this._dcArquivo = ev.channel; this._dcArquivo.binaryType='arraybuffer'; this._dcArquivo.onmessage = (e2)=>{ this.aoReceberDadosP2P(e2); }; };
-        this.peer.ontrack = (e)=>{ this.pararToque(); const rv=document.getElementById('remoteVideo'); if(rv) rv.srcObject=e.streams[0]; this.chamadaStatus='Em chamada • Conectado'; };
-        this.peer.onicecandidate = (e)=>{ if(e.candidate) this.enviarSinal('ice', e.candidate); };
-        const offer = await this.peer.createOffer();
-        await this.peer.setLocalDescription(offer);
-        await this.enviarSinal('offer', offer);
-        this.pollSinal();
-      }catch(e){ this.chamadaStatus='Permita microfone/câmera para ligar • Toque em WhatsApp se preferir'; console.log(e); }
-      this.registrarMetrica(this.imovelAtual?.id, 'chamada_'+tipo);
-    },
-    async enviarSinal(tipo, dados){
+       // ABRE A TELA NA HORA - antes de qualquer fetch, para nao travar
+       if(!this.visitanteId){ this.visitanteId = localStorage.getItem('chatimov_visitante') || ('v-' + Math.random().toString(36).slice(2,8)); localStorage.setItem('chatimov_visitante', this.visitanteId); }
+       const an = this.anuncianteDo(this.imovelAtual);
+       const codigo = Math.random().toString(36).slice(2,6);
+       const sala = 'call-' + this.imovelAtual.id + '-' + (an?.id || '0') + '-' + codigo;
+       this.salaChamada = sala;
+       this.linkChamada = window.location.origin + window.location.pathname + '?sala=' + sala + '&imovel=' + this.imovelAtual.id;
+       this.tipoChamada = tipo;
+       this.chamadaAtiva = true;
+       this.mutado = false;
+       this.cameraLigada = tipo==='video';
+       this._callSeg = 0; this.tempoChamada='00:00'; this.sinalUltimoId=0;
+       this.chamadaStatus = tipo==='video' ? 'Chamando por vídeo... Aguardando a outra pessoa atender' : 'Chamando por voz... Aguardando a outra pessoa atender';
+       this.iniciarToque('saida');
+       clearInterval(this._callTimer);
+       this._callTimer = setInterval(()=>{ this._callSeg++; const mm=String(Math.floor(this._callSeg/60)).padStart(2,'0'); const ss=String(this._callSeg%60).padStart(2,'0'); this.tempoChamada=mm+':'+ss; },1000);
+       // Checa ocupado EM SEGUNDO PLANO, sem travar a tela
+       try{
+         const ocupado = await this.checarSeCorretorOcupado();
+         if(ocupado){
+           this.encerrarChamada();
+           const querWhats = confirm('🔴 ' + (an?.nome || 'Corretor') + ' está em ligação agora com outra pessoa.\n\nQuer ir para o WhatsApp dela e deixar recado?');
+           if(querWhats) this.trocarParaWhatsApp();
+           return;
+         }
+       }catch(e){}
+       try{ fetch(this.apiBase + '/api/salas', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({sala, imovel_id:this.imovelAtual.id, anunciante_id:an?.id||null, de_id:this.visitanteId, de_nome:'Visitante', tipo})}).catch(()=>{}); }catch(e){}
+       try{
+         this.peer = new RTCPeerConnection({iceServers:[{urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun1.l.google.com:19302'}]});
+         const stream = await navigator.mediaDevices.getUserMedia({video: tipo==='video', audio:true});
+         this._callStream = stream;
+         stream.getTracks().forEach(tr=>this.peer.addTrack(tr, stream));
+         this.$nextTick(()=>{ const lv=document.getElementById('localVideo'); if(lv) lv.srcObject=stream; });
+         try{
+           this._dcArquivo = this.peer.createDataChannel('arquivos');
+           this._dcArquivo.binaryType = 'arraybuffer';
+           this._dcArquivo.onopen = ()=>{ console.log('canal arquivos P2P aberto'); };
+           this._dcArquivo.onmessage = (ev)=>{ this.aoReceberDadosP2P(ev); };
+         }catch(e){ console.log('sem datachannel', e); }
+         this.peer.ondatachannel = (ev)=>{ this._dcArquivo = ev.channel; this._dcArquivo.binaryType='arraybuffer'; this._dcArquivo.onmessage = (e2)=>{ this.aoReceberDadosP2P(e2); }; };
+         this.peer.ontrack = (e)=>{ this.pararToque(); const rv=document.getElementById('remoteVideo'); if(rv) rv.srcObject=e.streams[0]; this.chamadaStatus='Em chamada • Conectado'; };
+         this.peer.onicecandidate = (e)=>{ if(e.candidate) this.enviarSinal('ice', e.candidate); };
+         const offer = await this.peer.createOffer();
+         await this.peer.setLocalDescription(offer);
+         await this.enviarSinal('offer', offer);
+         this.pollSinal();
+       }catch(e){ this.chamadaStatus='Permita microfone/câmera para ligar • Toque em WhatsApp se preferir'; console.log(e); }
+       this.registrarMetrica(this.imovelAtual?.id, 'chamada_'+tipo);
+     },
+     async enviarSinal(tipo, dados){
       try{ await fetch(this.apiBase + '/api/sinalizacao', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({sala:this.salaChamada, de_id:this.visitanteId, tipo, dados})}); }catch(e){ console.log('sinal offline', e); }
     },
     pollSinal(){
@@ -1332,7 +1329,7 @@ this.toast('🎉 Webhook Mercado Pago confirmado! Plano '+this.checkoutPlano.toU
       const an = this.anuncianteDo(this.imovelAtual);
       if(!an) return false;
       try{
-        const r = await fetch(this.apiBase + '/api/salas/ocupado?anunciante_id=' + an.id);
+        const ctrl = new AbortController(); setTimeout(()=>ctrl.abort(), 1500); const r = await fetch(this.apiBase + '/api/salas/ocupado?anunciante_id=' + an.id, {signal: ctrl.signal});
         const d = await r.json();
         this.corretorOcupado = d.ocupado;
         this.corretorOcupadoSala = d.sala || null;
