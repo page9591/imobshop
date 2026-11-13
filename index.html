@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-<!-- ChatImov-NOVO-2026-11-11-SALA-LIGAR-VIDEO-CORRIGIDO -->
 <html lang="pt-BR">
 <head><style>
 @font-face {
@@ -25,17 +24,9 @@
 </style>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>ChatImov — Marketplace Imobiliário Conversacional</title>
+<title>ImobChat — Marketplace Imobiliário Conversacional</title>
 <meta name="theme-color" content="#075E54">
-<link rel="manifest" href="manifest.json">
-<link rel="icon" href="logo-chatimov.png">
-<link rel="apple-touch-icon" href="apple-touch-icon.png">
-<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
-<link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="ChatImov">
-<meta name="description" content="ChatImov — Encontre seu imóvel conversando. Chatbot por anúncio, catálogo do corretor e WhatsApp direto.">
+<meta name="description" content="ImobChat — Encontre seu imóvel conversando. Chatbot por anúncio, catálogo do corretor e WhatsApp direto.">
 <script src="https://cdn.tailwindcss.com"></script>
 <script>
 tailwind.config={theme:{extend:{colors:{waDark:'#075E54',waGreen:'#128C7E',waLight:'#25D366',waChat:'#ECE5DD',waBubble:'#DCF8C6',waTeal:'#00A884'},fontFamily:{sans:['Inter','system-ui','sans-serif']}}}}
@@ -43,8 +34,7 @@ tailwind.config={theme:{extend:{colors:{waDark:'#075E54',waGreen:'#128C7E',waLig
 <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
-@keyframes pulseSlow{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}} .animate-pulse-slow{animation:pulseSlow 1.6s ease-in-out infinite}
-[x-cloak]{display:none!important} html,body{overflow-x:hidden;max-width:100vw} html{scrollbar-width:none}::-webkit-scrollbar{display:none}
+html{scrollbar-width:none}::-webkit-scrollbar{display:none}
 .chat-bg{background-color:#ECE5DD;background-image:url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23d4c9b8' fill-opacity='0.18'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")}
 .line-clamp-2{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .pulse-ring{animation:pulseRing 1.8s infinite}
@@ -57,12 +47,12 @@ tailwind.config={theme:{extend:{colors:{waDark:'#075E54',waGreen:'#128C7E',waLig
 </style>
 <!--
 ================================================================================
-CHATIMOV — ARQUITETURA CLOUDFLARE (PRODUÇÃO)
+IMOBCHAT — ARQUITETURA CLOUDFLARE (PRODUÇÃO)
 Hospedagem: Cloudflare Pages — repo: jeanaguiar636 / Branch: main / Build: index.html
 Banco: Cloudflare D1 (SQLite na borda) | Mídia: Cloudflare R2 (public bucket)
 Pagamentos: Mercado Pago (Assinaturas / Checkout) + Webhook -> Cloudflare Worker -> D1
 
---- D1 SCHEMA (rodar em: wrangler d1 execute chatimov-db --file=./schema.sql) ---
+--- D1 SCHEMA (rodar em: wrangler d1 execute imobchat-db --file=./schema.sql) ---
 CREATE TABLE IF NOT EXISTS anunciantes (
   id TEXT PRIMARY KEY, slug TEXT UNIQUE NOT NULL, nome TEXT NOT NULL,
   whatsapp TEXT NOT NULL, plano TEXT NOT NULL DEFAULT 'free' CHECK(plano IN ('free','prata','ouro')),
@@ -92,10 +82,10 @@ CREATE INDEX IF NOT EXISTS idx_imoveis_criado ON imoveis(criado_em ASC);
 CREATE INDEX IF NOT EXISTS idx_metricas_imovel ON metricas_cliques(imovel_id);
 
 --- wrangler.toml ---
-name = "chatimov"
+name = "imobchat"
 pages_build_output_dir = "."
-[[d1_databases]] binding="DB" database_name="chatimov-db" database_id="SEU_D1_ID"
-[[r2_buckets]] binding="R2" bucket_name="chatimov-fotos"
+[[d1_databases]] binding="DB" database_name="imobchat-db" database_id="SEU_D1_ID"
+[[r2_buckets]] binding="R2" bucket_name="imobchat-fotos"
 [vars] MP_ACCESS_TOKEN = "SEU_TOKEN_MP"  # usar Secrets: wrangler secret put MP_ACCESS_TOKEN
 
 --- R2 ---
@@ -112,21 +102,21 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
 -->
 </head>
 <body class="bg-[#0b141a] font-sans text-[#111b21] antialiased">
-<div x-data="chatImov()" x-init="init()" class="max-w-[430px] mx-auto h-[100dvh] h-[100svh] bg-white relative shadow-2xl flex flex-col overflow-hidden">
+<div x-data="imobChat()" x-init="init()" class="max-w-[430px] mx-auto min-h-[100dvh] bg-white relative shadow-2xl flex flex-col overflow-hidden">
 
 <!-- ============ HEADER HOME ============ -->
-<header x-show="view==='home'" class="bg-waDark text-white shrink-0 z-30">
+<header x-show="view==='home'" class="bg-waDark text-white sticky top-0 z-30">
   <div class="flex items-center gap-3 px-3 pt-3 pb-2">
     <div class="relative">
-      <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&q=80" class="w-10 h-10 rounded-full object-cover border-2 border-white/20" alt="Ana ChatImov">
+      <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&q=80" class="w-10 h-10 rounded-full object-cover border-2 border-white/20" alt="Ana ImobChat">
       <span class="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-waLight border-2 border-waDark rounded-full"></span>
     </div>
     <div class="flex-1 min-w-0">
-      <p class="font-bold leading-tight">Ana • ChatImov</p>
+      <p class="font-bold leading-tight">Ana • ImobChat</p>
       <p class="text-[12px] text-white/85 flex items-center gap-1"><span class="w-2 h-2 bg-emerald-400 rounded-full inline-block"></span> 🟢 Online • responde na hora</p>
     </div>
     <button @click="view='planos'" class="bg-white/15 hover:bg-white/25 px-2.5 py-1.5 rounded-full text-[12px] font-semibold">✨ Planos</button>
-    <button @click="view = usuarioLogado ? 'admin' : 'login'" class="w-9 h-9 rounded-full bg-white/15 flex items-center justify-center text-lg relative">👤<span x-show="!usuarioLogado" class="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-waDark"></span></button>
+    <button @click="view='admin'" class="w-9 h-9 rounded-full bg-white/15 flex items-center justify-center text-lg">👤</button>
   </div>
   <div class="px-3 pb-3">
     <div class="bg-white rounded-full flex items-center gap-2 px-3 py-2">
@@ -143,7 +133,7 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
 </header>
 
 <!-- ============ HEADER CHAT / PERFIL / ADMIN ============ -->
-<header x-show="view!=='home'" class="bg-waDark text-white shrink-0 z-30">
+<header x-show="view!=='home'" class="bg-waDark text-white sticky top-0 z-30">
   <div class="flex items-center gap-2 px-2 py-2.5">
     <button @click="voltar()" class="w-9 h-9 flex items-center justify-center text-xl">←</button>
     <template x-if="view==='chat' && imovelAtual">
@@ -151,26 +141,14 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
         <img :src="anuncianteDo(imovelAtual).foto" class="w-9 h-9 rounded-full object-cover cursor-pointer" @click="abrirPerfil(anuncianteDo(imovelAtual))" alt="Corretor">
         <div class="min-w-0 flex-1 cursor-pointer" @click="abrirPerfil(anuncianteDo(imovelAtual))">
           <p class="font-semibold text-[15px] truncate" x-text="anuncianteDo(imovelAtual).nome"></p>
-          <p class="text-[11px]" :class="corretorOcupado ? 'text-red-300' : 'text-emerald-200'" x-text="corretorOcupado ? '🔴 Ocupada em ligação • toque p/ ver perfil' : '🟢 Online agora • toque p/ ver perfil'"></p>
+          <p class="text-[11px] text-emerald-200">🟢 Online agora • toque p/ ver perfil</p>
         </div>
-        <!-- TOPO BONITO: LIGAR + VÍDEO grandes, coloridos, igual WhatsApp - NÃO é o cinza feio pequeno -->
-        <div class="flex items-center gap-2 shrink-0">
-          <button @click="chamadaAtiva=true; tipoChamada='audio'; chamadaStatus='Chamando por voz...'; tempoChamada='00:00'; iniciarChamada('audio')" title="Ligar - Chamada de voz" style="background:#ffffff;color:#075E54;box-shadow:0 3px 12px rgba(0,0,0,.35);border:2px solid #25D366;" class="flex items-center gap-1.5 font-extrabold text-[12px] pl-1.5 pr-3 py-2.5 rounded-full active:scale-95 transition">
-            <span style="background:#25D366;" class="w-[28px] h-[28px] rounded-full flex items-center justify-center text-[16px] leading-none">📞</span>
-            LIGAR
-          </button>
-          <button @click="chamadaAtiva=true; tipoChamada='video'; chamadaStatus='Chamando por vídeo...'; tempoChamada='00:00'; iniciarChamada('video')" title="Chamada de vídeo" style="background:#2563EB;color:#ffffff;box-shadow:0 3px 12px rgba(0,0,0,.35);border:2px solid #ffffff;" class="flex items-center gap-1.5 font-extrabold text-[12px] pl-1.5 pr-3 py-2.5 rounded-full active:scale-95 transition">
-            <span style="background:#ffffff;" class="w-[28px] h-[28px] rounded-full flex items-center justify-center text-[16px] leading-none">📹</span>
-            VÍDEO
-          </button>
-        </div>
+        <span class="text-lg">📹</span><span class="text-lg">📞</span>
       </div>
     </template>
     <template x-if="view==='perfil' && anuncianteAtual">
-      <div class="flex-1 min-w-0"><p class="font-bold truncate" x-text="'@'+anuncianteAtual.slug"></p><p class="text-[12px] text-white/80">chatimov.com.br/corretor/<span x-text="anuncianteAtual.slug"></span></p></div>
+      <div class="flex-1 min-w-0"><p class="font-bold truncate" x-text="'@'+anuncianteAtual.slug"></p><p class="text-[12px] text-white/80">imobchat.com.br/corretor/<span x-text="anuncianteAtual.slug"></span></p></div>
     </template>
-    <template x-if="view==='login'"><div class="flex-1"><p class="font-bold">👤 Login do Usuário</p><p class="text-[12px] text-white/80">Entre com seu e-mail para anunciar</p></div></template>
-    <template x-if="view==='master'"><div class="flex-1"><p class="font-bold">🔐 Painel Master • Só Dono</p><p class="text-[12px] text-white/80" x-text="masterLogado ? 'Logado como dono' : 'Acesso restrito ao dono'"></p></div></template>
     <template x-if="view==='admin'"><div class="flex-1"><p class="font-bold">Painel do Anunciante</p><p class="text-[12px] text-white/80">Jean Aguiar • <span x-text="meuPlanoLabel()"></span></p></div></template>
     <template x-if="view==='planos'"><div class="flex-1"><p class="font-bold">Planos & Mercado Pago</p><p class="text-[12px] text-white/80">Ative Prata ou Ouro em segundos</p></div></template>
     <template x-if="view==='checkout'"><div class="flex-1"><p class="font-bold">Checkout Seguro</p><p class="text-[12px] text-white/80">Mercado Pago • Pix ou Cartão</p></div></template>
@@ -178,24 +156,13 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
   </div>
 </header>
 
-<main class="flex-1 min-h-0 overflow-y-auto overflow-x-hidden relative w-full">
+<main class="flex-1 overflow-y-auto pb-24 relative">
 
 <!-- ================= HOME ================= -->
-<section x-show="view==='home'" class="fade" x-cloak>
+<section x-show="view==='home'" class="fade">
   <div class="px-3 pt-3 flex items-center justify-between">
     <div><h1 class="font-extrabold text-[18px] leading-tight">Imóveis perto de você</h1><p class="text-[12px] text-gray-500"><span x-text="imoveisFiltrados.length"></span> anúncios • ordem de chegada (FIFO) • São Paulo</p></div>
     <span class="bg-emerald-50 text-emerald-700 text-[11px] font-bold px-2 py-1 rounded-full border border-emerald-100">⚡ NOVOS HOJE</span>
-  </div>
-
-  <!-- HERO: LOGO + SLOGAN + BOTÃO BAIXAR -->
-  <div class="mx-3 mt-3 bg-[#075E54] rounded-2xl p-4 flex items-center gap-3 text-white shadow-md">
-    <img src="logo-chatimov.png" class="w-[58px] h-[58px] rounded-2xl object-contain bg-white/10 shrink-0" alt="ChatImov">
-    <div class="flex-1 min-w-0">
-      <p class="font-extrabold text-[18px] leading-tight">ChatImov</p>
-      <p class="text-[13px] leading-snug text-white/90 font-medium">Seu próximo lar começa numa conversa.</p>
-      <p class="text-[11px] text-white/70">Converse, ligue e visite por vídeo — sem cadastro.</p>
-    </div>
-    <button @click="baixarApp()" :disabled="baixando" class="bg-[#25D366] text-white font-extrabold text-[12.5px] px-4 py-2.5 rounded-full shadow-lg shrink-0 active:scale-95 transition" x-text="baixando ? '⬇️ Baixando...' : '⬇️ BAIXAR'"></button>
   </div>
 
   <!-- Banner Ana -->
@@ -239,11 +206,11 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
     <p class="text-[13px] text-white/85 mt-1">Comece grátis com até 15 anúncios + chatbot por anúncio. Upgrade para Prata e Ouro com Mercado Pago.</p>
     <div class="flex gap-2 mt-3"><button @click="view='admin'" class="flex-1 bg-white text-waDark font-bold py-2 rounded-full text-[13px]">Criar anúncio grátis</button><button @click="view='planos'" class="flex-1 bg-waLight text-white font-bold py-2 rounded-full text-[13px]">Ver Planos</button></div>
   </div>
-  <p class="text-center text-[11px] text-gray-400 px-4 pb-2">ChatImov • Cloudflare Pages + D1 + R2 • Pagamentos via Mercado Pago • Feito para mobile</p>
+  <p class="text-center text-[11px] text-gray-400 px-4 pb-2">ImobChat • Cloudflare Pages + D1 + R2 • Pagamentos via Mercado Pago • Feito para mobile</p>
 </section>
 
 <!-- ================= PERFIL / CATÁLOGO ================= -->
-<section x-cloak x-show="view==='perfil' && anuncianteAtual" class="fade">
+<section x-show="view==='perfil' && anuncianteAtual" class="fade">
   <!-- CAPA: só Prata/Ouro. Free = sem capa -->
   <template x-if="anuncianteAtual.plano!=='free'">
     <div class="relative">
@@ -297,17 +264,11 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
     <div x-show="anuncianteAtual.plano==='ouro'" class="mt-4 bg-amber-50 border border-amber-200 rounded-2xl p-3">
       <p class="font-bold text-[13px]">🔍 SEO • Encontrado no Google</p>
       <p class="text-[12px] text-gray-600 mt-1">Palavras-chave: <span class="font-semibold text-gray-800" x-text="anuncianteAtual.seo"></span></p>
-      <p class="text-[12px] text-gray-600">URL amigável: chatimov.com.br/corretor/<span x-text="anuncianteAtual.slug"></span></p>
+      <p class="text-[12px] text-gray-600">URL amigável: imobchat.com.br/corretor/<span x-text="anuncianteAtual.slug"></span></p>
     </div>
   </div>
 
-  <!-- CATÁLOGO: só Prata/Ouro. Free = sem catálogo -->
-  <div x-show="anuncianteAtual.plano==='free'" class="mx-3 mt-3 bg-gray-100 rounded-2xl p-4 text-center">
-    <p class="font-bold text-[14px]">Catálogo bloqueado no Free</p>
-    <p class="text-[12px] text-gray-500 mt-1">Perfil Free mostra foto, WhatsApp, descrição e site. Catálogo completo e capa são só no Prata e Ouro.</p>
-    <button @click="view='planos'" class="mt-2 bg-waDark text-white font-bold px-4 py-2 rounded-full text-[13px]">Desbloquear catálogo</button>
-  </div>
-  <div id="catalogo" x-show="anuncianteAtual.plano!=='free'" class="p-3">
+  <div id="catalogo" class="p-3">
     <h3 class="font-extrabold px-1 pt-3 pb-2">Catálogo de <span x-text="anuncianteAtual.nome.split(' ')[0]"></span> • <span x-text="meusImoveis(anuncianteAtual.id).length"></span> imóveis</h3>
     <div class="grid grid-cols-2 gap-3">
       <template x-for="im in meusImoveis(anuncianteAtual.id)" :key="im.id">
@@ -321,23 +282,8 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
 </section>
 
 <!-- ================= CHAT ================= -->
-<section x-show="view==='chat' && imovelAtual" class="fade flex flex-col chat-bg h-full" x-cloak>
-  <!-- CORRETOR OCUPADO: aparece quando a Marina já está em ligação com outra pessoa -->
-  <div x-show="corretorOcupado && !chamadaAtiva" class="mx-3 mt-3 bg-red-50 border border-red-200 rounded-2xl p-3 flex items-center gap-3">
-    <span class="w-10 h-10 rounded-full bg-red-500 text-white flex items-center justify-center text-[18px]">🔴</span>
-    <div class="flex-1 min-w-0"><p class="font-bold text-[13.5px] text-red-800 leading-tight" x-text="(anuncianteDo(imovelAtual)?.nome || 'Corretor') + ' está em ligação agora'"></p><p class="text-[12px] text-red-600">Termine a ligação atual para atender você. Deixe recado no WhatsApp ou tente em alguns minutos.</p></div>
-    <button @click="trocarParaWhatsApp()" class="bg-[#25D366] text-white px-3 py-2 rounded-full font-bold text-[12px] shrink-0">WhatsApp</button>
-  </div>
-
-  <!-- CHAMADA ENTRANTE: aparece para quem vai atender, sem misturar com outras ligações -->
-  <div x-show="chamadaTocando" class="mx-3 mt-3 bg-[#075E54] text-white rounded-2xl p-3 flex items-center gap-3 shadow-lg">
-    <span class="w-11 h-11 rounded-full bg-white flex items-center justify-center text-[20px] animate-pulse" x-text="chamadaTocando?.tipo==='video' ? '📹' : '📞'"></span>
-    <div class="flex-1 min-w-0"><p class="font-bold text-[14px] leading-tight" x-text="'🎵📞 ' + (chamadaTocando?.de_nome || 'Alguém') + ' está ligando'"></p><p class="text-[12px] text-white/80" x-text="'Imóvel: ' + (imovelAtual?.titulo || '') + ' • Sala: ' + (chamadaTocando?.sala || '')"></p></div>
-    <button @click="aceitarChamada()" class="bg-[#25D366] px-3.5 py-2 rounded-full font-bold text-[13px] shrink-0">Aceitar</button>
-    <button @click="recusarChamada()" class="bg-red-500 px-3.5 py-2 rounded-full font-bold text-[13px] shrink-0">Recusar</button>
-  </div>
-
-  <!-- Card do imóvel no chat -->
+<section x-show="view==='chat' && imovelAtual" class="fade flex flex-col chat-bg min-h-[calc(100dvh-56px)]">
+  <!-- Card flutuante -->
   <div class="mx-3 mt-3 bg-white rounded-2xl shadow-md overflow-hidden flex">
     <img :src="imovelAtual.foto" class="w-[92px] h-[92px] object-cover" :alt="imovelAtual.titulo">
     <div class="p-3 flex-1 min-w-0">
@@ -355,22 +301,7 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
     <template x-for="m in mensagens" :key="m.id">
       <div :class="m.de==='bot' ? 'flex justify-start' : 'flex justify-end'">
         <div :class="m.de==='bot' ? 'bg-white rounded-2xl rounded-tl-md' : 'bg-waBubble rounded-2xl rounded-tr-md'" class="max-w-[82%] px-3 py-2 shadow-sm">
-          <p x-show="m.texto" class="text-[13.5px] leading-snug whitespace-pre-line" x-text="m.texto"></p>
-          <template x-if="m.audioUrl">
-             <div class="flex items-center gap-2.5 py-1 min-w-[190px]" x-data="{tocando:false, pct:0, cur:''}">
-               <button @click="let a=$el.parentElement.querySelector('audio'); if(a.paused){a.play(); tocando=true}else{a.pause(); tocando=false}" class="w-[38px] h-[38px] shrink-0 rounded-full bg-[#075E54] text-white flex items-center justify-center text-[15px] shadow" x-text="tocando ? '⏸' : '▶'"></button>
-               <div class="flex-1 min-w-0">
-                 <div class="flex gap-[2px] items-end h-[20px]"><span class="w-[3px] rounded bg-[#075E54]/70" style="height:6px"></span><span class="w-[3px] rounded bg-[#075E54]/70" style="height:12px"></span><span class="w-[3px] rounded bg-[#075E54]/70" style="height:8px"></span><span class="w-[3px] rounded bg-[#075E54]/70" style="height:16px"></span><span class="w-[3px] rounded bg-[#075E54]/70" style="height:10px"></span><span class="w-[3px] rounded bg-[#075E54]/70" style="height:18px"></span><span class="w-[3px] rounded bg-[#075E54]/70" style="height:7px"></span><span class="w-[3px] rounded bg-[#075E54]/70" style="height:14px"></span><span class="w-[3px] rounded bg-[#075E54]/70" style="height:9px"></span><span class="w-[3px] rounded bg-[#075E54]/70" style="height:15px"></span><span class="w-[3px] rounded bg-[#075E54]/70" style="height:11px"></span><span class="w-[3px] rounded bg-[#075E54]/70" style="height:17px"></span><span class="w-[3px] rounded bg-[#075E54]/70" style="height:8px"></span><span class="w-[3px] rounded bg-[#075E54]/70" style="height:13px"></span><span class="w-[3px] rounded bg-[#075E54]/70" style="height:6px"></span></div>
-                 <div class="h-[4px] bg-black/15 rounded-full mt-1 overflow-hidden"><div class="h-full bg-[#075E54] rounded-full" :style="'width:'+pct+'%'"></div></div>
-               </div>
-               <span class="text-[11px] font-bold text-gray-600 shrink-0" x-text="cur || m.duracao || '0:01'"></span>
-               <audio :src="m.audioUrl" class="hidden" @timeupdate="let a=$event.target; cur=Math.floor(a.currentTime/60)+':'+String(Math.floor(a.currentTime%60)).padStart(2,'0'); pct=a.duration?(a.currentTime/a.duration*100):0" @ended="tocando=false; pct=0; cur=m.duracao||'0:01'" @loadedmetadata="cur=Math.floor($event.target.duration/60)+':'+String(Math.floor($event.target.duration%60)).padStart(2,'0')"></audio>
-             </div>
-           </template>
-          <template x-if="m.tipo==='imagem'"><img :src="m.arquivoUrl" class="w-full max-w-[240px] rounded-xl mt-1 cursor-pointer" @click="window.open(m.arquivoUrl,'_blank')"></template>
-          <template x-if="m.tipo==='video'"><video :src="m.arquivoUrl" controls playsinline class="w-full max-w-[260px] rounded-xl mt-1 bg-black"></video></template>
-          <template x-if="m.tipo==='doc'"><a :href="m.arquivoUrl" :download="m.arquivoNome" class="flex items-center gap-2 bg-white/80 border border-gray-200 rounded-xl p-2.5 mt-1"><span class="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center text-[18px] shrink-0">📄</span><span class="min-w-0 flex-1"><span class="block text-[12.5px] font-bold truncate" x-text="m.arquivoNome"></span><span class="block text-[11px] text-gray-500" x-text="m.arquivoTamanho"></span></span><span class="text-[12px] font-bold text-waGreen shrink-0">Baixar ↓</span></a></template>
-                     <p x-show="m.tipo && m.tipo!=='audio'" class="text-[10px] mt-1" :class="m.de==='eu' ? 'text-white/80' : 'text-gray-500'" x-text="m.statusEnvio ? '📡 '+m.statusEnvio : (baixarAuto ? '⬇️ Baixado automático' : '📎 Toque em Baixar')"></p>
+          <p class="text-[13.5px] leading-snug whitespace-pre-line" x-text="m.texto"></p>
           <p class="text-[10px] text-gray-400 text-right mt-0.5"><span x-text="m.hora"></span> <span x-show="m.de==='eu'">✓✓</span></p>
         </div>
       </div>
@@ -385,124 +316,30 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
     </template>
   </div>
 
-  <!-- MENU ANEXO: abre ao clicar no clip -->
-  <div x-show="mostrarAnexo" @click.away="mostrarAnexo=false" class="mx-3 mb-2 bg-white rounded-2xl shadow-lg border border-gray-100 p-2">
-  <div class="flex items-center justify-between px-1 pb-2">
-    <p class="text-[12px] font-bold text-gray-800">📎 O que você quer enviar?</p>
-    <button @click="baixarAuto=!baixarAuto" :class="baixarAuto ? 'bg-emerald-500 text-white' : 'bg-gray-200 text-gray-600'" class="text-[11px] font-bold px-2.5 py-1 rounded-full shrink-0" x-text="baixarAuto ? '⬇️ Baixar auto: ON' : '⬇️ Baixar auto: OFF'"></button>
-  </div>
-  <div class="grid grid-cols-3 gap-2">
-    <button @click="$refs.inputFoto.click()" class="flex flex-col items-center gap-1 py-3 rounded-xl bg-purple-50 active:scale-95"><span class="w-11 h-11 bg-purple-500 text-white rounded-full flex items-center justify-center text-[20px]">🖼️</span><span class="text-[12px] font-bold">Foto</span><span class="text-[10px] text-gray-500">Galeria / Câmera</span></button>
-    <button @click="$refs.inputVideo.click()" class="flex flex-col items-center gap-1 py-3 rounded-xl bg-blue-50 active:scale-95"><span class="w-11 h-11 bg-blue-500 text-white rounded-full flex items-center justify-center text-[20px]">🎬</span><span class="text-[12px] font-bold">Vídeo</span><span class="text-[10px] text-gray-500">Gravar / Galeria</span></button>
-    <button @click="$refs.inputDoc.click()" class="flex flex-col items-center gap-1 py-3 rounded-xl bg-red-50 active:scale-95"><span class="w-11 h-11 bg-red-500 text-white rounded-full flex items-center justify-center text-[20px]">📄</span><span class="text-[12px] font-bold">Documento</span><span class="text-[10px] text-gray-500">PDF, Word, etc.</span></button>
-    <input type="file" x-ref="inputFoto" accept="image/*" class="hidden" @change="enviarAnexo($event,'imagem')">
-    <input type="file" x-ref="inputVideo" accept="video/*" class="hidden" @change="enviarAnexo($event,'video')">
-    <input type="file" x-ref="inputDoc" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip,.rar" class="hidden" @change="enviarAnexo($event,'doc')">
-  </div>
-  </div>
-  <!-- EMBAIXO BONITO IGUAL WHATSAPP: [😊 Digite... 📎] [🎙️] [➤] - Clip abre Foto/Vídeo/Doc, Mic grava áudio leve -->
-  <div class="px-2 pb-2 flex items-center gap-1.5 w-full max-w-full overflow-hidden">
-    <div class="flex-1 min-w-0 bg-white rounded-full flex items-center px-2.5 py-1.5 shadow-sm border border-gray-100">
-      <span class="text-[20px]">😊</span>
-      <input x-model="textoChat" @keydown.enter="enviarTexto()" :placeholder="gravandoAudio ? 'Gravando áudio... toque no microfone para parar' : 'Digite sua dúvida...'" class="flex-1 px-2 py-2 text-[14px] outline-none bg-transparent">
-      <button @click="mostrarAnexo=!mostrarAnexo" :class="mostrarAnexo ? 'bg-[#128C7E] text-white scale-110' : 'bg-gray-100 text-gray-600'" class="w-[36px] h-[36px] rounded-full flex items-center justify-center text-[20px] shrink-0 active:scale-90 transition shadow-sm" title="Clique: Foto, Vídeo ou Documento">📎</button>
+  <!-- Input -->
+  <div class="px-3 pb-3 flex items-center gap-2">
+    <div class="flex-1 bg-white rounded-full flex items-center px-3 py-1 shadow-sm">
+      <span class="text-lg">😊</span>
+      <input x-model="textoChat" @keydown.enter="enviarTexto()" placeholder="Digite sua dúvida..." class="flex-1 px-2 py-2 text-[14px] outline-none">
+      <span class="text-lg">📎</span>
     </div>
-    <!-- MICROFONE SEMPRE VISÍVEL - igual WhatsApp, do lado de enviar -->
-    <button @click="alternarGravacaoAudio()" :title="gravandoAudio ? 'Parar gravação' : 'Clique para falar - enviar áudio leve'" :class="gravandoAudio ? 'bg-red-500 scale-110 animate-pulse' : 'bg-[#128C7E]'" class="w-[44px] h-[44px] text-white rounded-full flex items-center justify-center text-[20px] shadow-lg shrink-0 transition active:scale-95 border-2 border-white">
-      <span x-text="gravandoAudio ? '⏹️' : '🎙️'"></span>
-    </button>
-    <button @click="enviarTexto()" class="w-[44px] h-[44px] bg-[#25D366] text-white rounded-full flex items-center justify-center text-[19px] shadow-lg shrink-0 border-2 border-white">➤</button>
+    <button @click="enviarTexto()" class="w-11 h-11 bg-waGreen text-white rounded-full flex items-center justify-center text-lg shadow">➤</button>
   </div>
-  <p x-show="gravandoAudio" class="text-center text-[12px] font-bold text-red-600 pb-1">🔴 Gravando áudio <span x-text="tempoAudio"></span> • toque no microfone de novo para enviar</p>
   <p class="text-center text-[11px] text-gray-500 pb-1 px-4">Respostas automáticas configuradas por <span x-text="anuncianteDo(imovelAtual).nome"></span>. Para falar com humano, use o botão verde.</p>
 
-  <!-- BOTÃO FLUTUANTE DO WHATSAPP REMOVIDO A PEDIDO DO DONO - não aparece mais -->
-</section>
-
-<!-- ================= LOGIN DO USUÁRIO ================= -->
-<section x-cloak x-show="view==='login'" class="fade bg-[#f0f2f5] min-h-full">
-  <div class="p-4 space-y-3">
-    <div class="bg-white rounded-2xl p-5 shadow-sm text-center">
-      <img src="logo-chatimov.png" class="w-[64px] h-[64px] mx-auto rounded-2xl object-contain bg-[#075E54]/5" alt="ChatImov">
-      <p class="font-extrabold text-[18px] mt-2">Entrar no ChatImov</p>
-      <p class="text-[13px] text-gray-500 mt-1">Corretor, entre com seu e-mail para anunciar, trocar foto de perfil e gerenciar seus imóveis.</p>
-    </div>
-    <div class="bg-white rounded-2xl p-5 shadow-sm space-y-3">
-      <div x-show="!usuarioLogado">
-        <!-- ABRIR CONTA: Nome de usuário + E-mail + Senha -->
-        <div x-show="loginCadastro" class="bg-emerald-50 border border-emerald-100 rounded-xl p-3 mb-1">
-          <p class="font-bold text-[13px]">Abrir conta — é rápido:</p>
-          <p class="text-[12px] text-gray-600 mt-0.5">1. Nome de usuário • 2. E-mail • 3. Senha. Depois você completa seu perfil.</p>
-        </div>
-        <label x-show="loginCadastro" class="text-[12px] font-bold block">Nome de usuário</label>
-        <input x-show="loginCadastro" x-model="cadastroNomeUsuario" placeholder="Ex: joao.corretor" class="w-full border rounded-xl px-3 py-3 mt-1 text-[14px] outline-none focus:border-waGreen">
-        <label class="text-[12px] font-bold block mt-3">Seu e-mail (não aparece para ninguém)</label>
-        <input x-model="loginEmail" type="email" placeholder="Ex: seuemail@gmail.com" class="w-full border rounded-xl px-3 py-3 mt-1 text-[14px] outline-none focus:border-waGreen">
-        <p class="text-[11px] text-gray-400 mt-1">🔒 Seu e-mail é só para entrar. Não aparece no perfil, nem para outros usuários.</p>
-        <label class="text-[12px] font-bold block mt-3">Senha</label>
-        <input x-model="loginSenha" type="password" placeholder="Sua senha" class="w-full border rounded-xl px-3 py-3 mt-1 text-[14px] outline-none focus:border-waGreen">
-        <p x-show="loginErro" class="text-[13px] font-bold text-red-600 bg-red-50 rounded-xl p-2.5 mt-3" x-text="loginErro"></p>
-        <button @click="entrarUsuario()" class="w-full bg-waDark text-white font-bold py-3 rounded-full mt-4" x-text="loginCadastro ? '✅ Abrir minha conta' : '👤 Entrar'"></button>
-        <button @click="loginCadastro=!loginCadastro" class="w-full bg-gray-100 text-gray-700 font-bold py-2.5 rounded-full mt-2 text-[13px]" x-text="loginCadastro ? 'Já tenho conta • Entrar' : 'Não tenho conta • Cadastrar'"></button>
-        <p x-show="loginCadastro" class="text-[12px] text-gray-500 text-center mt-2">Ao abrir conta, você vai para preencher seu perfil: foto, WhatsApp, descrição e site.</p>
-        <p class="text-[11px] text-gray-400 text-center mt-3">Seu e-mail fica salvo só no seu celular. O dono tem um painel separado (Painel Master).</p>
-      </div>
-      <!-- COMPLETAR PERFIL: aparece quando abre conta -->
-      <div x-show="usuarioLogado" class="bg-white rounded-2xl p-5 shadow-sm mt-3 text-left">
-        <p class="font-extrabold text-[15px]">✏️ Meu perfil</p>
-        <p class="text-[12px] text-gray-500 mt-0.5">Preencha seu perfil. O que aparece para todo mundo: nome de usuário, foto, WhatsApp, descrição e site. E-mail <b>não</b> aparece.</p>
-        <label class="text-[12px] font-bold block mt-3">Nome de usuário</label>
-        <input x-model="nomeUsuario" placeholder="Ex: joao.corretor" class="w-full border rounded-xl px-3 py-2.5 mt-1 text-[14px]">
-        <label class="text-[12px] font-bold block mt-3">📸 Foto de perfil</label>
-        <div class="flex items-center gap-3 mt-1">
-          <img :src="usuarioFoto || perfilForm.foto" class="w-16 h-16 rounded-full object-cover border-2 border-emerald-100">
-          <label class="flex-1 bg-waGreen text-white font-bold text-[12px] text-center py-2.5 rounded-xl cursor-pointer">Enviar foto <input type="file" accept="image/*" @change="onFotoPerfilChange($event)" class="hidden"></label>
-        </div>
-        <label class="text-[12px] font-bold block mt-3">📱 Número do WhatsApp</label>
-        <input x-model="perfilWhatsapp" placeholder="Ex: 5511999991111 (só números, com DDD)" class="w-full border rounded-xl px-3 py-2.5 mt-1 text-[14px]">
-        <p class="text-[11px] text-emerald-600 mt-1" x-show="perfilWhatsapp">No seu perfil vai aparecer: <b>💬 Chamar no WhatsApp</b> → <span x-text="'wa.me/' + perfilWhatsapp"></span></p>
-        <label class="text-[12px] font-bold block mt-3">📝 Descrição</label>
-        <textarea x-model="perfilDescricao" rows="2" placeholder="Ex: Corretor em São Paulo, especialista em Vila Mariana..." class="w-full border rounded-xl px-3 py-2.5 mt-1 text-[14px]"></textarea>
-        <label class="text-[12px] font-bold block mt-3">🌐 Link de algum site</label>
-        <input x-model="perfilSite" placeholder="Ex: https://meusite.com.br ou Instagram" class="w-full border rounded-xl px-3 py-2.5 mt-1 text-[14px]">
-        <button @click="salvarPerfilCompleto()" class="w-full bg-waGreen text-white font-bold py-3 rounded-full mt-4">💾 Salvar meu perfil</button>
-        <div x-show="nomeUsuario && perfilWhatsapp" class="mt-3 bg-[#DCF8C6] rounded-xl p-3">
-          <p class="font-bold text-[13px]">Prévia do seu perfil:</p>
-          <p class="text-[13px] mt-1"><b x-text="'@' + nomeUsuario"></b> • <span x-text="perfilDescricao"></span></p>
-          <p class="text-[12px] text-waGreen font-bold mt-1">💬 Chamar no WhatsApp → wa.me/<span x-text="perfilWhatsapp"></span></p>
-          <p class="text-[12px] text-blue-600" x-show="perfilSite" x-text="perfilSite"></p>
-        </div>
-      </div>
-      <div x-show="usuarioLogado" class="text-center">
-        <img :src="usuarioFoto || perfilForm.foto" class="w-20 h-20 rounded-full object-cover mx-auto border-4 border-emerald-100">
-        <p class="font-bold mt-2" x-text="'@' + (nomeUsuario || 'usuario')"></p><p class="text-[11px] text-gray-400">E-mail oculto • Só você vê</p>
-        <p class="text-[12px] text-emerald-600 font-bold">✅ Logado</p>
-        <button @click="view='admin'" class="w-full bg-waGreen text-white font-bold py-3 rounded-full mt-3">Ir para meu Painel →</button>
-        <button @click="sairUsuario()" class="w-full bg-gray-100 text-gray-700 font-bold py-2.5 rounded-full mt-2 text-[13px]">Sair</button>
-      </div>
-    </div>
-  </div>
+  <!-- BOTÃO FLUTUANTE WHATSAPP -->
+  <button @click="abrirWhatsAppChat()" class="pulse-ring fixed bottom-[92px] right-[calc(50%-215px+16px)] sm:right-6 z-40 w-[60px] h-[60px] bg-[#25D366] rounded-full shadow-2xl flex flex-col items-center justify-center text-white border-4 border-white" aria-label="Falar no WhatsApp">
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="white"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5.1-1.3A10 10 0 1 0 12 2zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.6-6.1c-.3-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1-.2.3-.7.8-.9 1-.1.2-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4 0-.6.1-.8l.4-.5c.1-.2.1-.3 0-.5l-.8-1.9c-.2-.5-.4-.4-.6-.4h-.5c-.2 0-.5.1-.7.3-.2.3-.9.9-.9 2.2s.9 2.5 1.1 2.7c.1.2 1.9 2.9 4.6 4 .6.3 1.1.4 1.5.6.6.2 1.2.2 1.6.1.5-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.2-1.2-.1-.1-.2-.2-.5-.3z"/></svg>
+    <span class="text-[8px] font-extrabold leading-none mt-0.5">WHATSAPP</span>
+  </button>
 </section>
 
 <!-- ================= ADMIN ================= -->
-<section x-cloak x-show="view==='admin'" class="fade bg-[#f0f2f5] min-h-full">
+<section x-show="view==='admin'" class="fade bg-[#f0f2f5] min-h-full">
   <div class="p-3 space-y-3">
-    <!-- SE NÃO ESTÁ LOGADO, PEDE LOGIN -->
-    <div x-show="!usuarioLogado" class="bg-white rounded-2xl p-5 shadow-sm text-center">
-      <p class="text-3xl">🔒</p>
-      <p class="font-extrabold text-[16px] mt-1">Faça login para ver seu painel</p>
-      <p class="text-[13px] text-gray-500 mt-1">Só o usuário logado com seu e-mail vê seus imóveis, sua foto e suas métricas.</p>
-      <button @click="view='login'" class="w-full bg-waDark text-white font-bold py-3 rounded-full mt-3">👤 Fazer Login</button>
-    </div>
-    <div x-show="usuarioLogado">
-    <!-- BOTÃO PAINEL MASTER - SÓ DONO -->
-    <button @click="view='master'" class="w-full bg-[#111b21] text-white font-bold py-3 rounded-2xl flex items-center justify-center gap-2 shadow-md">
-      <span>🔐</span> Painel Master • Só Dono • Liberar Planos e Ver Métricas <span>→</span>
-    </button>
-
     <div class="bg-white rounded-2xl p-4 shadow-sm flex gap-3">
       <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&q=80" class="w-14 h-14 rounded-full object-cover" alt="Jean Aguiar">
-      <div class="flex-1"><p class="font-extrabold">Jean Aguiar</p><p class="text-[12px] text-gray-500">jean.aguiar • chatimov.com.br/corretor/jean-aguiar</p><span :class="meuPlano==='free'?'bg-gray-100 text-gray-700':'bg-amber-100 text-amber-800'" class="inline-block mt-1 text-[11px] font-bold px-2 py-0.5 rounded-full" x-text="meuPlanoLabel()+' • '+meusImoveis('me').length+' / '+(meuPlano==='free'?'15':'∞')+' anúncios'"></span></div>
+      <div class="flex-1"><p class="font-extrabold">Jean Aguiar</p><p class="text-[12px] text-gray-500">jean.aguiar • imobchat.com.br/corretor/jean-aguiar</p><span :class="meuPlano==='free'?'bg-gray-100 text-gray-700':'bg-amber-100 text-amber-800'" class="inline-block mt-1 text-[11px] font-bold px-2 py-0.5 rounded-full" x-text="meuPlanoLabel()+' • '+meusImoveis('me').length+' / '+(meuPlano==='free'?'15':'∞')+' anúncios'"></span></div>
       <button @click="view='planos'" class="bg-waDark text-white text-[12px] font-bold px-3 py-2 rounded-full h-fit">⬆️ Upgrade</button>
     </div>
 
@@ -531,18 +368,7 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
       <input x-model="novo.titulo" placeholder="Ex: Apto 2 quartos Vila Mariana" class="w-full border rounded-xl px-3 py-2.5 text-[14px] outline-none focus:border-waGreen">
       <div class="grid grid-cols-2 gap-2"><input x-model="novo.preco" type="number" placeholder="Preço R$" class="border rounded-xl px-3 py-2.5"><input x-model="novo.bairro" placeholder="Bairro" class="border rounded-xl px-3 py-2.5"></div>
       <div class="grid grid-cols-3 gap-2"><select x-model="novo.tipo" class="border rounded-xl px-2 py-2.5 text-[13px]"><option>Venda</option><option>Aluguel</option></select><input x-model="novo.quartos" type="number" placeholder="Quartos" class="border rounded-xl px-3 py-2.5"><input x-model="novo.area" type="number" placeholder="Área m²" class="border rounded-xl px-3 py-2.5"></div>
-      <!-- FOTO DO IMÓVEL: OURO = upload arquivo / PRATA = só link -->
-      <div x-show="meuPlano==='ouro'" class="bg-amber-50 border border-amber-200 rounded-xl p-3">
-        <p class="text-[12px] font-bold text-amber-800">⭐ OURO • Upload de imagens liberado</p>
-        <label class="block bg-amber-400 text-amber-950 font-bold text-[13px] text-center py-2.5 rounded-xl cursor-pointer mt-2">📸 Enviar foto do celular / computador <input type="file" accept="image/*" multiple @change="onFotoImovelChange($event)" class="hidden"></label>
-        <p class="text-[11px] text-gray-500 mt-1">Ou cole um link abaixo, se preferir:</p>
-      </div>
-      <div x-show="meuPlano!=='ouro'" class="bg-slate-50 border border-slate-200 rounded-xl p-3">
-        <p class="text-[12px] font-bold text-slate-700">🔗 PRATA / FREE • Só link da imagem</p>
-        <p class="text-[11px] text-gray-500 mt-1">Cole o link da foto do imóvel. Upload direto de arquivo é só no plano OURO.</p>
-        <button @click="view='planos'" class="mt-2 bg-waDark text-white font-bold px-3 py-1.5 rounded-full text-[12px]">⬆️ Assinar Ouro para liberar upload</button>
-      </div>
-      <input x-model="novo.foto" placeholder="Foto (link) — ex: https://pub.../foto.jpg" class="w-full border rounded-xl px-3 py-2.5 text-[13px]">
+      <input x-model="novo.foto" placeholder="Foto (URL R2) — ex: https://pub.../foto.jpg" class="w-full border rounded-xl px-3 py-2.5 text-[13px]">
       <img x-show="novo.foto" :src="novo.foto" class="w-full h-36 object-cover rounded-xl">
       <textarea x-model="novo.descricao" placeholder="Descrição completa do imóvel..." rows="3" class="w-full border rounded-xl px-3 py-2.5 text-[14px]"></textarea>
       <button @click="publicarImovel()" class="w-full bg-waGreen text-white font-bold py-3 rounded-full">🚀 Publicar anúncio (FIFO)</button>
@@ -571,24 +397,7 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
       <div class="bg-white rounded-2xl p-4 shadow-sm relative overflow-hidden">
         <div x-show="meuPlano==='free'" class="absolute inset-0 z-10 bg-white/70 backdrop-blur-[1px] flex flex-col items-center justify-center text-center p-4"><p class="text-2xl">🔒</p><p class="font-bold">Capa bloqueada no Free</p><p class="text-[12px] text-gray-600 mt-1">Assine Prata ou Ouro para ter capa personalizada, links extras e botão de WhatsApp no perfil.</p><button @click="view='planos'" class="mt-2 bg-waDark text-white font-bold px-4 py-2 rounded-full text-[13px]">Desbloquear com Prata • R$ 29,90</button></div>
         <p class="font-bold">🖼️ Perfil & Capa <span x-show="meuPlano!=='free'" class="text-[11px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">DESBLOQUEADO</span></p>
-        <label class="text-[12px] font-semibold mt-3 block">📸 Foto de perfil</label>
-        <div class="flex items-center gap-3 mt-1">
-          <img :src="usuarioFoto || perfilForm.foto" class="w-16 h-16 rounded-full object-cover border-2 border-emerald-100 shrink-0">
-          <div class="flex-1">
-            <!-- OURO: pode enviar arquivo do celular / computador -->
-            <div x-show="meuPlano==='ouro'">
-              <label class="block bg-amber-400 text-amber-950 font-bold text-[12px] text-center py-2.5 rounded-xl cursor-pointer">⭐ OURO • Enviar foto do celular <input type="file" accept="image/*" @change="onFotoPerfilChange($event)" class="hidden"></label>
-              <p class="text-[11px] text-gray-500 mt-1">Ou cole um link abaixo:</p>
-            </div>
-            <!-- PRATA / FREE: só link da imagem -->
-            <div x-show="meuPlano!=='ouro'">
-              <p class="text-[11px] bg-slate-100 text-slate-700 font-bold px-2.5 py-1.5 rounded-lg">🔗 PRATA / FREE • Só link da imagem • Upload direto só no OURO</p>
-              <p class="text-[11px] text-gray-500 mt-1">Cole o link da sua foto. Para enviar arquivo direto, assine Ouro.</p>
-            </div>
-          </div>
-        </div>
-        <input x-model="perfilForm.foto" placeholder="Link da foto — ex: https://.../foto.jpg" class="w-full border rounded-xl px-3 py-2.5 mt-2 text-[13px]">
-        <button @click="salvarFotoPerfil()" class="w-full bg-waGreen text-white font-bold py-2.5 rounded-full mt-2 text-[13px]">💾 Salvar foto de perfil</button>
+        <label class="text-[12px] font-semibold mt-3 block">Foto de perfil (circular — todos os planos)</label><input x-model="perfilForm.foto" class="w-full border rounded-xl px-3 py-2.5 mt-1 text-[13px]">
         <label class="text-[12px] font-semibold mt-3 block">Bio / Descrição</label><textarea x-model="perfilForm.bio" rows="3" class="w-full border rounded-xl px-3 py-2.5 mt-1 text-[14px]"></textarea>
         <label class="text-[12px] font-semibold mt-3 block">Capa do perfil (Prata/Ouro)</label><input x-model="perfilForm.capa" :disabled="meuPlano==='free'" class="w-full border rounded-xl px-3 py-2.5 mt-1 text-[13px] disabled:bg-gray-100">
         <img x-show="perfilForm.capa" :src="perfilForm.capa" class="w-full h-32 object-cover rounded-xl mt-2">
@@ -616,138 +425,16 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
       <div x-show="meuPlano!=='free'" class="space-y-3">
         <div class="grid grid-cols-3 gap-2"><div class="bg-white rounded-2xl p-3 text-center shadow-sm"><p class="text-[11px] text-gray-500">Visualizações</p><p class="font-extrabold text-[18px]">1.284</p><p class="text-[10px] text-emerald-600 font-bold">▲ 18% esta semana</p></div><div class="bg-white rounded-2xl p-3 text-center shadow-sm"><p class="text-[11px] text-gray-500">Cliques WhatsApp</p><p class="font-extrabold text-[18px]">342</p><p class="text-[10px] text-emerald-600 font-bold">▲ 12%</p></div><div class="bg-white rounded-2xl p-3 text-center shadow-sm"><p class="text-[11px] text-gray-500">Conversões</p><p class="font-extrabold text-[18px]">47</p><p class="text-[10px] text-gray-500">3,6% conv.</p></div></div>
         <div class="bg-white rounded-2xl p-4 shadow-sm"><p class="font-bold text-[14px] mb-3">Origem do tráfego</p>
-          <template x-for="o in [{l:'WhatsApp',v:42},{l:'Google / SEO',v:31},{l:'Instagram',v:18},{l:'Direto / ChatImov',v:9}]" :key="o.l"><div class="mb-2"><div class="flex justify-between text-[12px] font-semibold"><span x-text="o.l"></span><span x-text="o.v+'%'"></span></div><div class="h-2 bg-gray-100 rounded-full mt-1"><div class="h-2 bg-waGreen rounded-full" :style="'width:'+o.v+'%'"></div></div></div></template>
+          <template x-for="o in [{l:'WhatsApp',v:42},{l:'Google / SEO',v:31},{l:'Instagram',v:18},{l:'Direto / ImobChat',v:9}]" :key="o.l"><div class="mb-2"><div class="flex justify-between text-[12px] font-semibold"><span x-text="o.l"></span><span x-text="o.v+'%'"></span></div><div class="h-2 bg-gray-100 rounded-full mt-1"><div class="h-2 bg-waGreen rounded-full" :style="'width:'+o.v+'%'"></div></div></div></template>
         </div>
         <div class="bg-white rounded-2xl p-4 shadow-sm"><p class="font-bold text-[14px] mb-2">Top imóveis por cliques</p><template x-for="im in meusImoveis('me').slice(0,3)" :key="im.id"><div class="flex items-center gap-2 py-1.5 border-b last:border-0"><img :src="im.foto" class="w-10 h-10 rounded-lg object-cover"><p class="flex-1 text-[12.5px] font-semibold truncate" x-text="im.titulo"></p><span class="text-[12px] font-bold text-waGreen">128 cliques</span></div></template></div>
       </div>
-    </div>
-    </div>
-  </div>
-</section>
-
-<!-- ================= PAINEL MASTER - SÓ DONO COM E-MAIL ================= -->
-<section x-cloak x-show="view==='master'" class="fade bg-[#f0f2f5] min-h-full">
-  <div class="p-3 space-y-3">
-
-    <!-- LOGIN / CADASTRO DO DONO -->
-    <div x-show="!masterLogado" class="bg-white rounded-2xl p-5 shadow-sm">
-      <p class="text-3xl text-center">🔐</p>
-      <p class="font-extrabold text-[17px] text-center mt-1">Painel Master • Só o Dono</p>
-      <p class="text-[13px] text-gray-500 text-center mt-1">Só quem entrar com o e-mail do dono tem acesso. Outra pessoa vê <b>Acesso negado</b>.</p>
-
-      <!-- Se ainda não tem e-mail de dono cadastrado, cadastra agora -->
-      <div x-show="!adminEmailDono" class="mt-4 bg-amber-50 border border-amber-200 rounded-xl p-3">
-        <p class="font-bold text-[13px]">Primeiro acesso — cadastre seu e-mail de dono:</p>
-        <p class="text-[12px] text-gray-600 mt-1">Digite seu e-mail e crie uma senha. Depois disso, só esse e-mail entra aqui.</p>
-      </div>
-
-      <label class="text-[12px] font-bold mt-4 block">Seu e-mail de dono</label>
-      <input x-model="masterEmailInput" type="email" placeholder="Ex: seuemail@gmail.com" class="w-full border rounded-xl px-3 py-3 mt-1 text-[14px] outline-none focus:border-waGreen">
-      <label class="text-[12px] font-bold mt-3 block">Senha do painel master</label>
-      <input x-model="masterSenhaInput" type="password" placeholder="Crie uma senha forte" class="w-full border rounded-xl px-3 py-3 mt-1 text-[14px] outline-none focus:border-waGreen">
-
-      <p x-show="masterErro" class="text-[13px] font-bold text-red-600 bg-red-50 rounded-xl p-2.5 mt-3" x-text="masterErro"></p>
-
-      <button x-show="!adminEmailDono" @click="cadastrarEmailDono()" class="w-full bg-waDark text-white font-bold py-3 rounded-full mt-4">✅ Cadastrar meu e-mail e entrar</button>
-      <button x-show="adminEmailDono" @click="entrarMaster()" class="w-full bg-waDark text-white font-bold py-3 rounded-full mt-4">🔐 Entrar no Painel Master</button>
-      <p x-show="adminEmailDono" class="text-[12px] text-gray-500 text-center mt-2">✅ Conta do dono já cadastrada neste celular.</p>
-      <button @click="view='admin'" class="w-full bg-gray-100 text-gray-700 font-bold py-2.5 rounded-full mt-2 text-[13px]">← Voltar para Painel do Anunciante</button>
-    </div>
-
-    <!-- PAINEL MASTER LOGADO -->
-    <div x-show="masterLogado" class="space-y-3">
-      <div class="bg-[#111b21] text-white rounded-2xl p-4 flex items-center gap-3">
-        <span class="text-3xl">👑</span>
-        <div class="flex-1 min-w-0"><p class="font-extrabold">Painel Master • Dono</p><p class="text-[12px] text-white/70">Conta do dono • Acesso privado</p></div>
-        <button @click="sairMaster()" class="bg-white/15 px-3 py-2 rounded-full text-[12px] font-bold">Sair</button>
-      </div>
-
-      <!-- MÉTRICAS RÁPIDAS -->
-      <div class="grid grid-cols-3 gap-2">
-        <div class="bg-white rounded-2xl p-3 text-center shadow-sm"><p class="text-[11px] text-gray-500">Usuários</p><p class="font-extrabold text-[18px]" x-text="anunciantes.length"></p><p class="text-[10px] text-gray-400">corretores</p></div>
-        <div class="bg-white rounded-2xl p-3 text-center shadow-sm"><p class="text-[11px] text-gray-500">Imóveis</p><p class="font-extrabold text-[18px]" x-text="imoveis.length"></p><p class="text-[10px] text-gray-400">anúncios</p></div>
-        <div class="bg-white rounded-2xl p-3 text-center shadow-sm"><p class="text-[11px] text-gray-500">Pagos</p><p class="font-extrabold text-[18px]" x-text="anunciantes.filter(a=>a.plano!=='free').length"></p><p class="text-[10px] text-emerald-600 font-bold">Prata+Ouro</p></div>
-      </div>
-      <div class="bg-white rounded-2xl p-4 shadow-sm flex justify-between items-center"><div><p class="text-[12px] text-gray-500">Receita estimada / mês</p><p class="font-extrabold text-[18px]" x-text="'R$ ' + (anunciantes.filter(a=>a.plano==='prata').length*29.90 + anunciantes.filter(a=>a.plano==='ouro').length*89.90).toFixed(2).replace('.',',')"></p></div><span class="bg-emerald-100 text-emerald-700 px-2.5 py-1 rounded-full text-[11px] font-bold">💰 Mercado Pago</span></div>
-
-      <!-- ABAS MASTER -->
-      <div class="flex gap-2 overflow-x-auto">
-        <template x-for="ab in [{id:'usuarios',label:'👥 Usuários'},{id:'planos',label:'⭐ Liberar Planos'},{id:'metricas',label:'📊 Métricas'},{id:'pagamentos',label:'💳 Pagamentos'}]" :key="ab.id">
-          <button @click="masterAba=ab.id" :class="masterAba===ab.id?'bg-waDark text-white':'bg-white'" class="shrink-0 px-3.5 py-2 rounded-full text-[13px] font-semibold shadow-sm" x-text="ab.label"></button>
-        </template>
-      </div>
-
-      <!-- ABA USUÁRIOS / LIBERAR PLANOS -->
-      <div x-show="masterAba==='usuarios' || masterAba==='planos'" class="space-y-2">
-        <p class="text-[12px] text-gray-500 px-1">Toque em um usuário para liberar o plano. Só você pode fazer isso.</p>
-        <template x-for="u in anunciantes" :key="u.id">
-          <div class="bg-white rounded-2xl p-3 shadow-sm flex gap-3 items-center">
-            <img :src="u.foto" class="w-12 h-12 rounded-full object-cover shrink-0">
-            <div class="flex-1 min-w-0"><p class="font-bold text-[14px] truncate" x-text="u.nome"></p><p class="text-[11px] text-gray-500 truncate" x-text="'@'+u.slug+' • '+u.whatsapp"></p><span class="inline-block mt-1 text-[11px] font-bold px-2 py-0.5 rounded-full" :class="u.plano==='ouro'?'bg-amber-100 text-amber-800':u.plano==='prata'?'bg-slate-200 text-slate-800':'bg-gray-100 text-gray-700'" x-text="'Plano atual: ' + u.plano.toUpperCase()"></span></div>
-            <div class="flex flex-col gap-1.5 shrink-0">
-              <button @click="liberarPlanoMaster(u, 'prata')" class="bg-slate-800 text-white text-[11px] font-bold px-3 py-1.5 rounded-full">Liberar Prata</button>
-              <button @click="liberarPlanoMaster(u, 'ouro')" class="bg-amber-400 text-amber-950 text-[11px] font-bold px-3 py-1.5 rounded-full">Liberar Ouro</button>
-              <button @click="liberarPlanoMaster(u, 'free')" class="bg-gray-100 text-gray-700 text-[11px] font-bold px-3 py-1.5 rounded-full">Voltar Free</button>
-            </div>
-          </div>
-        </template>
-        <p x-show="masterMsg" class="bg-emerald-50 text-emerald-800 text-[13px] font-bold rounded-xl p-3 text-center" x-text="masterMsg"></p>
-      </div>
-
-      <!-- ABA CONTROLES - SÓ DONO: Incluir/Excluir usuário -->
-      <div x-show="masterAba==='controles'" class="space-y-3">
-        <!-- Card do botão flutuante removido - botão flutuante foi tirado a pedido do dono -->
-          <button @click="incluirUsuario()" class="w-full bg-waDark text-white font-bold py-3 rounded-full mt-3">➕ Incluir usuário</button>
-          <p x-show="masterMsg" class="bg-emerald-50 text-emerald-800 text-[13px] font-bold rounded-xl p-3 text-center mt-3" x-text="masterMsg"></p>
-        </div>
-        <div class="space-y-2">
-          <p class="text-[12px] text-gray-500 px-1 font-bold">👥 Todos os usuários — controle um por um:</p>
-          <template x-for="u in anunciantes" :key="u.id">
-            <div class="bg-white rounded-2xl p-3 shadow-sm" :class="u.excluido ? 'opacity-60 border-2 border-red-200' : ''">
-              <div class="flex gap-3 items-center">
-                <img :src="u.foto" class="w-12 h-12 rounded-full object-cover shrink-0">
-                <div class="flex-1 min-w-0">
-                  <p class="font-bold text-[14px] truncate" x-text="u.nome"></p>
-                  <p class="text-[11px] text-gray-500 truncate" x-text="'@'+u.slug+' • '+u.whatsapp"></p>
-                  <span class="inline-block mt-1 text-[11px] font-bold px-2 py-0.5 rounded-full" :class="u.excluido ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700'" x-text="u.excluido ? '⛔ EXCLUÍDO / BLOQUEADO' : '✅ ATIVO'"></span>
-                </div>
-              </div>
-              <button @click="alternarUsuarioAtivo(u)" :class="u.excluido ? 'bg-emerald-500 text-white' : 'bg-red-500 text-white'" class="w-full mt-3 font-bold text-[13px] py-2.5 rounded-full" x-text="u.excluido ? '✅ Incluir de novo' : '⛔ Excluir usuário'"></button>
-              <button @click="excluirUsuarioDefinitivo(u)" class="w-full mt-2 bg-red-50 text-red-600 font-bold text-[12px] py-2 rounded-full">🗑️ Excluir definitivo (apaga da lista)</button>
-            </div>
-          </template>
-        </div>
-      </div>
-        <!-- ABA MÉTRICAS -->
-      <div x-show="masterAba==='metricas'" class="space-y-3">
-        <div class="bg-white rounded-2xl p-4 shadow-sm"><p class="font-bold text-[14px]">📊 Métricas gerais</p>
-          <div class="mt-3 space-y-2">
-            <div class="flex justify-between text-[13px]"><span>Usuários cadastrados</span><b x-text="anunciantes.length"></b></div>
-            <div class="flex justify-between text-[13px]"><span>Anúncios ativos</span><b x-text="imoveis.length"></b></div>
-            <div class="flex justify-between text-[13px]"><span>Plano Free</span><b x-text="anunciantes.filter(a=>a.plano==='free').length"></b></div>
-            <div class="flex justify-between text-[13px]"><span>Plano Prata • R$ 29,90</span><b x-text="anunciantes.filter(a=>a.plano==='prata').length"></b></div>
-            <div class="flex justify-between text-[13px]"><span>Plano Ouro • R$ 89,90</span><b x-text="anunciantes.filter(a=>a.plano==='ouro').length"></b></div>
-          </div>
-        </div>
-        <div class="bg-white rounded-2xl p-4 shadow-sm"><p class="font-bold text-[14px]">Top imóveis por corretor</p><template x-for="im in imoveis.slice(0,5)" :key="im.id"><div class="flex items-center gap-2 py-2 border-b last:border-0"><img :src="im.foto" class="w-10 h-10 rounded-lg object-cover"><p class="flex-1 text-[12.5px] font-semibold truncate" x-text="im.titulo"></p><span class="text-[12px] font-bold text-waGreen" x-text="formatPreco(im.preco)"></span></div></template></div>
-      </div>
-
-      <!-- ABA PAGAMENTOS -->
-      <div x-show="masterAba==='pagamentos'" class="bg-white rounded-2xl p-4 shadow-sm">
-        <p class="font-bold text-[14px]">💳 Pagamentos • Mercado Pago</p>
-        <p class="text-[12px] text-gray-500 mt-1">Quem pagou, o plano liberado é atualizado sozinho pelo webhook. Você também pode liberar na mão na aba Usuários.</p>
-        <template x-for="u in anunciantes.filter(a=>a.plano!=='free')" :key="u.id">
-          <div class="flex justify-between items-center py-2.5 border-b last:border-0"><div><p class="font-bold text-[13px]" x-text="u.nome"></p><p class="text-[11px] text-gray-500" x-text="u.plano==='ouro' ? 'Ouro • R$ 89,90/mês' : 'Prata • R$ 29,90/mês'"></p></div><span class="bg-emerald-100 text-emerald-700 px-2.5 py-1 rounded-full text-[11px] font-bold">✅ Pago</span></div>
-        </template>
-        <p x-show="anunciantes.filter(a=>a.plano!=='free').length===0" class="text-[13px] text-gray-500 mt-2 text-center">Nenhum pagamento ainda. Libere um plano na aba Usuários para testar.</p>
-      </div>
-
     </div>
   </div>
 </section>
 
 <!-- ================= PLANOS ================= -->
-<section x-cloak x-show="view==='planos'" class="fade p-3 space-y-3 bg-[#f0f2f5] min-h-full">
+<section x-show="view==='planos'" class="fade p-3 space-y-3 bg-[#f0f2f5] min-h-full">
   <div class="bg-white rounded-2xl p-4 shadow-sm text-center"><p class="font-extrabold text-[17px]">Escolha seu plano 🚀</p><p class="text-[13px] text-gray-500 mt-1">Cancele quando quiser • Pagamento seguro via Mercado Pago • Ativação automática por webhook</p><p class="text-[12px] mt-2">Plano atual: <span class="font-bold" x-text="meuPlanoLabel()"></span></p></div>
 
   <div class="bg-white rounded-2xl p-4 shadow-sm border-2" :class="meuPlano==='free'?'border-waGreen':'border-gray-100'">
@@ -772,7 +459,7 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
 </section>
 
 <!-- ================= CHECKOUT MERCADO PAGO ================= -->
-<section x-cloak x-show="view==='checkout'" class="fade p-3 bg-[#f0f2f5] min-h-full">
+<section x-show="view==='checkout'" class="fade p-3 bg-[#f0f2f5] min-h-full">
   <div class="bg-white rounded-2xl p-4 shadow-sm">
     <div class="flex items-center gap-2"><div class="w-10 h-10 bg-[#009EE3] rounded-xl flex items-center justify-center text-white font-extrabold text-[13px]">MP</div><div><p class="font-extrabold">Mercado Pago</p><p class="text-[11px] text-gray-500">Checkout seguro • Ambiente simulado para demo</p></div><span class="ml-auto bg-emerald-50 text-emerald-700 text-[11px] font-bold px-2 py-1 rounded-full">🔒 SSL</span></div>
     <div class="bg-gray-50 rounded-xl p-3 mt-4 flex justify-between"><span class="font-semibold text-[14px]">Plano <span x-text="checkoutPlano.toUpperCase()"></span> • Mensal</span><span class="font-extrabold" x-text="checkoutPlano==='prata'?'R$ 29,90':'R$ 89,90'"></span></div>
@@ -781,7 +468,7 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
       <button @click="metodo='pix'" :class="metodo==='pix'?'border-waGreen bg-emerald-50':'border-gray-200'" class="border-2 rounded-xl py-3 font-bold text-[14px]">📱 Pix<br><span class="text-[11px] font-normal text-gray-500">Aprovação instantânea</span></button>
       <button @click="metodo='cartao'" :class="metodo==='cartao'?'border-waGreen bg-emerald-50':'border-gray-200'" class="border-2 rounded-xl py-3 font-bold text-[14px]">💳 Cartão<br><span class="text-[11px] font-normal text-gray-500">Crédito / Débito</span></button>
     </div>
-    <div x-show="metodo==='pix'" class="mt-3 bg-white border rounded-xl p-3 text-center"><div class="w-32 h-32 mx-auto bg-gray-900 rounded-lg flex items-center justify-center text-white text-[10px] text-center p-2">QR CODE PIX<br>Mercado Pago<br><span x-text="checkoutPlano"></span></div><p class="text-[12px] text-gray-500 mt-2">Escaneie no app do seu banco ou copie o código abaixo</p><p class="text-[11px] bg-gray-100 rounded-lg p-2 mt-1 break-all">00020126...MP-CHATIMOV-<span x-text="checkoutPlano"></span>-PIX</p></div>
+    <div x-show="metodo==='pix'" class="mt-3 bg-white border rounded-xl p-3 text-center"><div class="w-32 h-32 mx-auto bg-gray-900 rounded-lg flex items-center justify-center text-white text-[10px] text-center p-2">QR CODE PIX<br>Mercado Pago<br><span x-text="checkoutPlano"></span></div><p class="text-[12px] text-gray-500 mt-2">Escaneie no app do seu banco ou copie o código abaixo</p><p class="text-[11px] bg-gray-100 rounded-lg p-2 mt-1 break-all">00020126...MP-IMOBCHAT-<span x-text="checkoutPlano"></span>-PIX</p></div>
     <div x-show="metodo==='cartao'" class="mt-3 space-y-2"><input placeholder="Número do cartão • 4111 1111 1111 1111" class="w-full border rounded-xl px-3 py-2.5"><div class="grid grid-cols-2 gap-2"><input placeholder="Validade MM/AA" class="border rounded-xl px-3 py-2.5"><input placeholder="CVV" class="border rounded-xl px-3 py-2.5"></div><input placeholder="Nome no cartão" class="w-full border rounded-xl px-3 py-2.5"></div>
     <button @click="confirmarPagamento()" :disabled="pagando" class="w-full mt-4 bg-[#009EE3] text-white font-extrabold py-3.5 rounded-full disabled:opacity-60"><span x-show="!pagando">Pagar <span x-text="checkoutPlano==='prata'?'R$ 29,90':'R$ 89,90'"></span> com Mercado Pago</span><span x-show="pagando">Processando pagamento... ⏳</span></button>
     <p class="text-[11px] text-gray-400 text-center mt-2">Demo: ao confirmar, simulamos o webhook do Mercado Pago → D1 atualiza o plano.</p>
@@ -791,79 +478,25 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
 
 </main>
 
-
-<!-- ÁUDIO DO TOQUE - arquivo que o Jean mandou, toca quando chama -->
-<audio id="toqueChamadaAudio" src="toque-chamada.oga" loop preload="auto" style="display:none"></audio>
-<!-- ================= MODAL DE CHAMADA - SIMPLES COMO ANTES ================= -->
-<!-- Só foto/nome, vídeo se for vídeo, e 3 botões embaixo. Sem card de música, sem copiar link, sem card de sala. -->
-<div x-show="chamadaAtiva" x-cloak class="absolute inset-0 z-[100] bg-[#0b141a] flex flex-col text-white">
-  <div class="shrink-0 flex items-center justify-between px-4 py-3">
-    <div class="flex items-center gap-3">
-      <img :src="anuncianteDo(imovelAtual)?.foto" class="w-11 h-11 rounded-full object-cover border-2 border-white/30">
-      <div><p class="font-bold leading-tight" x-text="anuncianteDo(imovelAtual)?.nome"></p><p class="text-[12px] text-emerald-300" x-text="chamadaStatus + ' • ' + tempoChamada"></p></div>
-    </div>
-    <span class="px-2.5 py-1 rounded-full text-[11px] font-bold" :class="tipoChamada==='video' ? 'bg-[#2563EB]' : 'bg-[#25D366]'" x-text="tipoChamada==='video' ? '📹 VÍDEO' : '📞 ÁUDIO'"></span>
-  </div>
-  <!-- Vídeo: só o vídeo, sem cards. Áudio: só foto grande no centro. -->
-  <div class="flex-1 min-h-0 flex flex-col items-center justify-center px-4 relative overflow-hidden">
-    <template x-if="tipoChamada==='video'">
-      <div class="relative w-full max-w-[380px] flex-1 min-h-0 bg-black rounded-3xl overflow-hidden my-2">
-        <video id="remoteVideo" autoplay playsinline class="absolute inset-0 w-full h-full object-cover bg-black"></video>
-        <video id="localVideo" autoplay muted playsinline class="absolute bottom-3 right-3 w-[110px] h-[150px] object-cover rounded-2xl border-2 border-white shadow-lg bg-gray-800 z-10"></video>
-      </div>
-    </template>
-    <template x-if="tipoChamada!=='video'">
-      <div class="flex flex-col items-center">
-        <img :src="anuncianteDo(imovelAtual)?.foto" class="w-28 h-28 rounded-full object-cover border-4 border-white/20">
-        <p class="font-bold text-[18px] mt-4" x-text="anuncianteDo(imovelAtual)?.nome"></p>
-        <p class="text-[13px] text-white/70 mt-1" x-text="chamadaStatus"></p>
-        <p class="text-[13px] text-white/70" x-text="tempoChamada"></p>
-        <!-- Vídeo escondido para manter o áudio funcionando, mas sem aparecer -->
-        <video id="remoteVideo" autoplay playsinline class="hidden"></video>
-        <video id="localVideo" autoplay muted playsinline class="hidden"></video>
-      </div>
-    </template>
-  </div>
-  <!-- Controles simples: Microfone • Câmera • Encerrar. Sem WhatsApp, sem copiar link, sem música aqui. -->
-  <div class="shrink-0 px-6 pt-2 pb-4 grid grid-cols-3 gap-3 max-w-[360px] w-full mx-auto" style="padding-bottom:calc(16px + env(safe-area-inset-bottom))">
-    <button @click="toggleMute()" :class="mutado ? 'bg-white text-black' : 'bg-white/15'" class="h-[56px] rounded-full flex flex-col items-center justify-center text-[18px]"><span x-text="mutado ? '🔇' : '🎙️'"></span><span class="text-[10px] font-bold mt-0.5">Microfone</span></button>
-    <button @click="toggleCamera()" :class="!cameraLigada ? 'bg-white text-black' : 'bg-white/15'" class="h-[56px] rounded-full flex flex-col items-center justify-center text-[18px]"><span x-text="cameraLigada ? '📹' : '🚫📹'"></span><span class="text-[10px] font-bold mt-0.5">Câmera</span></button>
-    <button @click="encerrarChamada()" class="h-[56px] rounded-full bg-red-500 flex flex-col items-center justify-center text-[18px] shadow-lg shadow-red-500/40"><span>📞</span><span class="text-[10px] font-bold mt-0.5">Encerrar</span></button>
-  </div>
-</div>
-
 <!-- ============ BOTTOM NAV ============ -->
-<nav class="shrink-0 bg-white border-t border-gray-100 flex justify-around py-2 px-2 z-30" style="padding-bottom:calc(8px + env(safe-area-inset-bottom))">
+<nav class="absolute bottom-0 left-0 right-0 bg-white border-t border-gray-100 flex justify-around py-2 px-2 z-30" style="padding-bottom:calc(8px + env(safe-area-inset-bottom))">
   <button @click="view='home'" class="flex flex-col items-center gap-0.5 flex-1"><span class="text-[20px]">🏠</span><span :class="view==='home'?'text-waGreen font-bold':'text-gray-400'" class="text-[10px]">Início</span></button>
   <button @click="view='home'; busca=''; $nextTick(()=>document.querySelector('input[placeholder*=\'Buscar\']')?.focus())" class="flex flex-col items-center gap-0.5 flex-1"><span class="text-[20px]">🔍</span><span class="text-[10px] text-gray-400">Buscar</span></button>
-  <button @click="view='admin'; abaAdmin='novo'" class="flex flex-col items-center flex-1"><span class="w-12 h-12 bg-waGreen text-white rounded-full flex items-center justify-center text-[22px] shadow-lg border-4 border-white">+</span><span class="text-[10px] text-gray-500 font-semibold">Anunciar</span></button>
+  <button @click="view='admin'; abaAdmin='novo'" class="flex flex-col items-center -mt-6 flex-1"><span class="w-12 h-12 bg-waGreen text-white rounded-full flex items-center justify-center text-[22px] shadow-lg border-4 border-white">+</span><span class="text-[10px] text-gray-500 font-semibold">Anunciar</span></button>
   <button @click="view='planos'" class="flex flex-col items-center gap-0.5 flex-1"><span class="text-[20px]">⭐</span><span :class="view==='planos'?'text-waGreen font-bold':'text-gray-400'" class="text-[10px]">Planos</span></button>
-  <button @click="view = usuarioLogado ? 'admin' : 'login'" class="flex flex-col items-center gap-0.5 flex-1"><span class="text-[20px]">👤</span><span :class="(view==='admin'||view==='login')?'text-waGreen font-bold':'text-gray-400'" class="text-[10px]">Painel</span></button>
+  <button @click="view='admin'" class="flex flex-col items-center gap-0.5 flex-1"><span class="text-[20px]">👤</span><span :class="view==='admin'?'text-waGreen font-bold':'text-gray-400'" class="text-[10px]">Painel</span></button>
 </nav>
 
-<!-- Mancha preta (toast) removida a pedido do dono - não aparece mais -->
+<!-- Toast -->
+<div x-show="toastMsg" x-transition class="fixed bottom-[84px] left-1/2 -translate-x-1/2 z-50 bg-[#111b21] text-white text-[13px] font-semibold px-4 py-2.5 rounded-full shadow-2xl max-w-[90%] text-center" x-text="toastMsg"></div>
 
 </div>
 
 <script>
-function chatImov(){
+function imobChat(){
 return {
-view:'home', chamadaAtiva:false, salaChamada:'', linkChamada:'', visitanteId:'', promptInstalar:null, baixando:false, corretorOcupado:false, corretorOcupadoSala:null, peer:null, sinalUltimoId:0, chamadaTocando:null, _pollSinal:null, _pollPendentes:null, musicaToque:'seu-audio', _toqueCtx:null, _toqueTimer:null, _toqueOsc:null, apiBase: (localStorage.getItem('chatimov_api_url') || 'https://chatimov-api.seu-subdominio.workers.dev'), gravandoAudio:false, tempoAudio:'00:00', _audioTimer:null, _audioSeg:0, _mediaRecorder:null, _audioChunks:[], tipoChamada:'audio', chamadaStatus:'Chamando...', tempoChamada:'00:00', mutado:false, cameraLigada:true, _callTimer:null, _callStream:null, _callSeg:0, abaAdmin:'imoveis', busca:'', filtro:'', textoChat:'', digitando:false, mostrarAnexo:false, baixarAuto:true, mostrarFlutuanteWhatsApp:false, novoUsuarioNome:'', novoUsuarioWhats:'', novoUsuarioSlug:'', _arquivoRecebendo:null, _arquivoChunks:[], _arquivoRecebido:0, _salaArquivo:'',
+view:'home', abaAdmin:'imoveis', busca:'', filtro:'', textoChat:'', digitando:false,
 meuPlano:'free', botImovelId:'me-1',
-    // ===== LOGIN DO USUÁRIO (corretor) + FOTO DE PERFIL =====
-    usuarioLogado: (localStorage.getItem('chatimov_usuario_logado')==='1'),
-    usuarioEmail: (localStorage.getItem('chatimov_usuario_email') || ''),
-    nomeUsuario: (localStorage.getItem('chatimov_nome_usuario') || ''),
-    cadastroNomeUsuario:'', cadastroWhatsapp:'', cadastroDescricao:'', cadastroSite:'', cadastroFoto:'',
-    perfilWhatsapp: (localStorage.getItem('chatimov_whatsapp') || ''),
-    perfilDescricao: (localStorage.getItem('chatimov_descricao') || ''),
-    perfilSite: (localStorage.getItem('chatimov_site') || ''),
-    usuarioFoto: (localStorage.getItem('chatimov_usuario_foto') || ''),
-    loginEmail:'', loginSenha:'', loginErro:'', loginCadastro:false, loginEnviando:false,
-    // ===== PAINEL MASTER - SÓ O DONO COM O E-MAIL CADASTRADO =====
-    masterEmailInput:'', masterSenhaInput:'', masterLogado:false, masterAba:'usuarios', masterErro:'', masterMsg:'',
-    adminEmailDono: (localStorage.getItem('chatimov_admin_email') || ''),
-    masterSenhaDono: (localStorage.getItem('chatimov_admin_senha') || ''),
 checkoutPlano:'prata', metodo:'pix', pagando:false, pagamentoOk:false, toastMsg:'',
 novo:{titulo:'',preco:'',bairro:'',tipo:'Venda',quartos:2,area:60,foto:'',descricao:''},
 novaRegra:{pergunta:'',resposta:''},
@@ -906,16 +539,6 @@ formatPreco(v){return v>=10000?'R$ '+v.toLocaleString('pt-BR'):'R$ '+v.toLocaleS
 voltar(){if(this.view==='chat'&&this.anuncianteAtual){this.view='perfil';return} if(this.view==='perfil'){this.view='home';return} this.view='home'; window.scrollTo(0,0)},
 abrirChat(im){
 this.imovelAtual=im; this.view='chat';
-if(!this.visitanteId){ this.visitanteId = localStorage.getItem('chatimov_visitante') || ('v-' + Math.random().toString(36).slice(2,8)); localStorage.setItem('chatimov_visitante', this.visitanteId); }
-this.verificarChamadasPendentes();
-if(window.__promptInstalar) this.promptInstalar = window.__promptInstalar;
-window.addEventListener('beforeinstallprompt', (e)=>{ e.preventDefault(); this.promptInstalar = e; });
-this.checarSeCorretorOcupado();
-setInterval(()=>{ if(this.view==='chat') this.checarSeCorretorOcupado(); }, 5000);
-// Se abriu com ?sala=xxx na URL, já mostra que tem chamada para entrar
-const params = new URLSearchParams(window.location.search);
-const salaUrl = params.get('sala');
-if(salaUrl){ this.chamadaTocando = {sala: salaUrl, tipo: 'video', de_nome: 'Quem te ligou'}; }
 let an=this.anuncianteDo(im);
 this.mensagens=[
 {id:1,de:'bot',texto:`Olá! 👋 Sou o assistente de ${an.nome}.\n\nVi que você se interessou por:\n🏠 ${im.titulo}\n💰 ${this.formatPreco(im.preco)} • 📍 ${im.bairro}\n\nPergunte aqui embaixo ou toque em uma pergunta rápida. Respondo na hora!`,hora:this.horaAgora()},
@@ -932,221 +555,7 @@ perguntar(regra){
 this.mensagens.push({id:Date.now(),de:'eu',texto:regra.pergunta,hora:this.horaAgora()});
 this.responderBot(regra.resposta);
 },
-baixarAnexoAgora(m){
-      if(!m || !m.arquivoUrl) return;
-      try{
-        const a = document.createElement('a');
-        a.href = m.arquivoUrl;
-        a.download = m.arquivoNome || 'arquivo-chatimov';
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        this.toast('⬇️ Baixado automático no celular • Não ficou no servidor');
-      }catch(e){ console.log('download auto falhou', e); }
-    },
-    aoReceberAnexo(m){
-      if(!this.baixarAuto) return;
-      this.baixarAnexoAgora(m);
-    },
-    comprimirImagem(file){
-      // Foto leve: max 1280px, JPEG 0.7 - de 2.5MB vira ~300KB, sem perder pra ver imóvel
-      return new Promise((resolve)=>{
-        const img = new Image();
-        const url = URL.createObjectURL(file);
-        img.onload = ()=>{
-          try{
-            const MAX = 1280;
-            let w = img.naturalWidth, h = img.naturalHeight;
-            if(w > MAX || h > MAX){
-              const ratio = Math.min(MAX/w, MAX/h);
-              w = Math.round(w*ratio); h = Math.round(h*ratio);
-            }
-            const c = document.createElement('canvas');
-            c.width = w; c.height = h;
-            c.getContext('2d').drawImage(img, 0, 0, w, h);
-            c.toBlob((blob)=>{
-              URL.revokeObjectURL(url);
-              if(!blob) return resolve(file);
-              const novo = new File([blob], file.name.replace(/\.(png|heic|heif)$/i,'.jpg'), {type:'image/jpeg'});
-              resolve(novo);
-            }, 'image/jpeg', 0.72);
-          }catch(e){ URL.revokeObjectURL(url); resolve(file); }
-        };
-        img.onerror = ()=>{ URL.revokeObjectURL(url); resolve(file); };
-        img.src = url;
-      });
-    },
-    comprimirVideo(file){
-      // Vídeo leve: 640px, 500kbps - de 15MB vira ~2MB, continua bom pra ver imóvel
-      return new Promise((resolve)=>{
-        // Se já é leve (<4MB), não comprime
-        if(file.size < 4*1024*1024) return resolve(file);
-        try{
-          const video = document.createElement('video');
-          video.muted = true; video.playsInline = true;
-          const url = URL.createObjectURL(file);
-          video.onloadedmetadata = ()=>{
-            try{
-              const MAXW = 640;
-              let w = video.videoWidth, h = video.videoHeight;
-              if(w > MAXW){ const r = MAXW/w; w = MAXW; h = Math.round(h*r); }
-              const canvas = document.createElement('canvas');
-              canvas.width = w; canvas.height = h;
-              const ctx = canvas.getContext('2d');
-              const stream = canvas.captureStream(24);
-              const rec = new MediaRecorder(stream, {mimeType:'video/webm;codecs=vp9', videoBitsPerSecond: 500000});
-              const chunks = [];
-              rec.ondataavailable = e=>{ if(e.data.size>0) chunks.push(e.data); };
-              rec.onstop = ()=>{
-                URL.revokeObjectURL(url);
-                if(!chunks.length) return resolve(file);
-                const blob = new Blob(chunks, {type:'video/webm'});
-                // Só usa comprimido se ficou menor
-                if(blob.size >= file.size) return resolve(file);
-                resolve(new File([blob], file.name.replace(/\.[a-z0-9]+$/i,'-leve.webm'), {type:'video/webm'}));
-              };
-              const desenhar = ()=>{ if(!video.paused && !video.ended){ ctx.drawImage(video,0,0,w,h); requestAnimationFrame(desenhar); } };
-              video.onplay = ()=>{ rec.start(250); desenhar(); };
-              video.onended = ()=>{ try{ rec.stop(); }catch(e){} };
-              video.src = url;
-              video.play().catch(()=>resolve(file));
-              // Trava de 60s
-              setTimeout(()=>{ if(rec.state!=='inactive'){ try{ rec.stop(); }catch(e){} } }, 60000);
-            }catch(e){ URL.revokeObjectURL(url); resolve(file); }
-          };
-          video.onerror = ()=>{ URL.revokeObjectURL(url); resolve(file); };
-        }catch(e){ resolve(file); }
-      });
-    },
-    async comprimirMidiaLeve(file, tipo){
-      if(tipo==='imagem') return await this.comprimirImagem(file);
-      if(tipo==='video') return await this.comprimirVideo(file);
-      return file;
-    },
-    async enviarAnexo(event, tipo){
-      let file = event.target.files[0];
-      event.target.value = '';
-      if(!file) return;
-      this.mostrarAnexo = false;
-      // ===== COMPRIME ANTES DE ENVIAR - LEVE, GASTA POUCO DADO DO CELULAR =====
-      const tamanhoAntes = file.size;
-      this.toast('📦 Deixando leve... comprimindo antes de enviar');
-      file = await this.comprimirMidiaLeve(file, tipo);
-      const leve = tamanhoAntes > file.size ? ' • Leve: ' + (tamanhoAntes/1024/1024).toFixed(1) + 'MB → ' + (file.size/1024).toFixed(0) + 'KB' : ' • Leve';
-      // Prévia local imediata - pra você ver na hora
-      const url = URL.createObjectURL(file);
-      const tam = file.size > 1024*1024 ? (file.size/1024/1024).toFixed(1)+' MB' : (file.size/1024).toFixed(0)+' KB';
-      const label = tipo==='imagem' ? '📷 Foto' : tipo==='video' ? '🎬 Vídeo' : '📄 Documento';
-      const msgEnviada = {id:Date.now(), de:'eu', texto: tipo==='doc' ? '' : label, tipo: tipo, arquivoUrl: url, arquivoNome: file.name, arquivoTamanho: tam + leve, hora: this.horaAgora(), statusEnvio:'enviando • Leve'};
-      this.mensagens.push(msgEnviada);
-      this.$nextTick(()=>{ let el=document.getElementById('chatScroll'); if(el) el.scrollTop=el.scrollHeight; });
-      // ===== ENVIO REAL P2P: vai os BYTES de celular pra celular, não só o nome. Servidor NÃO recebe o arquivo. =====
-      this.enviarArquivoP2P(file, tipo, msgEnviada);
-      // Demo: se não houver outro celular online, o bot responde texto (não é o arquivo)
-      this.responderBot(tipo==='imagem' ? 'Recebi sua foto! 📷 Vou olhar e já te respondo com mais detalhes do imóvel.' : tipo==='video' ? 'Recebi seu vídeo! 🎬 Vou assistir e te respondo já.' : 'Recebi seu documento: '+file.name+' 📄 Vou abrir e te retorno.');
-    },
-    async enviarArquivoP2P(file, tipo, msgEnviada){
-      // Se já tem canal P2P aberto (ex: durante ligação), usa ele. Senão cria um só pra arquivo.
-      try{
-        if(!this._dcArquivo || this._dcArquivo.readyState!=='open'){
-          await this.conectarP2PParaArquivo();
-        }
-        if(!this._dcArquivo || this._dcArquivo.readyState!=='open'){
-          msgEnviada.statusEnvio = 'aguardando';
-          this.toast('📎 Aguardando o outro celular entrar para enviar direto • Sem usar servidor');
-          // Tenta de novo em 3s quando o outro entrar
-          setTimeout(()=>{ this.enviarArquivoP2P(file, tipo, msgEnviada); }, 3000);
-          return;
-        }
-        // 1) Avisa o outro celular: vai chegar arquivo
-        this._dcArquivo.send(JSON.stringify({tipo:'arquivo-inicio', nome:file.name, tipoArquivo:tipo, tamanho:file.size, mime:file.type}));
-        // 2) Envia em pedaços de 16KB - vai pela internet do celular, não pelo servidor
-        const CHUNK = 16*1024;
-        let offset = 0;
-        const buf = await file.arrayBuffer();
-        while(offset < buf.byteLength){
-          // Espera o canal esvaziar um pouco pra não travar
-          while(this._dcArquivo.bufferedAmount > 256*1024){ await new Promise(r=>setTimeout(r,50)); }
-          const pedaco = buf.slice(offset, offset+CHUNK);
-          this._dcArquivo.send(pedaco);
-          offset += CHUNK;
-          const pct = Math.floor(offset/buf.byteLength*100);
-          msgEnviada.statusEnvio = pct<100 ? 'enviando '+pct+'%' : 'enviado';
-        }
-        // 3) Avisa que acabou
-        this._dcArquivo.send(JSON.stringify({tipo:'arquivo-fim', nome:file.name}));
-        msgEnviada.statusEnvio = 'enviado • Chegou no outro celular';
-        this.toast('✅ Enviado direto de celular pra celular • Gasto foi do seu celular, não do servidor');
-      }catch(e){ console.log('P2P arquivo falhou', e); msgEnviada.statusEnvio='erro'; this.toast('⚠️ Outro celular ainda não entrou. Deixa o chat aberto que envia direto quando ele entrar.'); }
-    },
-    async conectarP2PParaArquivo(){
-      // Cria sala única só pra esse arquivo - servidor só passa o endereço, não o arquivo
-      try{
-        if(!this.visitanteId){ this.visitanteId = localStorage.getItem('chatimov_visitante') || ('v-' + Math.random().toString(36).slice(2,8)); localStorage.setItem('chatimov_visitante', this.visitanteId); }
-        const an = this.anuncianteDo(this.imovelAtual);
-        const codigo = Math.random().toString(36).slice(2,6);
-        const sala = 'arq-' + this.imovelAtual.id + '-' + (an?.id || '0') + '-' + codigo;
-        this._salaArquivo = sala;
-        this.salaChamada = sala;
-        // Avisa o servidor só que tem arquivo pra enviar - NÃO manda o arquivo pro servidor
-        try{ await fetch(this.apiBase + '/api/salas', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({sala, imovel_id:this.imovelAtual.id, anunciante_id:an?.id||null, de_id:this.visitanteId, de_nome:'Visitante', tipo:'arquivo'})}); }catch(e){}
-        const pc = new RTCPeerConnection({iceServers:[{urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun1.l.google.com:19302'}]});
-        this.peer = pc;
-        this._dcArquivo = pc.createDataChannel('arquivos');
-        this._dcArquivo.binaryType = 'arraybuffer';
-        this._dcArquivo.onopen = ()=>{ console.log('canal arquivo P2P aberto'); };
-        this._dcArquivo.onmessage = (ev)=>{ this.aoReceberDadosP2P(ev); };
-        pc.ondatachannel = (ev)=>{ this._dcArquivo = ev.channel; this._dcArquivo.binaryType='arraybuffer'; this._dcArquivo.onmessage = (e2)=>{ this.aoReceberDadosP2P(e2); }; };
-        pc.onicecandidate = (e)=>{ if(e.candidate) this.enviarSinal('ice', e.candidate); };
-        const offer = await pc.createOffer();
-        await pc.setLocalDescription(offer);
-        await this.enviarSinal('offer', offer);
-        this.pollSinal();
-        // Espera 1.5s pro outro lado responder
-        await new Promise(r=>setTimeout(r,1500));
-      }catch(e){ console.log('conectar P2P arquivo falhou', e); }
-    },
-    aoReceberDadosP2P(ev){
-      // ===== CHEGADA REAL: bytes vieram direto do outro celular, sem passar pelo servidor =====
-      try{
-        if(typeof ev.data === 'string'){
-          const d = JSON.parse(ev.data);
-          if(d.tipo==='arquivo-inicio'){
-            this._arquivoRecebendo = {nome:d.nome, tipoArquivo:d.tipoArquivo, tamanho:d.tamanho, mime:d.mime};
-            this._arquivoChunks = [];
-            this._arquivoRecebido = 0;
-            this.toast('📎 Recebendo '+d.nome+' direto do celular do outro...');
-            return;
-          }
-          if(d.tipo==='arquivo-fim' && this._arquivoRecebendo){
-            this.finalizarArquivoRecebido();
-            return;
-          }
-          if(d.tipo && d.nome && !d.tipo.startsWith('arquivo')){ this.toast('📎 Recebido: '+d.nome); return; }
-          return;
-        }
-        // É pedaço do arquivo (ArrayBuffer)
-        if(this._arquivoRecebendo){
-          this._arquivoChunks.push(ev.data);
-          this._arquivoRecebido += ev.data.byteLength;
-        }
-      }catch(e){ console.log('receber P2P falhou', e); }
-    },
-    finalizarArquivoRecebido(){
-      const info = this._arquivoRecebendo;
-      if(!info) return;
-      const blob = new Blob(this._arquivoChunks, {type: info.mime || 'application/octet-stream'});
-      const url = URL.createObjectURL(blob);
-      const tam = blob.size > 1024*1024 ? (blob.size/1024/1024).toFixed(1)+' MB' : (blob.size/1024).toFixed(0)+' KB';
-      const msg = {id:Date.now(), de:'bot', texto: info.tipoArquivo==='doc' ? '' : (info.tipoArquivo==='imagem' ? '📷 Foto' : '🎬 Vídeo'), tipo: info.tipoArquivo, arquivoUrl: url, arquivoNome: info.nome, arquivoTamanho: tam, hora: this.horaAgora()};
-      this.mensagens.push(msg);
-      this.$nextTick(()=>{ let el=document.getElementById('chatScroll'); if(el) el.scrollTop=el.scrollHeight; });
-      this._arquivoRecebendo = null; this._arquivoChunks = []; this._arquivoRecebido = 0;
-      // Baixa automático no seu celular - gasto foi do celular do outro, não do servidor
-      if(this.baixarAuto){ setTimeout(()=>{ this.baixarAnexoAgora(msg); }, 500); }
-      this.toast('✅ Recebido direto do celular do outro • Já baixou automático');
-    },
-    enviarTexto(){
+enviarTexto(){
 let t=this.textoChat.trim(); if(!t) return;
 this.mensagens.push({id:Date.now(),de:'eu',texto:t,hora:this.horaAgora()}); this.textoChat='';
 let regras=this.imovelAtual.regras;
@@ -1164,16 +573,16 @@ this.$nextTick(()=>{let el=document.getElementById('chatScroll'); if(el) el.scro
 },
 abrirWhatsAppChat(){
 let im=this.imovelAtual; let an=this.anuncianteDo(im);
-let msg=`Olá ${an.nome}! Vim pelo ChatImov e tenho interesse no imóvel:\n\n🏠 ${im.titulo}\n💰 ${this.formatPreco(im.preco)}\n📍 ${im.bairro} - ${im.cidade}\n🛏️ ${im.quartos} quartos • ${im.area}m²\n\nQuero mais informações e agendar uma visita. Pode me ajudar?`;
+let msg=`Olá ${an.nome}! Vim pelo ImobChat e tenho interesse no imóvel:\n\n🏠 ${im.titulo}\n💰 ${this.formatPreco(im.preco)}\n📍 ${im.bairro} - ${im.cidade}\n🛏️ ${im.quartos} quartos • ${im.area}m²\n\nQuero mais informações e agendar uma visita. Pode me ajudar?`;
 window.open(`https://wa.me/${an.whatsapp}?text=${encodeURIComponent(msg)}`,'_blank');
 this.registrarMetrica(im.id,'whatsapp_click');
 },
 abrirWhatsAppPerfil(an){
-let msg=`Olá ${an.nome}! Vim pelo seu catálogo no ChatImov (chatimov.com.br/corretor/${an.slug}) e quero conversar sobre seus imóveis.`;
+let msg=`Olá ${an.nome}! Vim pelo seu catálogo no ImobChat (imobchat.com.br/corretor/${an.slug}) e quero conversar sobre seus imóveis.`;
 window.open(`https://wa.me/${an.whatsapp}?text=${encodeURIComponent(msg)}`,'_blank');
 },
 compartilharPerfil(){
-let url=`https://chatimov.com.br/corretor/${this.anuncianteAtual.slug}`;
+let url=`https://imobchat.com.br/corretor/${this.anuncianteAtual.slug}`;
 if(navigator.share) navigator.share({title:this.anuncianteAtual.nome,url}).catch(()=>{});
 else {navigator.clipboard?.writeText(url); this.toast('Link copiado: '+url)}
 },
@@ -1208,449 +617,9 @@ if(this.checkoutPlano==='ouro') me.seo=this.seoForm.keywords;
 this.toast('🎉 Webhook Mercado Pago confirmado! Plano '+this.checkoutPlano.toUpperCase()+' ativo.');
 },1400);
 },
-
-    async iniciarChamada(tipo){
-       // ABRE A TELA NA HORA - antes de qualquer fetch, para nao travar
-       if(!this.visitanteId){ this.visitanteId = localStorage.getItem('chatimov_visitante') || ('v-' + Math.random().toString(36).slice(2,8)); localStorage.setItem('chatimov_visitante', this.visitanteId); }
-       const an = this.anuncianteDo(this.imovelAtual);
-       const codigo = Math.random().toString(36).slice(2,6);
-       const sala = 'call-' + this.imovelAtual.id + '-' + (an?.id || '0') + '-' + codigo;
-       this.salaChamada = sala;
-       this.linkChamada = window.location.origin + window.location.pathname + '?sala=' + sala + '&imovel=' + this.imovelAtual.id;
-       this.tipoChamada = tipo;
-       this.chamadaAtiva = true;
-       this.mutado = false;
-       this.cameraLigada = tipo==='video';
-       this._callSeg = 0; this.tempoChamada='00:00'; this.sinalUltimoId=0;
-       this.chamadaStatus = tipo==='video' ? 'Chamando por vídeo... Aguardando a outra pessoa atender' : 'Chamando por voz... Aguardando a outra pessoa atender';
-       this.iniciarToque('saida');
-       clearInterval(this._callTimer);
-       this._callTimer = setInterval(()=>{ this._callSeg++; const mm=String(Math.floor(this._callSeg/60)).padStart(2,'0'); const ss=String(this._callSeg%60).padStart(2,'0'); this.tempoChamada=mm+':'+ss; },1000);
-       // Checa ocupado EM SEGUNDO PLANO, sem travar a tela
-       try{
-         const ocupado = await this.checarSeCorretorOcupado();
-         if(ocupado){
-           this.encerrarChamada();
-           const querWhats = confirm('🔴 ' + (an?.nome || 'Corretor') + ' está em ligação agora com outra pessoa.\n\nQuer ir para o WhatsApp dela e deixar recado?');
-           if(querWhats) this.trocarParaWhatsApp();
-           return;
-         }
-       }catch(e){}
-       try{ fetch(this.apiBase + '/api/salas', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({sala, imovel_id:this.imovelAtual.id, anunciante_id:an?.id||null, de_id:this.visitanteId, de_nome:'Visitante', tipo})}).catch(()=>{}); }catch(e){}
-       try{
-         this.peer = new RTCPeerConnection({iceServers:[{urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun1.l.google.com:19302'}]});
-         const stream = await navigator.mediaDevices.getUserMedia({video: tipo==='video', audio:true});
-         this._callStream = stream;
-         stream.getTracks().forEach(tr=>this.peer.addTrack(tr, stream));
-         this.$nextTick(()=>{ const lv=document.getElementById('localVideo'); if(lv) lv.srcObject=stream; });
-         try{
-           this._dcArquivo = this.peer.createDataChannel('arquivos');
-           this._dcArquivo.binaryType = 'arraybuffer';
-           this._dcArquivo.onopen = ()=>{ console.log('canal arquivos P2P aberto'); };
-           this._dcArquivo.onmessage = (ev)=>{ this.aoReceberDadosP2P(ev); };
-         }catch(e){ console.log('sem datachannel', e); }
-         this.peer.ondatachannel = (ev)=>{ this._dcArquivo = ev.channel; this._dcArquivo.binaryType='arraybuffer'; this._dcArquivo.onmessage = (e2)=>{ this.aoReceberDadosP2P(e2); }; };
-         this.peer.ontrack = (e)=>{ this.pararToque(); const rv=document.getElementById('remoteVideo'); if(rv) rv.srcObject=e.streams[0]; this.chamadaStatus='Em chamada • Conectado'; };
-         this.peer.onicecandidate = (e)=>{ if(e.candidate) this.enviarSinal('ice', e.candidate); };
-         const offer = await this.peer.createOffer();
-         await this.peer.setLocalDescription(offer);
-         await this.enviarSinal('offer', offer);
-         this.pollSinal();
-       }catch(e){ this.chamadaStatus='Permita microfone/câmera para ligar • Toque em WhatsApp se preferir'; console.log(e); }
-       this.registrarMetrica(this.imovelAtual?.id, 'chamada_'+tipo);
-     },
-     async enviarSinal(tipo, dados){
-      try{ await fetch(this.apiBase + '/api/sinalizacao', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({sala:this.salaChamada, de_id:this.visitanteId, tipo, dados})}); }catch(e){ console.log('sinal offline', e); }
-    },
-    pollSinal(){
-      clearInterval(this._pollSinal);
-      this._pollSinal = setInterval(async ()=>{
-        if(!this.chamadaAtiva || !this.salaChamada) return;
-        try{
-          const r = await fetch(this.apiBase + '/api/sinalizacao?sala=' + encodeURIComponent(this.salaChamada) + '&depois_de=' + this.sinalUltimoId);
-          const msgs = await r.json();
-          for(const m of msgs){
-            this.sinalUltimoId = Math.max(this.sinalUltimoId, m.id);
-            if(m.de_id===this.visitanteId) continue;
-            const dados = typeof m.dados==='string' ? JSON.parse(m.dados) : m.dados;
-            if(m.tipo==='offer' && this.peer && !this.peer.currentRemoteDescription){
-              await this.peer.setRemoteDescription(new RTCSessionDescription(dados));
-              const answer = await this.peer.createAnswer();
-              await this.peer.setLocalDescription(answer);
-              await this.enviarSinal('answer', answer);
-            } else if(m.tipo==='answer' && this.peer && !this.peer.currentRemoteDescription){
-              await this.peer.setRemoteDescription(new RTCSessionDescription(dados));
-              this.chamadaStatus='Em chamada • Conectado';
-            } else if(m.tipo==='ice' && this.peer){
-              try{ await this.peer.addIceCandidate(new RTCIceCandidate(dados)); }catch(e){}
-            } else if(m.tipo==='fim'){
-              this.encerrarChamada();
-            }
-          }
-        }catch(e){}
-      }, 900);
-    },
-    async aceitarChamada(){
-      if(!this.chamadaTocando) return;
-      const info = this.chamadaTocando;
-      this.salaChamada = info.sala;
-      this.tipoChamada = info.tipo;
-      this.chamadaTocando = null;
-      this.chamadaAtiva = true;
-      if(!this.visitanteId){ this.visitanteId = localStorage.getItem('chatimov_visitante') || ('v-' + Math.random().toString(36).slice(2,8)); localStorage.setItem('chatimov_visitante', this.visitanteId); }
-      this.pararToque();
-      this.chamadaStatus='Atendendo... Conectando...';
-      this.sinalUltimoId=0;
-      try{
-        await fetch(this.apiBase + '/api/salas/atender', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({sala:info.sala, status:'atendida'})});
-        this.peer = new RTCPeerConnection({iceServers:[{urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun1.l.google.com:19302'}]});
-        const stream = await navigator.mediaDevices.getUserMedia({video: info.tipo==='video', audio:true});
-        this._callStream = stream;
-        stream.getTracks().forEach(tr=>this.peer.addTrack(tr, stream));
-        this.$nextTick(()=>{ const lv=document.getElementById('localVideo'); if(lv) lv.srcObject=stream; });
-        this.peer.ontrack = (e)=>{ this.pararToque(); const rv=document.getElementById('remoteVideo'); if(rv) rv.srcObject=e.streams[0]; this.chamadaStatus='Em chamada • Conectado'; };
-        this.peer.onicecandidate = (e)=>{ if(e.candidate) this.enviarSinal('ice', e.candidate); };
-        this.pollSinal();
-      }catch(e){ this.chamadaStatus='Permita microfone/câmera para atender'; }
-    },
-    async recusarChamada(){
-      if(this.chamadaTocando){
-        try{ await fetch(this.apiBase + '/api/salas/atender', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({sala:this.chamadaTocando.sala, status:'recusada'})}); }catch(e){}
-        await this.enviarSinalChamada(this.chamadaTocando.sala, 'fim');
-      }
-      this.pararToque();
-      this.chamadaTocando=null; this.toast('Chamada recusada');
-    },
-    async enviarSinalChamada(sala, tipo){
-      try{ await fetch(this.apiBase + '/api/sinalizacao', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({sala, de_id:this.visitanteId||'v', tipo, dados:{}})}); }catch(e){}
-    },
-    async checarSeCorretorOcupado(){
-      if(!this.imovelAtual) return false;
-      const an = this.anuncianteDo(this.imovelAtual);
-      if(!an) return false;
-      try{
-        const ctrl = new AbortController(); setTimeout(()=>ctrl.abort(), 1500); const r = await fetch(this.apiBase + '/api/salas/ocupado?anunciante_id=' + an.id, {signal: ctrl.signal});
-        const d = await r.json();
-        this.corretorOcupado = d.ocupado;
-        this.corretorOcupadoSala = d.sala || null;
-        return d.ocupado;
-      }catch(e){ return false; }
-    },
-    verificarChamadasPendentes(){
-      clearInterval(this._pollPendentes);
-      this._pollPendentes = setInterval(async ()=>{
-        if(!this.imovelAtual || this.chamadaAtiva || this.chamadaTocando) return;
-        if(!this.visitanteId){ this.visitanteId = localStorage.getItem('chatimov_visitante') || ('v-' + Math.random().toString(36).slice(2,8)); localStorage.setItem('chatimov_visitante', this.visitanteId); }
-        try{
-          const r = await fetch(this.apiBase + '/api/salas/pendentes?imovel_id=' + this.imovelAtual.id + '&de_id=' + this.visitanteId);
-          const lista = await r.json();
-          if(lista && lista.length>0){ this.chamadaTocando = lista[0]; this.iniciarToque('entrada'); }
-        }catch(e){}
-      }, 3000);
-    },
-
-
-    // ===== MÚSICA DE TOQUE - toca quando está chamando / quando chega ligação =====
-    // Sem arquivo externo: gera o som direto no celular com Web Audio
-    iniciarToque(tipo){
-      this.pararToque();
-      // 1) Toca o ÁUDIO QUE O JEAN MANDOU como toque principal
-      if(this.musicaToque==='seu-audio'){
-        const el = document.getElementById('toqueChamadaAudio');
-        if(el){
-          el.currentTime = 0; el.loop = true; el.volume = 0.9;
-          el.play().catch(()=>{});
-          return;
-        }
-      }
-      // 2) Se não for o seu áudio, usa as musiquinhas geradas (classico/alegre/suave)
-      try{
-        const ctx = new (window.AudioContext || window.webkitAudioContext)();
-        this._toqueCtx = ctx;
-        let i = 0;
-        const melodias = {
-          classico: [440, 440, 0, 440, 440, 0],
-          alegre: [523, 659, 784, 659, 523, 0],
-          suave: [392, 440, 494, 440, 392, 0]
-        };
-        const notas = melodias[this.musicaToque] || melodias.classico;
-        const tocarNota = ()=>{
-          if(!this._toqueCtx) return;
-          const freq = notas[i % notas.length];
-          i++;
-          if(freq===0) return;
-          const osc = ctx.createOscillator();
-          const gain = ctx.createGain();
-          osc.type = tipo==='entrada' ? 'sine' : 'triangle';
-          osc.frequency.value = freq;
-          gain.gain.value = 0.12;
-          osc.connect(gain); gain.connect(ctx.destination);
-          osc.start(); osc.stop(ctx.currentTime + 0.35);
-        };
-        tocarNota();
-        this._toqueTimer = setInterval(tocarNota, tipo==='entrada' ? 500 : 800);
-      }catch(e){ console.log('toque offline', e); }
-    },
-    pararToque(){
-      const el = document.getElementById('toqueChamadaAudio');
-      if(el){ try{ el.pause(); el.currentTime = 0; }catch(e){} }
-      if(this._toqueTimer){ clearInterval(this._toqueTimer); this._toqueTimer=null; }
-      if(this._toqueCtx){ try{ this._toqueCtx.close(); }catch(e){} this._toqueCtx=null; }
-    },
-    trocarMusicaToque(){
-      const lista = ['seu-audio','classico','alegre','suave'];
-      const idx = lista.indexOf(this.musicaToque);
-      this.musicaToque = lista[(idx+1)%lista.length];
-      this.toast('🎵 Música do toque: ' + this.musicaToque);
-      this.iniciarToque('entrada');
-      setTimeout(()=>this.pararToque(), 1200);
-    },
-    // ===== MASTER - SÓ DONO =====
-    cadastrarEmailDono(){
-      const email = (this.masterEmailInput||'').trim().toLowerCase();
-      const senha = (this.masterSenhaInput||'').trim();
-      if(!email || !email.includes('@')){ this.masterErro='Digite seu e-mail certinho, com @.'; return; }
-      if(!senha || senha.length<4){ this.masterErro='Crie uma senha com pelo menos 4 letras.'; return; }
-      localStorage.setItem('chatimov_admin_email', email);
-      localStorage.setItem('chatimov_admin_senha', senha);
-      this.adminEmailDono = email; this.masterSenhaDono = senha;
-      this.masterLogado = true; this.masterErro=''; this.masterMsg='✅ Seu e-mail de dono foi cadastrado. Só ele entra aqui.';
-      this.toast('✅ Painel Master liberado só para você.');
-    },
-    entrarMaster(){
-      const email = (this.masterEmailInput||'').trim().toLowerCase();
-      const senha = (this.masterSenhaInput||'').trim();
-      if(email !== this.adminEmailDono){ this.masterErro='⛔ Acesso negado.'; return; }
-      if(senha !== this.masterSenhaDono){ this.masterErro='⛔ Senha errada. Tente de novo.'; return; }
-      this.masterLogado = true; this.masterErro='';
-      this.toast('👑 Bem-vindo, dono! Painel Master aberto.');
-    },
-    sairMaster(){ this.masterLogado=false; this.masterEmailInput=''; this.masterSenhaInput=''; this.view='admin'; },
-    alternarFlutuanteGlobal(){
-      this.mostrarFlutuanteWhatsApp = !this.mostrarFlutuanteWhatsApp;
-      localStorage.setItem('chatimov_flutuante', this.mostrarFlutuanteWhatsApp ? '1' : '0');
-      this.masterMsg = this.mostrarFlutuanteWhatsApp ? '✅ Botão flutuante do WhatsApp LIGADO para todos.' : '⛔ Botão flutuante do WhatsApp DESLIGADO para todos.';
-      this.toast(this.masterMsg);
-    },
-    alternarFlutuanteUsuario(u){
-      u.mostrarWhats = u.mostrarWhats===false ? true : false;
-      this.masterMsg = u.mostrarWhats ? '✅ Botão do '+u.nome+' LIGADO.' : '⛔ Botão do '+u.nome+' DESLIGADO.';
-      this.toast(this.masterMsg);
-    },
-    alternarUsuarioAtivo(u){
-      u.excluido = !u.excluido;
-      this.masterMsg = u.excluido ? '⛔ '+u.nome+' EXCLUÍDO - não aparece mais.' : '✅ '+u.nome+' INCLUÍDO de novo.';
-      this.toast(this.masterMsg);
-    },
-    incluirUsuario(){
-      if(!this.novoUsuarioNome || !this.novoUsuarioWhats){ this.masterMsg='Preencha nome e WhatsApp.'; this.toast('Preencha nome e WhatsApp'); return; }
-      const slug = (this.novoUsuarioSlug || this.novoUsuarioNome.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')).trim() || ('user-'+Date.now());
-      const id = 'u-'+Date.now();
-      this.anunciantes.push({id, nome:this.novoUsuarioNome, slug, plano:'free', whatsapp:this.novoUsuarioWhats, bio:'', foto:'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&q=80', capa:'', seo:'', links:[], mostrarWhats:true, excluido:false});
-      this.masterMsg = '✅ Usuário '+this.novoUsuarioNome+' INCLUÍDO com sucesso!';
-      this.toast(this.masterMsg);
-      this.novoUsuarioNome=''; this.novoUsuarioWhats=''; this.novoUsuarioSlug='';
-    },
-    excluirUsuarioDefinitivo(u){
-      if(!confirm('Excluir definitivo '+u.nome+'? Vai apagar ele e os imóveis dele.')) return;
-      this.anunciantes = this.anunciantes.filter(a=>a.id!==u.id);
-      this.imoveis = this.imoveis.filter(im=>im.anunciante_id!==u.id);
-      this.masterMsg = '🗑️ '+u.nome+' excluído definitivo.';
-      this.toast(this.masterMsg);
-    },
-    async liberarPlanoMaster(u, plano){
-      u.plano = plano;
-      if(u.id==='me') this.meuPlano = plano;
-      this.masterMsg = '✅ ' + u.nome + ' agora está no plano ' + plano.toUpperCase() + ' • Liberado por você.';
-      this.toast(this.masterMsg);
-      // Tenta salvar no D1 via Workers também
-      try{ await fetch(this.apiBase + '/api/admin/liberar-plano', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({anunciante_id: u.id, slug: u.slug, plano})}); }catch(e){}
-    },
-    // ===== LOGIN DO USUÁRIO + UPLOAD FOTO =====
-    salvarPerfilCompleto(){
-      const nome = (this.nomeUsuario||'').trim();
-      const whats = (this.perfilWhatsapp||'').replace(/[^0-9]/g,'');
-      if(!nome){ this.toast('Coloque seu nome de usuário.'); return; }
-      if(!whats || whats.length<10){ this.toast('Coloque seu WhatsApp com DDD, só números.'); return; }
-      localStorage.setItem('chatimov_nome_usuario', nome);
-      localStorage.setItem('chatimov_whatsapp', whats);
-      localStorage.setItem('chatimov_descricao', this.perfilDescricao||'');
-      localStorage.setItem('chatimov_site', this.perfilSite||'');
-      // Atualiza o anunciante 'me' para aparecer no perfil público
-      const me = this.anunciantes.find(a=>a.id==='me');
-      if(me){ me.nome = nome; me.slug = nome.toLowerCase().replace(/[^a-z0-9]/g,'.'); me.whatsapp = whats; me.bio = this.perfilDescricao||me.bio; }
-      if(this.perfilSite){ this.perfilForm.link1 = this.perfilSite; }
-      this.perfilWhatsapp = whats;
-      this.toast('✅ Perfil salvo! Seu WhatsApp já virou link no seu perfil.');
-      this.view='admin';
-    },
-    entrarUsuario(){
-      const email = (this.loginEmail||'').trim().toLowerCase();
-      const senha = (this.loginSenha||'').trim();
-      if(this.loginCadastro && !(this.cadastroNomeUsuario||'').trim()){ this.loginErro='Coloque seu nome de usuário.'; return; }
-      if(!email || !email.includes('@')){ this.loginErro='Digite seu e-mail certinho, com @.'; return; }
-      if(!senha || senha.length<4){ this.loginErro='Senha com pelo menos 4 letras.'; return; }
-      const emailSalvo = localStorage.getItem('chatimov_usuario_email');
-      const senhaSalva = localStorage.getItem('chatimov_usuario_senha');
-      if(emailSalvo && emailSalvo!==email){ this.loginErro='Esse e-mail não é o cadastrado neste celular. Use ' + emailSalvo + ' ou saia e cadastre outro.'; return; }
-      if(emailSalvo && senhaSalva && senha!==senhaSalva){ this.loginErro='Senha errada. Tente de novo.'; return; }
-      // Cadastro novo ou login ok
-      localStorage.setItem('chatimov_usuario_email', email);
-      localStorage.setItem('chatimov_usuario_senha', senha);
-      if(this.loginCadastro && this.cadastroNomeUsuario){
-        const nomeU = this.cadastroNomeUsuario.trim().toLowerCase().replace(/\s+/g,'.');
-        localStorage.setItem('chatimov_nome_usuario', nomeU);
-        this.nomeUsuario = nomeU;
-      }
-      localStorage.setItem('chatimov_usuario_logado', '1');
-      this.usuarioEmail = email; this.usuarioLogado = true; this.loginErro='';
-      const fotoSalva = localStorage.getItem('chatimov_usuario_foto');
-      if(fotoSalva) this.usuarioFoto = fotoSalva;
-      this.toast('✅ Logado como ' + email);
-      this.view='admin';
-    },
-    sairUsuario(){
-      localStorage.setItem('chatimov_usuario_logado','0');
-      this.usuarioLogado=false; this.loginEmail=''; this.loginSenha='';
-      this.toast('Você saiu. Até logo!');
-      this.view='login';
-    },
-    async onFotoPerfilChange(e){
-      const file = e.target.files && e.target.files[0];
-      if(!file) return;
-      if(this.meuPlano!=='ouro'){ this.toast('🔗 Upload direto só no OURO. No PRATA, cole o link da foto.'); return; }
-      const url = await this.uploadParaR2(file, 'perfil-'+Date.now()+'-'+file.name);
-      if(url){ this.perfilForm.foto=url; this.usuarioFoto=url; localStorage.setItem('chatimov_usuario_foto', url); this.toast('✅ Foto de perfil enviada!'); }
-    },
-    async onFotoImovelChange(e){
-      const files = e.target.files;
-      if(!files || files.length===0) return;
-      if(this.meuPlano!=='ouro'){ this.toast('🔗 Upload direto só no OURO. No PRATA, cole o link da imagem.'); return; }
-      const file = files[0];
-      const url = await this.uploadParaR2(file, 'imovel-'+Date.now()+'-'+file.name);
-      if(url){ this.novo.foto=url; this.toast('✅ Foto do imóvel enviada!'); }
-    },
-    async uploadParaR2(file, nome){
-      try{
-        // Converte para base64 e tenta enviar para o Workers/R2
-        const base64 = await new Promise((res,rej)=>{ const r=new FileReader(); r.onload=()=>res(r.result); r.onerror=rej; r.readAsDataURL(file); });
-        try{
-          const resp = await fetch(this.apiBase + '/api/upload', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({nome, base64, tipo: file.type||'image/jpeg'})});
-          const d = await resp.json();
-          if(d.ok && d.url && !d.url.includes('undefined')) return d.url;
-        }catch(e){}
-        // Fallback: usa a foto local mesmo (funciona sem R2)
-        return base64;
-      }catch(e){ this.toast('Não consegui enviar a foto. Tente um arquivo menor.'); return null; }
-    },
-    salvarFotoPerfil(){
-      const url = (this.perfilForm.foto||'').trim();
-      if(!url){ this.toast('Cole o link da foto ou envie o arquivo (Ouro).'); return; }
-      this.usuarioFoto=url; localStorage.setItem('chatimov_usuario_foto', url);
-      // Atualiza também o anunciante 'me'
-      const me = this.anunciantes.find(a=>a.id==='me'); if(me) me.foto=url;
-      this.toast('✅ Foto de perfil salva!');
-    },
-    async baixarApp(){
-      this.baixando = true;
-      this.toast('⬇️ Baixando ChatImov... Já vai aparecer na sua tela inicial!');
-      // Notificação do navegador
-      try{
-        if('Notification' in window){
-          if(Notification.permission==='default') await Notification.requestPermission();
-          if(Notification.permission==='granted') new Notification('ChatImov baixando...', {body:'Seu próximo lar começa numa conversa.', icon:'logo-chatimov.png'});
-        }
-      }catch(e){}
-      // Tenta abrir o instalar do navegador (PWA)
-      try{
-        if(this.promptInstalar){
-          this.promptInstalar.prompt();
-          const escolha = await this.promptInstalar.userChoice;
-          if(escolha.outcome==='accepted') this.toast('✅ ChatImov instalado! Procure o ícone na sua tela inicial.');
-          else this.toast('Tudo bem! Você pode baixar depois no botão BAIXAR.');
-          this.promptInstalar = null;
-        } else {
-          // Sem prompt do navegador: mostra como instalar + baixa o app como arquivo
-          const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
-          if(isIOS) this.toast('No iPhone: toque em Compartilhar ⬆️ → Adicionar à Tela de Início');
-          else this.toast('No Android/Chrome: toque nos 3 pontinhos ⋮ → Adicionar à tela inicial / Instalar app');
-          // Baixa também o arquivo do app para garantir que "baixou"
-          const blob = new Blob([document.documentElement.outerHTML], {type:'text/html'});
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a'); a.href=url; a.download='chatimov.html'; document.body.appendChild(a); a.click(); a.remove();
-          setTimeout(()=>URL.revokeObjectURL(url), 2000);
-        }
-      }catch(e){ this.toast('Para baixar: Menu do navegador → Adicionar à tela inicial'); }
-      setTimeout(()=>{ this.baixando=false; }, 2500);
-    },
-    async encerrarChamada(){
-      this.pararToque();
-      clearInterval(this._callTimer); clearInterval(this._pollSinal);
-      if(this.salaChamada) await this.enviarSinalChamada(this.salaChamada, 'fim');
-      if(this.salaChamada){ try{ await fetch(this.apiBase + '/api/salas/atender', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({sala:this.salaChamada, status:'encerrada'})}); }catch(e){} }
-      if(this.peer){ try{ this.peer.close(); }catch(e){} this.peer=null; }
-      if(this._callStream){ try{ this._callStream.getTracks().forEach(tr=>tr.stop()); }catch(e){} this._callStream=null; }
-      const rv=document.getElementById('remoteVideo'); if(rv) rv.srcObject=null;
-      const lv=document.getElementById('localVideo'); if(lv) lv.srcObject=null;
-      this.chamadaAtiva=false; this.linkChamada=''; this.salaChamada='';
-      this.toast('Chamada encerrada • O corretor recebeu seu contato');
-    },
-    copiarLinkSala(){
-      if(navigator.clipboard && this.linkChamada) navigator.clipboard.writeText(this.linkChamada).then(()=>this.toast('🔗 Link da sala copiado! Envie para a outra pessoa entrar na mesma ligação'));
-      else this.toast(this.linkChamada);
-    },
-    enviarLinkSalaWhatsApp(){
-      const a=this.anuncianteDo(this.imovelAtual); if(!a) return;
-      const label = this.tipoChamada==='video' ? 'vídeo' : 'voz';
-      const msg='Olá '+a.nome+'! Entrei na chamada de '+label+' do imóvel '+this.imovelAtual.titulo+' no ChatImov. Entra na mesma sala aqui: '+this.linkChamada;
-      window.open('https://wa.me/'+a.whatsapp+'?text='+encodeURIComponent(msg),'_blank');
-    },
-    toggleMute(){ this.mutado=!this.mutado; this.toast(this.mutado ? '🔇 Use o botão de microfone dentro da sala para mutar' : '🎙️ Use o botão de microfone dentro da sala'); },
-    toggleCamera(){ this.toast('📹 Use o botão de câmera dentro da sala para ligar/desligar'); },
-    trocarParaWhatsApp(){
-      const a=this.anuncianteDo(this.imovelAtual); if(!a) return;
-      const label = this.tipoChamada==='video' ? 'vídeo' : 'telefone';
-      const link = this.linkChamada;
-      this.encerrarChamada();
-      const msg='Olá '+a.nome+'! Vi seu imóvel '+this.imovelAtual.titulo+' no ChatImov e tentei ligar por '+label+'. Entra na sala aqui: '+link+' Podemos falar agora?';
-      window.open('https://wa.me/'+a.whatsapp+'?text='+encodeURIComponent(msg),'_blank');
-    },
-
-    async alternarGravacaoAudio(){
-      if(!this.gravandoAudio){
-        try{
-          const stream = await navigator.mediaDevices.getUserMedia({audio:true});
-          this._audioChunks = [];
-          try{ this._mediaRecorder = new MediaRecorder(stream, {mimeType:'audio/webm;codecs=opus', audioBitsPerSecond: 32000}); }catch(e){ this._mediaRecorder = new MediaRecorder(stream); }
-          this._mediaRecorder.ondataavailable = e=>{ if(e.data.size>0) this._audioChunks.push(e.data); };
-          this._mediaRecorder.onstop = ()=>{
-            stream.getTracks().forEach(tr=>tr.stop());
-            const blob = new Blob(this._audioChunks, {type:'audio/webm'});
-            const url = URL.createObjectURL(blob);
-            const dur = this.tempoAudio;
-            this.mensagens.push({id:Date.now(), de:'eu', texto:'', hora:this.horaAgora(), audioUrl:url, tipo:'audio', duracao:dur});
-            this.$nextTick(()=>{let el=document.getElementById('chatScroll'); if(el) el.scrollTop=el.scrollHeight});
-            setTimeout(()=>{ this.digitando=true; setTimeout(()=>{ this.digitando=false; this.mensagens.push({id:Date.now()+1, de:'bot', texto:'Ouvi seu áudio! Obrigado. Quer que eu agende uma visita ou te passe para o corretor no WhatsApp?', hora:this.horaAgora()}); },900); },600);
-          };
-          this._mediaRecorder.start();
-          this.gravandoAudio = true; this._audioSeg = 0; this.tempoAudio='00:00';
-          clearInterval(this._audioTimer);
-          this._audioTimer = setInterval(()=>{ this._audioSeg++; const mm=String(Math.floor(this._audioSeg/60)).padStart(2,'0'); const ss=String(this._audioSeg%60).padStart(2,'0'); this.tempoAudio=mm+':'+ss; },1000);
-          this.toast('🎙️ Gravando áudio... fale agora');
-        }catch(e){ this.toast('Permita o microfone para enviar áudio'); }
-      } else {
-        clearInterval(this._audioTimer);
-        this.gravandoAudio = false;
-        if(this._mediaRecorder && this._mediaRecorder.state!=='inactive') this._mediaRecorder.stop();
-        this.toast('✅ Áudio enviado!');
-      }
-    },
-toast(msg){ /* aviso desativado a pedido do dono - sem pílula preta */ }
+toast(msg){this.toastMsg=msg; setTimeout(()=>this.toastMsg='',3200)}
 }
 }
-</script>
-<script>
-window.addEventListener('beforeinstallprompt', (e)=>{ e.preventDefault(); window.__promptInstalar = e; });
 </script>
 <script>(function(){var loc=location.href.replace(/#.*$/,"");var ATTR_NAMES=["data-product-id","data-productid","data-product_id","product-id","productid","product_id","data-source-entity-id","source-entity-id","source_entity_id","data-product","data-metadata","data-meta"];var DATASET_KEYS=["productId","productid","product_id","sourceEntityId","sourceentityid","source_entity_id","product","metadata","meta"];function readProductId(value){if(typeof value!=="string"||value.length===0)return null;if(/^[0-9]{6,}$/.test(value))return value;var match=value.match(/(?:product(?:_|-)?id|source(?:_|-)?entity(?:_|-)?id)["'=:\s]+([0-9]{6,})/i);return match?match[1]:null}function extractProductId(start){for(var node=start;node&&node!==document.body;node=node.parentElement){for(var i=0;i<ATTR_NAMES.length;i++){var attrValue=node.getAttribute&&node.getAttribute(ATTR_NAMES[i]);var attrProductId=readProductId(attrValue);if(attrProductId)return attrProductId}var dataset=node.dataset||null;if(dataset){for(var j=0;j<DATASET_KEYS.length;j++){var dataValue=dataset[DATASET_KEYS[j]];var dataProductId=readProductId(dataValue);if(dataProductId)return dataProductId}}}return null}function isInlineMediaSlotElement(node){return !!(node&&node.getAttribute&&node.getAttribute("data-clippy-inline-media-slot")!==null)}function findInlineMediaSlot(start){for(var node=start;node&&node!==document.body;node=node.parentElement){if(isInlineMediaSlotElement(node))return node}return null}function readInlineMediaUrl(node){if(!node)return null;return node.getAttribute&&((node.getAttribute("data-clippy-inline-media-url")||node.getAttribute("data-url")||node.getAttribute("data_url")))||node.href||null}function stripHash(url){return String(url).replace(/#.*$/,"")}function urlsMatch(a,b){if(!a||!b)return false;try{return stripHash(new URL(a,loc).href)===stripHash(new URL(b,loc).href)}catch(_){return stripHash(a)===stripHash(b)}}function isFirstPartyReelUrl(value){try{var url=new URL(value,loc);if(url.protocol!=="https:")return false;var host=url.hostname.toLowerCase();var supported=host==="instagram.com"||host.endsWith(".instagram.com")||host==="facebook.com"||host.endsWith(".facebook.com");return supported&&/\/reels?\//i.test(url.pathname)}catch(_){return false}}function isInlineMediaUrlClick(node,href){var slot=findInlineMediaSlot(node);if(!slot)return false;var slotUrl=readInlineMediaUrl(slot);if(slotUrl)return urlsMatch(href,slotUrl);return isFirstPartyReelUrl(href)}function findDataHref(start){for(var node=start;node&&node!==document.body;node=node.parentElement){if(node.getAttribute){var href=node.getAttribute("data-href")||node.getAttribute("data-url");if(href)return{href:href,node:node}}}return null}var nativeOpen=window.open;window.open=function(url){if(parent!==window&&typeof url==="string"&&/^https?:\/\//.test(url)){parent.postMessage({type:"ecto:usercontent-link-click",href:url},"*");return null}return nativeOpen?nativeOpen.apply(window,arguments):null};document.addEventListener("click",function(e){var target=e.target instanceof Element?e.target:null;if(!target)return;if(parent===window)return;var a=target.closest?target.closest("a[href]"):null;if(a&&a.href&&/^https?:\/\//.test(a.href)&&a.href.replace(/#.*$/,"")!==loc){if(isInlineMediaUrlClick(a,a.href))return;var productId=extractProductId(target)||extractProductId(a);if(productId){e.preventDefault();parent.postMessage({type:"ecto-artifact-link-click",productId:productId},"*");return}e.preventDefault();parent.postMessage({type:"ecto:usercontent-link-click",href:a.href},"*");return}var dataHref=findDataHref(target);if(dataHref&&/^https?:\/\//.test(dataHref.href)&&dataHref.href.replace(/#.*$/,"")!==loc){if(isInlineMediaUrlClick(dataHref.node,dataHref.href))return;e.preventDefault();parent.postMessage({type:"ecto:usercontent-link-click",href:dataHref.href},"*")}},true)})();</script><script>(function(){var FOCUS_TYPE="ecto:artifact-focus-request";var CLOSE_TYPE="ecto:artifact-close-request";function focusArtifactDocument(){var body=document.body;if(!body)return;try{window.focus();}catch(e){}if(!body.hasAttribute("tabindex"))body.setAttribute("tabindex","-1");try{body.focus({preventScroll:true});}catch(e){try{body.focus();}catch(e2){}}}window.addEventListener("message",function(event){if(event.source!==window.parent)return;var data=event.data;if(!data||typeof data!=="object"||data.type!==FOCUS_TYPE)return;if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded",focusArtifactDocument,{once:true});return;}focusArtifactDocument();});window.addEventListener("keydown",function(event){if(event.key!=="Escape")return;window.setTimeout(function(){if(event.defaultPrevented)return;window.parent.postMessage({type:CLOSE_TYPE},"*");},0);});})();</script></body>
 </html>
