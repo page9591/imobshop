@@ -170,7 +170,7 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
     <template x-if="view==='login'"><div class="flex-1"><p class="font-bold">👤 Login do Usuário</p><p class="text-[12px] text-white/80">Entre com seu e-mail para anunciar</p></div></template>
 
     <template x-if="view==='master'"><div class="flex-1"><p class="font-bold">Painel Principal</p><p class="text-[12px] text-white/80" x-text="masterLogado ? 'Todos os dados do site' : 'Acesso restrito'"></p></div></template>
-    <template x-if="view==='admin'"><div class="flex-1"><p class="font-bold">Painel do Anunciante</p><p class="text-[12px] text-white/80">Jean Aguiar • <span x-text="meuPlanoLabel()"></span></p></div></template>
+    <template x-if="view==='admin'"><div class="flex-1"><p class="font-bold">Painel do Anunciante</p><p class="text-[12px] text-white/80"><span x-text="meuAnunciante().nome"></span> • <span x-text="meuPlanoLabel()"></span></p></div></template>
     <template x-if="view==='planos'"><div class="flex-1"><p class="font-bold">Planos & Mercado Pago</p><p class="text-[12px] text-white/80">Ative Prata ou Ouro em segundos</p></div></template>
     <template x-if="view==='checkout'"><div class="flex-1"><p class="font-bold">Checkout Seguro</p><p class="text-[12px] text-white/80">Mercado Pago • Pix ou Cartão</p></div></template>
     <button x-show="view==='perfil'" @click="compartilharPerfil()" class="bg-white/15 px-3 py-1.5 rounded-full text-[12px] font-semibold">🔗 Compartilhar</button>
@@ -511,8 +511,8 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
     <!-- Corretor só vê seu painel -->
 
     <div class="bg-white rounded-2xl p-4 shadow-sm flex gap-3">
-      <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&q=80" class="w-14 h-14 rounded-full object-cover" alt="Jean Aguiar">
-      <div class="flex-1"><p class="font-extrabold">Jean Aguiar</p><p class="text-[12px] text-gray-500">jean.aguiar • chatimov.com.br/corretor/jean-aguiar</p><span :class="meuPlano==='free'?'bg-gray-100 text-gray-700':'bg-amber-100 text-amber-800'" class="inline-block mt-1 text-[11px] font-bold px-2 py-0.5 rounded-full" x-text="meuPlanoLabel()+' • '+meusImoveis('me').length+' / '+(meuPlano==='free'?'15':'∞')+' anúncios'"></span></div>
+      <img :src="meuAnunciante().foto" class="w-14 h-14 rounded-full object-cover" :alt="meuAnunciante().nome">
+      <div class="flex-1"><p class="font-extrabold" x-text="meuAnunciante().nome"></p><p class="text-[12px] text-gray-500" x-text="meuAnunciante().slug + ' • chatimov.com.br/corretor/' + meuAnunciante().slug"></p><span :class="meuPlano==='free'?'bg-gray-100 text-gray-700':'bg-amber-100 text-amber-800'" class="inline-block mt-1 text-[11px] font-bold px-2 py-0.5 rounded-full" x-text="meuPlanoLabel()+' • '+meusImoveis('me').length+' / '+(meuPlano==='free'?'15':'∞')+' anúncios'"></span></div>
       <div class="flex flex-col gap-1.5 shrink-0">
         <button @click="view='planos'" class="bg-waDark text-white text-[12px] font-bold px-3 py-2 rounded-full">⬆️ Upgrade</button>
         <button onclick="try{var d=document.querySelector('[x-data]').__x.$data; d.sairUsuario();}catch(e){}" @click="sairUsuario()" class="bg-gray-100 text-gray-700 text-[12px] font-bold px-3 py-2 rounded-full">Sair</button>
@@ -868,7 +868,18 @@ anunciantes:[
 imoveis:[],
 imovelAtual:null, anuncianteAtual:null, mensagens:[],
 init(){
-this.imoveis=[
+      try{
+        const emailLogado = localStorage.getItem('chatimov_usuario_email');
+        const logado = localStorage.getItem('chatimov_usuario_logado')==='1';
+        const contas = JSON.parse(localStorage.getItem('chatimov_contas')||'{}');
+        if(logado && emailLogado && contas[emailLogado]){
+          const c = contas[emailLogado];
+          const me0 = this.anunciantes.find(a=>a.id==='me');
+          if(me0){ me0.nome=c.nome; me0.slug=c.slug; me0.whatsapp=c.whatsapp; me0.foto=c.foto; me0.bio=c.bio; me0.capa=c.capa||''; me0.plano=c.plano||'free'; }
+          this.nomeUsuario=c.slugUser||''; this.perfilWhatsapp=c.whatsapp||''; this.perfilDescricao=c.bio||''; this.usuarioFoto=c.foto||''; this.perfilForm.foto=c.foto||''; this.perfilForm.bio=c.bio||''; this.perfilForm.capa=c.capa||'';
+        }
+      }catch(e){}
+      this.imoveis=[
 {id:'me-1',anunciante_id:'me',titulo:'Apto 2 quartos • Vila Mariana • Próx. metrô',preco:485000,tipo:'Venda',bairro:'Vila Mariana',cidade:'São Paulo - SP',quartos:2,banheiros:1,area:68,foto:'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800&q=80',fotos:['1','2','3'],descricao:'Luminoso e reformado.',criado:'2026-11-08',regras:[{pergunta:'Agendar visita',resposta:'Perfeito! Temos visita sábado às 10h ou 15h, e segunda às 18h. Qual prefere? Me fala seu nome que já deixo reservado. 😊'},{pergunta:'Valor da entrada',resposta:'Com 20% de entrada (R$ 97.000) já dá para financiar o restante. Aceitamos FGTS como parte da entrada!'},{pergunta:'Aceita financiamento?',resposta:'Sim! Trabalhamos com Caixa, Itaú e Bradesco. Simulação em 5 minutos, sem compromisso.'},{pergunta:'Tem vaga?',resposta:'Sim, 1 vaga coberta + bicicletário. Condomínio com lazer completo.'}]},
 {id:'a1-1',anunciante_id:'a1',titulo:'Apto Alto Padrão 3 suítes • Moema',preco:1250000,tipo:'Venda',bairro:'Moema',cidade:'São Paulo - SP',quartos:3,banheiros:3,area:142,foto:'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&q=80',fotos:['1','2','3','4'],descricao:'Vista parque.',criado:'2026-11-09',regras:[{pergunta:'Agendar visita',resposta:'Claro! Visita com hora marcada — amanhã às 11h ou quinta às 16h. Qual fica melhor para você?'},{pergunta:'Valor da entrada',resposta:'Entrada a partir de 30%. Posso simular financiamento com as melhores taxas para você.'},{pergunta:'Aceita permuta?',resposta:'Sim, avaliamos permuta por imóvel de menor valor em Moema ou Vila Nova Conceição.'},{pergunta:'Condomínio?',resposta:'Condomínio R$ 1.480/mês com lazer completo, piscina aquecida e segurança 24h.'}]},
 {id:'a2-1',anunciante_id:'a2',titulo:'Casa 3 quartos • Tatuapé • Quintal',preco:780000,tipo:'Venda',bairro:'Tatuapé',cidade:'São Paulo - SP',quartos:3,banheiros:2,area:140,foto:'https://images.unsplash.com/photo-1568605114967-8130f3a36994?w=800&q=80',fotos:['1','2','3'],descricao:'Casa com quintal.',criado:'2026-11-09',regras:[{pergunta:'Agendar visita',resposta:'Temos visita hoje às 17h ou sábado às 9h. Quer que eu reserve?'},{pergunta:'Aceita financiamento?',resposta:'Sim! Aceitamos FGTS e Minha Casa Minha Vida. Faço sua simulação agora.'},{pergunta:'Tem quintal?',resposta:'Sim! Quintal amplo com churrasqueira e espaço para pets. Perfeito para família.'}]},
@@ -880,7 +891,8 @@ this.imoveis=[
 ];
 // FIFO: mais antigos primeiro (ordem de chegada)
 this.imoveis.sort((a,b)=>a.criado.localeCompare(b.criado));
-},
+      try{ const em = localStorage.getItem('chatimov_usuario_email'); const cs = JSON.parse(localStorage.getItem('chatimov_contas')||'{}'); if(em && cs[em] && cs[em].nome!=='Jean Aguiar'){ this.imoveis = this.imoveis.filter(i=>!(i.anunciante_id==='me' && ['me-1','me-2','me-3'].includes(i.id))); } }catch(e){}
+    },
 get imoveisFiltrados(){
 let l=this.imoveis.filter(im=>{
 let q=this.busca.toLowerCase();
@@ -1191,7 +1203,7 @@ let im=this.imovelBotAtual(); im.regras.push({pergunta:this.novaRegra.pergunta,r
 this.novaRegra={pergunta:'',resposta:''}; this.toast('✅ Pergunta adicionada ao chatbot!');
 },
 removerRegra(i){this.imovelBotAtual().regras.splice(i,1)},
-salvarPerfil(){let me=this.anunciantes.find(a=>a.id==='me'); me.bio=this.perfilForm.bio; me.foto=this.perfilForm.foto; if(this.meuPlano!=='free'){me.capa=this.perfilForm.capa; me.plano=this.meuPlano; me.links=[{label:this.perfilForm.link1||'Instagram',icon:'📸',url:'https://instagram.com'},{label:this.perfilForm.link2||'Site',icon:'🌐',url:'https://example.com'}]} this.toast('✅ Perfil salvo! (D1: anunciantes atualizado)')},
+salvarPerfil(){let me=this.anunciantes.find(a=>a.id==='me'); me.bio=this.perfilForm.bio; me.foto=this.perfilForm.foto; try{ const em3 = localStorage.getItem('chatimov_usuario_email'); if(em3){ let cs3 = JSON.parse(localStorage.getItem('chatimov_contas')||'{}'); cs3[em3] = {...(cs3[em3]||{}), bio: me.bio, foto: me.foto, capa: me.capa||''}; localStorage.setItem('chatimov_contas', JSON.stringify(cs3)); } }catch(e){} if(this.meuPlano!=='free'){me.capa=this.perfilForm.capa; me.plano=this.meuPlano; me.links=[{label:this.perfilForm.link1||'Instagram',icon:'📸',url:'https://instagram.com'},{label:this.perfilForm.link2||'Site',icon:'🌐',url:'https://example.com'}]} this.toast('✅ Perfil salvo! (D1: anunciantes atualizado)')},
 salvarSEO(){this.toast('✅ SEO & Portais salvos! Google vai indexar: '+this.seoForm.keywords.slice(0,40)+'...')},
 iniciarCheckout(plano){this.checkoutPlano=plano; this.pagamentoOk=false; this.pagando=false; this.view='checkout'; window.scrollTo(0,0)},
 confirmarPagamento(){
@@ -1477,9 +1489,10 @@ this.toast('🎉 Webhook Mercado Pago confirmado! Plano '+this.checkoutPlano.toU
       localStorage.setItem('chatimov_site', this.perfilSite||'');
       // Atualiza o anunciante 'me' para aparecer no perfil público
       const me = this.anunciantes.find(a=>a.id==='me');
-      if(me){ me.nome = nome; me.slug = nome.toLowerCase().replace(/[^a-z0-9]/g,'.'); me.whatsapp = whats; me.bio = this.perfilDescricao||me.bio; }
+      if(me){ me.nome = nome; me.slug = nome.toLowerCase().replace(/[^a-z0-9]/g,'.'); me.whatsapp = whats; me.bio = this.perfilDescricao||me.bio; if(this.usuarioFoto) me.foto = this.usuarioFoto; if(this.perfilForm.capa) me.capa = this.perfilForm.capa; }
       if(this.perfilSite){ this.perfilForm.link1 = this.perfilSite; }
       this.perfilWhatsapp = whats;
+      try{ const em2 = localStorage.getItem('chatimov_usuario_email'); if(em2){ let cs2 = JSON.parse(localStorage.getItem('chatimov_contas')||'{}'); cs2[em2] = {...(cs2[em2]||{}), nome: nome, slug: me.slug, slugUser: nome.toLowerCase().replace(/\s+/g,'.'), whatsapp: whats, bio: this.perfilDescricao||'', foto: me.foto||'', capa: me.capa||''}; localStorage.setItem('chatimov_contas', JSON.stringify(cs2)); } }catch(e){}
       this.toast('✅ Perfil salvo! Seu WhatsApp já virou link no seu perfil.');
       this.view='admin';
     },
@@ -1505,7 +1518,7 @@ this.toast('🎉 Webhook Mercado Pago confirmado! Plano '+this.checkoutPlano.toU
       if(this.novoFotos.length >= this.limiteFotos()){ this.view='planos'; return; }
       const el = document.getElementById('inputFotosNovo'); if(el) el.click();
     },
-    leadsDoCorretor(){ return (this.leads||[]).filter(l=>l.corretor_id==='me' || l.corretor_nome==='Jean Aguiar'); },
+    leadsDoCorretor(){ return (this.leads||[]).filter(l=>l.corretor_id==='me'); },
     fecharLead(){
       this.mostrarLead=false; this.leadErro='';
       const im = this.leadImovel; this.leadImovel=null;
@@ -1525,6 +1538,25 @@ this.toast('🎉 Webhook Mercado Pago confirmado! Plano '+this.checkoutPlano.toU
       this.mostrarLead=false; this.leadErro=''; this.leadImovel=null;
       if(im) this.abrirChatDireto(im);
     },
+    meuAnunciante(){ return this.anunciantes.find(a=>a.id==='me') || {nome:'', slug:'', foto:'', whatsapp:'', bio:'', plano:'free'}; },
+    aplicarContaAoMe(email, nomeCompleto, whatsapp, tipo, forceNovo=false){
+      const me = this.anunciantes.find(a=>a.id==='me'); if(!me) return;
+      const nome = (nomeCompleto||'').trim();
+      if(!nome) return;
+      const slugUrl = nome.toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9-]/g,'');
+      const slugUser = nome.toLowerCase().replace(/\s+/g,'.').replace(/[^a-z0-9.]/g,'');
+      // Se é conta nova (e-mail diferente do anterior), limpa os imóveis demo do Jean e usa avatar neutro
+      const emailAnterior = localStorage.getItem('chatimov_usuario_email');
+      const ehContaNova = forceNovo || (emailAnterior && emailAnterior!==email);
+      me.nome = nome; me.slug = slugUrl; me.whatsapp = (whatsapp||'').trim(); me.plano = me.plano||'free';
+      if(ehContaNova){ me.foto = 'https://images.unsplash.com/photo-1633332755192-727a05c4013d?w=300&q=80'; me.capa=''; me.bio = (tipo==='imobiliaria' ? 'Imobiliária em São Paulo' : 'Corretor em São Paulo') + ' • ' + nome; me.links=[]; this.perfilForm.link1=''; this.perfilForm.link2=''; this.imoveis = this.imoveis.filter(i=>i.anunciante_id!=='me'); this.perfilDescricao=''; this.usuarioFoto=''; localStorage.removeItem('chatimov_usuario_foto'); }
+      else { if(!me.bio) me.bio = (tipo==='imobiliaria' ? 'Imobiliária em São Paulo' : 'Corretor em São Paulo') + ' • ' + nome; }
+      this.nomeUsuario = slugUser; this.perfilWhatsapp = (whatsapp||'').trim(); this.perfilForm.foto = me.foto; this.perfilForm.bio = me.bio; this.perfilForm.capa = me.capa||'';
+      // Salva conta para abrir de novo depois sem cair no Jean
+      let contas = {}; try{ contas = JSON.parse(localStorage.getItem('chatimov_contas')||'{}'); }catch(e){ contas={}; }
+      contas[email] = {nome, slug: slugUrl, slugUser, whatsapp: (whatsapp||'').trim(), tipo: tipo||'corretor', foto: me.foto, bio: me.bio, capa: me.capa||'', plano: me.plano};
+      localStorage.setItem('chatimov_contas', JSON.stringify(contas));
+    },
     entrarUsuario(){
       const email = (this.loginEmail||'').trim().toLowerCase();
       const senha = (this.loginSenha||'').trim();
@@ -1532,17 +1564,22 @@ this.toast('🎉 Webhook Mercado Pago confirmado! Plano '+this.checkoutPlano.toU
       if(this.loginCadastro && !(this.cadastroWhatsapp||'').trim()){ this.loginErro='Coloque seu WhatsApp.'; return; }
       if(!email || !email.includes('@')){ this.loginErro='Digite seu e-mail certinho, com @.'; return; }
       if(!senha || senha.length<4){ this.loginErro='Senha com pelo menos 4 letras.'; return; }
+      // VÁRIAS CONTAS POR CELULAR: cada e-mail tem sua senha, guardada em chatimov_senhas. Não trava no e-mail antigo.
+      let senhasMap = {}; try{ senhasMap = JSON.parse(localStorage.getItem('chatimov_senhas')||'{}'); }catch(e){ senhasMap={}; }
       const emailSalvo = localStorage.getItem('chatimov_usuario_email');
       const senhaSalva = localStorage.getItem('chatimov_usuario_senha');
-      // ABRIR CONTA: qualquer pessoa pode abrir conta com qualquer e-mail novo, mesmo que o celular já tenha outra conta. Não trava no e-mail antigo - troca a conta.
+      // Migra conta antiga (salva antes, sem mapa) para o mapa, para não perder a conta do pagenegocio
+      if(emailSalvo && senhaSalva && !senhasMap[emailSalvo]){ senhasMap[emailSalvo]=senhaSalva; localStorage.setItem('chatimov_senhas', JSON.stringify(senhasMap)); }
       if(this.loginCadastro){
-        // deixa passar, salva por cima no final
+        // ABRIR CONTA: se esse e-mail já tem conta, confere a senha e entra nela, não cria duplicada
+        if(senhasMap[email] && senhasMap[email]!==senha){ this.loginErro='Essa conta já existe. A senha está errada. Toque em "Já tenho conta • Entrar".'; return; }
       } else {
-        // FAZER LOGIN: só entra na conta que já foi aberta neste celular
-        if(!emailSalvo){ this.loginErro='Nenhuma conta com esse e-mail neste celular. Toque em "Não tenho conta • Abrir conta".'; return; }
-        if(emailSalvo!==email){ this.loginErro='Esse e-mail não é o da conta deste celular. Abra uma conta nova com esse e-mail.'; return; }
-        if(senhaSalva && senha!==senhaSalva){ this.loginErro='Senha errada. Tente de novo ou toque em "Esqueci minha senha?".'; return; }
+        // FAZER LOGIN: pode entrar com QUALQUER conta já aberta neste celular, não só a última
+        if(senhasMap[email]){ if(senhasMap[email]!==senha){ this.loginErro='Senha errada. Tente de novo ou toque em "Esqueci minha senha?".'; return; } }
+        else if(emailSalvo===email && senhaSalva && senhaSalva===senha){ senhasMap[email]=senha; localStorage.setItem('chatimov_senhas', JSON.stringify(senhasMap)); }
+        else { this.loginErro='Nenhuma conta com esse e-mail neste celular. Toque em "Não tenho conta • Abrir conta".'; return; }
       }
+      senhasMap[email]=senha; localStorage.setItem('chatimov_senhas', JSON.stringify(senhasMap));
       // Cadastro novo ou login ok
       localStorage.setItem('chatimov_usuario_email', email);
       localStorage.setItem('chatimov_usuario_senha', senha);
@@ -1558,12 +1595,25 @@ this.toast('🎉 Webhook Mercado Pago confirmado! Plano '+this.checkoutPlano.toU
       if(this.loginCadastro && this.cadastroTipo){
         localStorage.setItem('chatimov_tipo_conta', this.cadastroTipo);
       }
+      // Cria / carrega o perfil DESTE usuário, não o do Jean
+      if(this.loginCadastro){
+        this.aplicarContaAoMe(email, this.cadastroNomeUsuario, this.cadastroWhatsapp, this.cadastroTipo, true);
+      } else {
+        let contas = {}; try{ contas = JSON.parse(localStorage.getItem('chatimov_contas')||'{}'); }catch(e){ contas={}; }
+        const c = contas[email];
+        if(c){ this.aplicarContaAoMe(email, c.nome, c.whatsapp, c.tipo); const me2 = this.anunciantes.find(a=>a.id==='me'); if(me2 && c.foto) me2.foto=c.foto; if(me2 && c.bio) me2.bio=c.bio; if(me2 && c.capa) me2.capa=c.capa; this.perfilDescricao=c.bio||''; this.usuarioFoto=c.foto||''; }
+        else {
+          // Conta antiga sem registro em contas: monta a partir do nome de usuário salvo
+          const nomeAntigo = (this.nomeUsuario||'').replace(/\./g,' ');
+          if(nomeAntigo) this.aplicarContaAoMe(email, nomeAntigo, this.perfilWhatsapp, 'corretor');
+        }
+      }
       localStorage.setItem('chatimov_usuario_logado', '1');
       this.usuarioEmail = email; this.usuarioLogado = true; this.loginErro='';
-      const fotoSalva = localStorage.getItem('chatimov_usuario_foto');
-      if(fotoSalva) this.usuarioFoto = fotoSalva;
+      // Foto da CONTA que logou, não a do usuário anterior
+      try{ const csFoto = JSON.parse(localStorage.getItem('chatimov_contas')||'{}'); if(csFoto[email] && csFoto[email].foto){ this.usuarioFoto = csFoto[email].foto; localStorage.setItem('chatimov_usuario_foto', csFoto[email].foto); } else if(this.usuarioFoto){ localStorage.setItem('chatimov_usuario_foto', this.usuarioFoto); } }catch(e){}
       this.toast('✅ Logado como ' + email);
-      this.view='admin';
+      this.view='admin'; if(this.loginCadastro){ this.abaAdmin='perfil'; } else { this.abaAdmin='imoveis'; }
     },
     sairUsuario(){
       localStorage.setItem('chatimov_usuario_logado','0');
@@ -1576,9 +1626,12 @@ this.toast('🎉 Webhook Mercado Pago confirmado! Plano '+this.checkoutPlano.toU
       const nova = (this.novaSenha||'').trim();
       if(!email || !email.includes('@')){ this.msgRecuperar='Digite seu e-mail acima primeiro.'; return; }
       if(!nova || nova.length<4){ this.msgRecuperar='Crie uma nova senha com pelo menos 4 letras.'; return; }
-      const emailSalvo = localStorage.getItem('chatimov_usuario_email');
-      if(!emailSalvo){ this.msgRecuperar='Nenhuma conta com esse e-mail neste celular. Abra uma conta.'; return; }
-      if(emailSalvo!==email){ this.msgRecuperar='Esse e-mail não é o cadastrado neste celular. Use ' + emailSalvo; return; }
+      let senhasR = {}; try{ senhasR = JSON.parse(localStorage.getItem('chatimov_senhas')||'{}'); }catch(e){ senhasR={}; }
+      const emailSalvoR = localStorage.getItem('chatimov_usuario_email');
+      const senhaSalvaR = localStorage.getItem('chatimov_usuario_senha');
+      if(emailSalvoR && senhaSalvaR && !senhasR[emailSalvoR]) senhasR[emailSalvoR]=senhaSalvaR;
+      if(!senhasR[email] && !(emailSalvoR===email)){ this.msgRecuperar='Nenhuma conta com esse e-mail neste celular. Abra uma conta.'; return; }
+      senhasR[email]=nova; localStorage.setItem('chatimov_senhas', JSON.stringify(senhasR));
       localStorage.setItem('chatimov_usuario_senha', nova);
       this.loginSenha = nova; this.msgRecuperar='✅ Nova senha definida! Agora é só fazer login.';
       this.mostrarRecuperar=false; this.novaSenha='';
@@ -1588,7 +1641,7 @@ this.toast('🎉 Webhook Mercado Pago confirmado! Plano '+this.checkoutPlano.toU
       if(!file) return;
       if(this.meuPlano!=='ouro'){ this.toast('🔗 Upload direto só no OURO. No PRATA, cole o link da foto.'); return; }
       const url = await this.uploadParaR2(file, 'perfil-'+Date.now()+'-'+file.name);
-      if(url){ this.perfilForm.foto=url; this.usuarioFoto=url; localStorage.setItem('chatimov_usuario_foto', url); this.toast('✅ Foto de perfil enviada!'); }
+      if(url){ this.perfilForm.foto=url; this.usuarioFoto=url; localStorage.setItem('chatimov_usuario_foto', url); const meF = this.anunciantes.find(a=>a.id==='me'); if(meF) meF.foto=url; try{ const emF = localStorage.getItem('chatimov_usuario_email'); if(emF){ let csF = JSON.parse(localStorage.getItem('chatimov_contas')||'{}'); csF[emF] = {...(csF[emF]||{}), foto: url}; localStorage.setItem('chatimov_contas', JSON.stringify(csF)); } }catch(e){} this.toast('✅ Foto de perfil enviada!'); }
     },
     async onFotoImovelChange(e){
       const files = e.target.files;
