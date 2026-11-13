@@ -132,6 +132,13 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
     <div class="bg-white rounded-full flex items-center gap-2 px-3 py-2">
       <span>🔍</span>
       <input x-model="busca" placeholder="Buscar bairro, imóvel ou corretor..." class="flex-1 text-[14px] text-gray-800 outline-none placeholder:text-gray-400">
+      <div class="flex gap-2 mt-2">
+        <input x-model="cidadeFiltro" @change="carregarImoveisDoBanco()" placeholder="Filtrar cidade: Salvador, Feira..." class="flex-1 border rounded-xl px-3 py-2.5 text-[13px] outline-none">
+        <input x-model="estadoFiltro" @change="carregarImoveisDoBanco()" placeholder="UF: BA" maxlength="2" class="w-[80px] border rounded-xl px-3 py-2.5 text-[13px] uppercase outline-none">
+        <button @click="cidadeFiltro=''; estadoFiltro=''; carregarImoveisDoBanco()" class="bg-gray-100 font-bold px-3 rounded-xl text-[12px]">Limpar</button>
+      </div>
+      <p x-show="carregandoBanco" class="text-[12px] text-gray-500 mt-1">Carregando do banco...</p>
+      <p x-show="!bancoOk && bancoErro" class="text-[12px] text-red-600 font-bold mt-1" x-text="bancoErro"></p>
       <span x-show="busca" @click="busca=''" class="text-gray-400 cursor-pointer">✕</span>
     </div>
     <div class="flex gap-2 mt-2.5 overflow-x-auto pb-0.5">
@@ -438,7 +445,7 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
         <input x-show="loginCadastro" x-model="cadastroNomeUsuario" placeholder="Ex: João Corretor" class="w-full border rounded-xl px-3 py-3 mt-1 text-[14px] outline-none focus:border-waGreen">
         <label class="text-[12px] font-bold block mt-3">E-mail</label>
         <input x-model="loginEmail" type="email" placeholder="Ex: seuemail@gmail.com" class="w-full border rounded-xl px-3 py-3 mt-1 text-[14px] outline-none focus:border-waGreen">
-        <p class="text-[11px] text-gray-400 mt-1">🔒 Seu e-mail é só para entrar. Não aparece no perfil, nem para outros usuários.</p>
+        <p class="text-[11px] text-gray-400 mt-1">🔒 Seu e-mail é só para entrar. Não aparece no perfil, nem para outros usuários. Se você é o dono, configure o banco uma vez: <button @click="let u=prompt('Cole a URL do Worker (ex: https://chatimov-api.seu-nome.workers.dev)', apiBase); if(u){ localStorage.setItem('chatimov_api_url', u.trim()); apiBase=u.trim(); carregarImoveisDoBanco(); toast('✅ Banco configurado!'); }" class="underline font-bold text-waGreen">Configurar banco</button> <span x-show="bancoOk" class="text-emerald-600 font-bold">• Banco conectado ✅</span><span x-show="!bancoOk && bancoErro" class="text-red-600 font-bold" x-text="'• ' + bancoErro"></span></p>
         <label class="text-[12px] font-bold block mt-3">Senha</label>
         <input x-model="loginSenha" type="password" placeholder="Sua senha" class="w-full border rounded-xl px-3 py-3 mt-1 text-[14px] outline-none focus:border-waGreen">
         <button x-show="!loginCadastro" @click="mostrarRecuperar=!mostrarRecuperar" class="text-[12px] font-bold text-waGreen mt-1.5">Esqueci minha senha? Recuperar senha</button>
@@ -452,6 +459,10 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
         </div>
         <label x-show="loginCadastro" class="text-[12px] font-bold block mt-3">WhatsApp</label>
         <input x-show="loginCadastro" x-model="cadastroWhatsapp" type="tel" placeholder="Ex: 5511999991111 (só números, com DDD)" class="w-full border rounded-xl px-3 py-3 mt-1 text-[14px] outline-none focus:border-waGreen">
+        <label x-show="loginCadastro" class="text-[12px] font-bold block mt-3">Sua cidade</label>
+        <input x-show="loginCadastro" x-model="cadastroCidade" placeholder="Ex: Salvador, Feira de Santana, São Paulo" class="w-full border rounded-xl px-3 py-3 mt-1 text-[14px] outline-none focus:border-waGreen">
+        <label x-show="loginCadastro" class="text-[12px] font-bold block mt-3">Seu estado (UF)</label>
+        <input x-show="loginCadastro" x-model="cadastroEstado" placeholder="Ex: BA, SP, RJ" maxlength="2" class="w-full border rounded-xl px-3 py-3 mt-1 text-[14px] uppercase outline-none focus:border-waGreen">
         <div x-show="loginCadastro" class="mt-3">
           <p class="text-[12px] font-bold">Você é:</p>
           <div class="flex gap-2 mt-1.5">
@@ -839,7 +850,7 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
 <script>
 function chatImov(){
 return {
-view:'home', chamadaAtiva:false, salaChamada:'', linkChamada:'', visitanteId:'', promptInstalar:null, baixando:false, corretorOcupado:false, corretorOcupadoSala:null, peer:null, sinalUltimoId:0, chamadaTocando:null, _pollSinal:null, _pollPendentes:null, musicaToque:'seu-audio', _toqueCtx:null, _toqueTimer:null, _toqueOsc:null, apiBase: (localStorage.getItem('chatimov_api_url') || 'https://chatimov-api.seu-subdominio.workers.dev'), gravandoAudio:false, tempoAudio:'00:00', _audioTimer:null, _audioSeg:0, _mediaRecorder:null, _audioChunks:[], tipoChamada:'audio', chamadaStatus:'Chamando...', tempoChamada:'00:00', mutado:false, cameraLigada:true, _callTimer:null, _callStream:null, _callSeg:0, abaAdmin:'imoveis', busca:'', filtro:'', textoChat:'', digitando:false, mostrarAnexo:false, baixarAuto:true, mostrarFlutuanteWhatsApp:false, novoUsuarioNome:'', novoUsuarioWhats:'', novoUsuarioSlug:'', _arquivoRecebendo:null, _arquivoChunks:[], _arquivoRecebido:0, _salaArquivo:'',
+view:'home', chamadaAtiva:false, salaChamada:'', linkChamada:'', visitanteId:'', promptInstalar:null, baixando:false, corretorOcupado:false, corretorOcupadoSala:null, peer:null, sinalUltimoId:0, chamadaTocando:null, _pollSinal:null, _pollPendentes:null, musicaToque:'seu-audio', _toqueCtx:null, _toqueTimer:null, _toqueOsc:null, apiBase: (localStorage.getItem('chatimov_api_url') || 'https://chatimov-api.seu-subdominio.workers.dev'), bancoOk:false, bancoErro:'', carregandoBanco:false, cidadeFiltro:'', estadoFiltro:'', cadastroCidade:'', cadastroEstado:'', gravandoAudio:false, tempoAudio:'00:00', _audioTimer:null, _audioSeg:0, _mediaRecorder:null, _audioChunks:[], tipoChamada:'audio', chamadaStatus:'Chamando...', tempoChamada:'00:00', mutado:false, cameraLigada:true, _callTimer:null, _callStream:null, _callSeg:0, abaAdmin:'imoveis', busca:'', filtro:'', textoChat:'', digitando:false, mostrarAnexo:false, baixarAuto:true, mostrarFlutuanteWhatsApp:false, novoUsuarioNome:'', novoUsuarioWhats:'', novoUsuarioSlug:'', _arquivoRecebendo:null, _arquivoChunks:[], _arquivoRecebido:0, _salaArquivo:'',
 meuPlano:'free', botImovelId:'me-1',
     // ===== LOGIN DO USUÁRIO (corretor) + FOTO DE PERFIL =====
     usuarioLogado: (localStorage.getItem('chatimov_usuario_logado')==='1'),
@@ -904,6 +915,8 @@ init(){
 ];
 // FIFO: mais antigos primeiro (ordem de chegada)
 this.imoveis.sort((a,b)=>a.criado.localeCompare(b.criado));
+this.carregarImoveisDoBanco();
+if(this.usuarioEmail) this.carregarLeadsDoBanco();
       try{ const emF = localStorage.getItem('chatimov_usuario_email'); if(emF==='pagenegocio@gmail.com'){ const uidF='u-pagenegocio'; this.imoveis.forEach(im=>{ if(['me-1','me-2','me-3'].includes(im.id)) im.anunciante_id=uidF; }); } }catch(e){}
     },
 get imoveisFiltrados(){
@@ -1201,11 +1214,18 @@ if(navigator.share) navigator.share({title:this.anuncianteAtual.nome,url}).catch
 else {navigator.clipboard?.writeText(url); this.toast('Link copiado: '+url)}
 },
 registrarMetrica(id,tipo){ /* POST /api/metricas {imovel_id, tipo} -> D1 metricas_cliques */ console.log('metrica',id,tipo)},
-publicarImovel(){
+async publicarImovel(){
 if(!this.novo.titulo||!this.novo.preco||!this.novo.bairro){this.toast('Preencha título, preço e bairro');return}
+if(!this.usuarioEmail){ this.toast('Faça login para anunciar.'); this.view='login'; return; }
+if(!this.apiBase || this.apiBase.includes('seu-subdominio')){ this.toast('Banco não configurado. Toque em Configurar banco.'); return; }
 if(this.meuPlano==='free'&&this.meusImoveis('me').length>=15){this.toast('Limite Free: 15 anúncios. Faça upgrade para ilimitado.'); this.view='planos'; return}
 let id='me-'+Date.now();
-this.imoveis.push({id,anunciante_id:this.idDoMeuAnunciante(),titulo:this.novo.titulo,preco:Number(this.novo.preco),tipo:this.novo.tipo,bairro:this.novo.bairro,cidade:'São Paulo - SP',quartos:Number(this.novo.quartos)||2,banheiros:1,area:Number(this.novo.area)||60,foto:(this.novoFotos.length ? this.novoFotos[0] : 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800&q=80'),fotos:this.novoFotos.length ? this.novoFotos.slice() : ['1'],descricao:this.novo.descricao,criado:new Date().toISOString().slice(0,10),regras:[{pergunta:'Agendar visita',resposta:'Claro! Me fala qual dia e horário prefere que já confirmo.'},{pergunta:'Valor da entrada',resposta:'Posso simular entrada e financiamento para você agora.'}]});
+this.imoveis.push({id,anunciante_id:this.idDoMeuAnunciante(),titulo:this.novo.titulo,preco:Number(this.novo.preco),tipo:this.novo.tipo,bairro:this.novo.bairro,cidade:(this.novo.cidade||this.perfilCidade||'São Paulo') + ' - ' + (this.novo.estado||this.perfilEstado||'SP'),quartos:Number(this.novo.quartos)||2,banheiros:1,area:Number(this.novo.area)||60,foto:(this.novoFotos.length ? this.novoFotos[0] : 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800&q=80'),fotos:this.novoFotos.length ? this.novoFotos.slice() : ['1'],descricao:this.novo.descricao,criado:new Date().toISOString().slice(0,10),regras:[{pergunta:'Agendar visita',resposta:'Claro! Me fala qual dia e horário prefere que já confirmo.'},{pergunta:'Valor da entrada',resposta:'Posso simular entrada e financiamento para você agora.'}]});
+try{
+  const novoIm = this.imoveis[this.imoveis.length-1];
+  await this.apiFetch('/api/imoveis', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({email: this.usuarioEmail, titulo: this.novo.titulo, preco: Number(this.novo.preco), bairro: this.novo.bairro, cidade: this.novo.cidade||this.perfilCidade||'São Paulo', estado: this.novo.estado||this.perfilEstado||'SP', tipo: this.novo.tipo, area: Number(this.novo.area)||60, quartos: Number(this.novo.quartos)||2, banheiros: 1, descricao: this.novo.descricao||'', fotos: this.novoFotos||[]})});
+  await this.carregarImoveisDoBanco();
+}catch(e){ this.toast('Anúncio salvo no celular, mas falhou no banco: ' + e.message); }
 this.novo={titulo:'',preco:'',bairro:'',tipo:'Venda',quartos:2,area:60,foto:'',descricao:''};
 this.abaAdmin='imoveis'; this.toast('✅ Anúncio publicado! Já aparece no feed (FIFO).');
 },
@@ -1543,7 +1563,7 @@ this.toast('🎉 Webhook Mercado Pago confirmado! Plano '+this.checkoutPlano.toU
       const im = this.leadImovel; this.leadImovel=null;
       if(im) this.abrirChatDireto(im);
     },
-    salvarLead(){
+    async salvarLead(){
       const nome = (this.leadNome||'').trim();
       const whats = (this.leadWhatsapp||'').trim().replace(/\D/g,'');
       if(!nome){ this.leadErro='Coloque seu nome.'; return; }
@@ -1553,6 +1573,8 @@ this.toast('🎉 Webhook Mercado Pago confirmado! Plano '+this.checkoutPlano.toU
       const lead = {id:'lead-'+Date.now(), nome, whatsapp: whats, imovel_id: im?im.id:'', imovel_titulo: im?im.titulo:'', corretor_id: an.id, corretor_nome: an.nome, data: new Date().toISOString().slice(0,10)+' '+new Date().toTimeString().slice(0,5)};
       const lista = [...(this.leads||[]), lead];
       this.leads = lista; localStorage.setItem('chatimov_leads', JSON.stringify(lista));
+      // BANCO: contato vai para o corretor DO ANÚNCIO (pelo imovel_id, não por e-mail)
+      try{ await this.apiFetch('/api/leads', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({imovel_id: im?.d1_id || null, imovel_titulo: im?.titulo||'', nome, whatsapp: whats})}); }catch(e){}
       localStorage.setItem('chatimov_lead_nome', nome); localStorage.setItem('chatimov_lead_whatsapp', whats);
       this.mostrarLead=false; this.leadErro=''; this.leadImovel=null;
       if(im) this.abrirChatDireto(im);
@@ -1587,16 +1609,55 @@ this.toast('🎉 Webhook Mercado Pago confirmado! Plano '+this.checkoutPlano.toU
       contas[email] = {nome, slug: slugUrl, slugUser, whatsapp: (whatsapp||'').trim(), tipo: tipo||'corretor', foto: fotoNeutro, bio: bioNovo, capa: '', plano: 'free', link1:'', link2:'', links:[]};
       localStorage.setItem('chatimov_contas', JSON.stringify(contas));
     },
-    async tentarLoginD1(email, senha, isCadastro, nome, whatsapp, tipo){
-      // Tenta o D1 primeiro. Se o Worker não estiver no ar, retorna null e cai no localStorage.
+    async apiFetch(path, opts){
+      const r = await fetch(this.apiBase + path, opts);
+      const j = await r.json().catch(()=>({}));
+      if(!r.ok) throw new Error(j.erro || ('Erro ' + r.status));
+      return j;
+    },
+    async carregarImoveisDoBanco(){
       try{
-        if(!this.apiBase || this.apiBase.includes('seu-subdominio')) return null;
+        this.carregandoBanco = true;
+        if(!this.apiBase || this.apiBase.includes('seu-subdominio')){ this.bancoOk=false; this.bancoErro='Banco não configurado. Cole a URL do Worker em Configurar banco.'; return; }
+        const params = new URLSearchParams();
+        if(this.cidadeFiltro) params.set('cidade', this.cidadeFiltro);
+        if(this.estadoFiltro) params.set('estado', this.estadoFiltro);
+        const lista = await this.apiFetch('/api/imoveis' + (params.toString() ? ('?' + params.toString()) : ''));
+        if(Array.isArray(lista) && lista.length>0){
+          const novos = lista.map(im=>({id:'d1-'+im.id, anunciante_id:'d1-'+im.anunciante_id, d1_id: im.id, d1_anunciante_id: im.anunciante_id, titulo: im.titulo, preco: im.preco, tipo: im.tipo, bairro: im.bairro, cidade: (im.cidade||'') + (im.estado ? ' - '+im.estado : ''), quartos: im.quartos, banheiros: im.banheiros, area: im.area, foto: (JSON.parse(im.fotos_json||'[]')[0] || 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800&q=80'), fotos: JSON.parse(im.fotos_json||'[]'), descricao: im.descricao||'', criado: (im.criado_em||'').slice(0,10), regras:[]}));
+          this.imoveis = novos;
+          lista.forEach(im=>{
+            const uid = 'd1-'+im.anunciante_id;
+            if(!this.anunciantes.find(a=>a.id===uid)){
+              this.anunciantes.push({id: uid, nome: im.anunciante_nome||'', slug: im.slug||'', plano: im.plano||'free', whatsapp: im.whatsapp||'', bio: '', foto: im.foto_perfil||'', capa: '', links: []});
+            }
+          });
+          this.bancoOk = true; this.bancoErro = '';
+        } else if(Array.isArray(lista)){
+          this.bancoOk = true; this.bancoErro = '';
+        }
+      }catch(e){ this.bancoOk=false; this.bancoErro='Banco fora do ar: ' + e.message; }
+      finally{ this.carregandoBanco=false; }
+    },
+    async carregarLeadsDoBanco(){
+      try{
+        if(!this.usuarioEmail) return;
+        const lista = await this.apiFetch('/api/leads?email=' + encodeURIComponent(this.usuarioEmail));
+        if(Array.isArray(lista)){
+          this.leads = lista.map(l=>({id:'d1-'+l.id, nome: l.nome, whatsapp: l.whatsapp, imovel_id: l.imovel_id ? 'd1-'+l.imovel_id : '', imovel_titulo: l.imovel_titulo||'', corretor_id: this.idDoMeuAnunciante(), data: (l.criado_em||'').slice(0,10), corretor_nome: l.corretor_nome||''}));
+        }
+      }catch(e){}
+    },
+    async tentarLoginD1(email, senha, isCadastro, nome, whatsapp, tipo){
+      try{
+        if(!this.apiBase || this.apiBase.includes('seu-subdominio')) return {erro: 'Banco não configurado. Toque em "Configurar banco" e cole a URL do Worker.'};
         const url = isCadastro ? (this.apiBase + '/api/auth/cadastro') : (this.apiBase + '/api/auth/login');
-        const r = await fetch(url, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({email, senha, nome: nome||'', whatsapp: whatsapp||'', tipo: tipo||'corretor'})});
+        const body = isCadastro ? {email, senha, nome: nome||'', whatsapp: whatsapp||'', tipo: tipo||'corretor', cidade: this.cadastroCidade||'', estado: this.cadastroEstado||''} : {email, senha};
+        const r = await fetch(url, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
         const j = await r.json().catch(()=>({}));
-        if(!r.ok || !j.ok) return {erro: j.erro || 'Erro no D1'};
+        if(!r.ok || !j.ok) return {erro: j.erro || 'Erro no banco'};
         return {anunciante: j.anunciante};
-      }catch(e){ return null; }
+      }catch(e){ return {erro: 'Banco fora do ar. Verifique a URL do Worker e tente de novo. (' + e.message + ')'}; }
     },
     async syncPerfilD1(){
       // Salva perfil no D1 sem travar a tela (fire-and-forget)
@@ -1641,58 +1702,13 @@ this.toast('🎉 Webhook Mercado Pago confirmado! Plano '+this.checkoutPlano.toU
           return;
         }
       }
-      // Se o Worker não respondeu (null), cai no localStorage como antes
-      // VÁRIAS CONTAS POR CELULAR: cada e-mail tem sua senha, guardada em chatimov_senhas. Não trava no e-mail antigo.
-      let senhasMap = {}; try{ senhasMap = JSON.parse(localStorage.getItem('chatimov_senhas')||'{}'); }catch(e){ senhasMap={}; }
-      const emailSalvo = localStorage.getItem('chatimov_usuario_email');
-      const senhaSalva = localStorage.getItem('chatimov_usuario_senha');
-      // Migra conta antiga (salva antes, sem mapa) para o mapa, para não perder a conta do pagenegocio
-      if(emailSalvo && senhaSalva && !senhasMap[emailSalvo]){ senhasMap[emailSalvo]=senhaSalva; localStorage.setItem('chatimov_senhas', JSON.stringify(senhasMap)); }
-      if(this.loginCadastro){
-        // ABRIR CONTA: se esse e-mail já tem conta, confere a senha e entra nela, não cria duplicada
-        if(senhasMap[email] && senhasMap[email]!==senha){ this.loginErro='Essa conta já existe. A senha está errada. Toque em "Já tenho conta • Entrar".'; return; }
-      } else {
-        // FAZER LOGIN: pode entrar com QUALQUER conta já aberta neste celular, não só a última
-        if(senhasMap[email]){ if(senhasMap[email]!==senha){ this.loginErro='Senha errada. Tente de novo ou toque em "Esqueci minha senha?".'; return; } }
-        else if(emailSalvo===email && senhaSalva && senhaSalva===senha){ senhasMap[email]=senha; localStorage.setItem('chatimov_senhas', JSON.stringify(senhasMap)); }
-        else { this.loginErro='Nenhuma conta com esse e-mail neste celular. Toque em "Não tenho conta • Abrir conta".'; return; }
+      // BANCO É OBRIGATÓRIO: sem D1, não cria conta no celular. Senão o cara da Bahia cria e ninguém vê.
+      if(d1 && d1.erro){
+        this.loginErro = d1.erro;
+        return;
       }
-      senhasMap[email]=senha; localStorage.setItem('chatimov_senhas', JSON.stringify(senhasMap));
-      // Cadastro novo ou login ok
-      localStorage.setItem('chatimov_usuario_email', email);
-      localStorage.setItem('chatimov_usuario_senha', senha);
-      if(this.loginCadastro && this.cadastroNomeUsuario){
-        const nomeU = this.cadastroNomeUsuario.trim().toLowerCase().replace(/\s+/g,'.');
-        localStorage.setItem('chatimov_nome_usuario', nomeU);
-        this.nomeUsuario = nomeU;
-      }
-      if(this.loginCadastro && this.cadastroWhatsapp){
-        localStorage.setItem('chatimov_whatsapp', this.cadastroWhatsapp.trim());
-        this.perfilWhatsapp = this.cadastroWhatsapp.trim();
-      }
-      if(this.loginCadastro && this.cadastroTipo){
-        localStorage.setItem('chatimov_tipo_conta', this.cadastroTipo);
-      }
-      // Cria / carrega o perfil DESTE usuário, não o do Jean
-      if(this.loginCadastro){
-        this.aplicarContaAoMe(email, this.cadastroNomeUsuario, this.cadastroWhatsapp, this.cadastroTipo, true);
-      } else {
-        let contas = {}; try{ contas = JSON.parse(localStorage.getItem('chatimov_contas')||'{}'); }catch(e){ contas={}; }
-        const c = contas[email];
-        if(c){ this.aplicarContaAoMe(email, c.nome, c.whatsapp, c.tipo); const me2 = this.meuAnunciante(); if(me2 && c.foto) me2.foto=c.foto; if(me2 && c.bio) me2.bio=c.bio; if(me2 && c.capa) me2.capa=c.capa; this.perfilDescricao=c.bio||''; this.usuarioFoto=c.foto||''; }
-        else {
-          // Conta antiga sem registro em contas: monta a partir do nome de usuário salvo
-          const nomeAntigo = (this.nomeUsuario||'').replace(/\./g,' ');
-          if(nomeAntigo) this.aplicarContaAoMe(email, nomeAntigo, this.perfilWhatsapp, 'corretor');
-        }
-      }
-      localStorage.setItem('chatimov_usuario_logado', '1');
-      this.usuarioEmail = email; this.usuarioLogado = true; this.loginErro=''; this.cadastroNomeUsuario=''; this.cadastroWhatsapp=''; this.loginEmail=''; this.loginSenha='';
-      // Foto da CONTA que logou, não a do usuário anterior
-      try{ const csFoto = JSON.parse(localStorage.getItem('chatimov_contas')||'{}'); if(csFoto[email] && csFoto[email].foto){ this.usuarioFoto = csFoto[email].foto; localStorage.setItem('chatimov_usuario_foto', csFoto[email].foto); } else if(this.usuarioFoto){ localStorage.setItem('chatimov_usuario_foto', this.usuarioFoto); } }catch(e){}
-      this.toast('✅ Logado como ' + email);
-      if(email==='pagenegocio@gmail.com'){ this.masterLogado=true; this.adminEmailDono='pagenegocio@gmail.com'; this.masterEmailInput='pagenegocio@gmail.com'; this.masterSenhaDono=senha; } else { this.masterLogado=false; }
-      this.view='admin'; if(this.loginCadastro){ this.abaAdmin='perfil'; } else { this.abaAdmin='imoveis'; }
+      this.loginErro = 'Banco não respondeu. Verifique a URL do Worker em "Configurar banco".';
+      return;
     },
     sairUsuario(){
       this.masterLogado=false;
@@ -1701,20 +1717,18 @@ this.toast('🎉 Webhook Mercado Pago confirmado! Plano '+this.checkoutPlano.toU
       this.toast('Você saiu. Até logo!');
       this.view='login';
     },
-    recuperarSenha(){
+    async recuperarSenha(){
       const email = (this.loginEmail||'').trim().toLowerCase();
       const nova = (this.novaSenha||'').trim();
       if(!email || !email.includes('@')){ this.msgRecuperar='Digite seu e-mail acima primeiro.'; return; }
       if(!nova || nova.length<4){ this.msgRecuperar='Crie uma nova senha com pelo menos 4 letras.'; return; }
-      let senhasR = {}; try{ senhasR = JSON.parse(localStorage.getItem('chatimov_senhas')||'{}'); }catch(e){ senhasR={}; }
-      const emailSalvoR = localStorage.getItem('chatimov_usuario_email');
-      const senhaSalvaR = localStorage.getItem('chatimov_usuario_senha');
-      if(emailSalvoR && senhaSalvaR && !senhasR[emailSalvoR]) senhasR[emailSalvoR]=senhaSalvaR;
-      if(!senhasR[email] && !(emailSalvoR===email)){ this.msgRecuperar='Nenhuma conta com esse e-mail neste celular. Abra uma conta.'; return; }
-      senhasR[email]=nova; localStorage.setItem('chatimov_senhas', JSON.stringify(senhasR));
-      localStorage.setItem('chatimov_usuario_senha', nova);
-      this.loginSenha = nova; this.msgRecuperar='✅ Nova senha definida! Agora é só fazer login.';
-      this.mostrarRecuperar=false; this.novaSenha='';
+      try{
+        const r = await fetch(this.apiBase + '/api/auth/recuperar', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({email, novaSenha: nova})});
+        const j = await r.json().catch(()=>({}));
+        if(!r.ok || !j.ok){ this.msgRecuperar = j.erro || 'Erro no banco.'; return; }
+        this.loginSenha = nova; this.msgRecuperar='✅ Nova senha definida no banco! Agora é só fazer login.';
+        this.mostrarRecuperar=false; this.novaSenha='';
+      }catch(e){ this.msgRecuperar='Banco fora do ar: ' + e.message; }
     },
     async onFotoPerfilChange(e){
       const file = e.target.files && e.target.files[0];
