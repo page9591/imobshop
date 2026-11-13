@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- ChatImov - DONO: troque a URL do Worker em 1 lugar: procure por apiBase no arquivo e cole sua URL real. Publico nao ve isso. -->
+<!-- ChatImov - DONO: troque a URL do Worker em 1 lugar: URL real já colocada: imobchat-api.pagenegocio.workers.dev. Publico nao ve isso. -->
 <html lang="pt-BR">
 <head><style>
 @font-face {
@@ -844,7 +844,7 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
 <script>
 function chatImov(){
 return {
-view:'home', chamadaAtiva:false, salaChamada:'', linkChamada:'', visitanteId:'', promptInstalar:null, baixando:false, corretorOcupado:false, corretorOcupadoSala:null, peer:null, sinalUltimoId:0, chamadaTocando:null, _pollSinal:null, _pollPendentes:null, musicaToque:'seu-audio', _toqueCtx:null, _toqueTimer:null, _toqueOsc:null, apiBase: 'https://chatimov-api.seu-subdominio.workers.dev', bancoOk:false, bancoErro:'', carregandoBanco:false, cidadeFiltro:'', estadoFiltro:'', cadastroCidade:'', cadastroEstado:'', gravandoAudio:false, tempoAudio:'00:00', _audioTimer:null, _audioSeg:0, _mediaRecorder:null, _audioChunks:[], tipoChamada:'audio', chamadaStatus:'Chamando...', tempoChamada:'00:00', mutado:false, cameraLigada:true, _callTimer:null, _callStream:null, _callSeg:0, abaAdmin:'imoveis', busca:'', filtro:'', textoChat:'', digitando:false, mostrarAnexo:false, baixarAuto:true, mostrarFlutuanteWhatsApp:false, novoUsuarioNome:'', novoUsuarioWhats:'', novoUsuarioSlug:'', _arquivoRecebendo:null, _arquivoChunks:[], _arquivoRecebido:0, _salaArquivo:'',
+view:'home', chamadaAtiva:false, salaChamada:'', linkChamada:'', visitanteId:'', promptInstalar:null, baixando:false, corretorOcupado:false, corretorOcupadoSala:null, peer:null, sinalUltimoId:0, chamadaTocando:null, _pollSinal:null, _pollPendentes:null, musicaToque:'seu-audio', _toqueCtx:null, _toqueTimer:null, _toqueOsc:null, apiBase: 'https://imobchat-api.pagenegocio.workers.dev', bancoOk:false, bancoErro:'', carregandoBanco:false, cidadeFiltro:'', estadoFiltro:'', cadastroCidade:'', cadastroEstado:'', gravandoAudio:false, tempoAudio:'00:00', _audioTimer:null, _audioSeg:0, _mediaRecorder:null, _audioChunks:[], tipoChamada:'audio', chamadaStatus:'Chamando...', tempoChamada:'00:00', mutado:false, cameraLigada:true, _callTimer:null, _callStream:null, _callSeg:0, abaAdmin:'imoveis', busca:'', filtro:'', textoChat:'', digitando:false, mostrarAnexo:false, baixarAuto:true, mostrarFlutuanteWhatsApp:false, novoUsuarioNome:'', novoUsuarioWhats:'', novoUsuarioSlug:'', _arquivoRecebendo:null, _arquivoChunks:[], _arquivoRecebido:0, _salaArquivo:'',
 meuPlano:'free', botImovelId:'me-1',
     // ===== LOGIN DO USUÁRIO (corretor) + FOTO DE PERFIL =====
     usuarioLogado: (localStorage.getItem('chatimov_usuario_logado')==='1'),
@@ -1696,7 +1696,49 @@ this.toast('🎉 Webhook Mercado Pago confirmado! Plano '+this.checkoutPlano.toU
           return;
         }
       }
-      // BANCO É OBRIGATÓRIO: sem D1, não cria conta no celular. Senão o cara da Bahia cria e ninguém vê.
+      // SE O BANCO NÃO ESTÁ CONFIGURADO AINDA (Worker com URL de exemplo), usa o celular pra não travar você.
+      // Quando você configurar o Worker de verdade, ele volta a usar o banco sozinho.
+      if(this.apiBase && this.apiBase.includes('seu-subdominio')){
+        // MODO SEM BANCO - funciona agora, no seu celular, sem Cloudflare
+        let senhasMap = {};
+        try{ senhasMap = JSON.parse(localStorage.getItem('chatimov_senhas')||'{}'); }catch(e){ senhasMap={}; }
+        const emailSalvo = localStorage.getItem('chatimov_usuario_email');
+        const senhaSalva = localStorage.getItem('chatimov_usuario_senha');
+        if(emailSalvo && senhaSalva && !senhasMap[emailSalvo]) senhasMap[emailSalvo]=senhaSalva;
+        if(this.loginCadastro){
+          if(senhasMap[email]){ this.loginErro='Essa conta já existe. Toque em "Já tenho conta • Fazer login".'; return; }
+          senhasMap[email]=senha; localStorage.setItem('chatimov_senhas', JSON.stringify(senhasMap));
+          localStorage.setItem('chatimov_usuario_email', email);
+          localStorage.setItem('chatimov_usuario_senha', senha);
+          if(this.cadastroNomeUsuario){ const nomeU = this.cadastroNomeUsuario.trim().toLowerCase().replace(/\s+/g,'.'); localStorage.setItem('chatimov_nome_usuario', nomeU); this.nomeUsuario = nomeU; }
+          if(this.cadastroWhatsapp){ localStorage.setItem('chatimov_whatsapp', this.cadastroWhatsapp.trim()); this.perfilWhatsapp = this.cadastroWhatsapp.trim(); }
+          if(this.cadastroTipo){ localStorage.setItem('chatimov_tipo_conta', this.cadastroTipo); }
+          this.aplicarContaAoMe(email, this.cadastroNomeUsuario, this.cadastroWhatsapp, this.cadastroTipo, true);
+        } else {
+          if(senhasMap[email] && senhasMap[email]===senha){
+            senhasMap[email]=senha; localStorage.setItem('chatimov_senhas', JSON.stringify(senhasMap));
+            localStorage.setItem('chatimov_usuario_email', email);
+            localStorage.setItem('chatimov_usuario_senha', senha);
+            let contas = {}; try{ contas = JSON.parse(localStorage.getItem('chatimov_contas')||'{}'); }catch(e){ contas={}; }
+            const c = contas[email];
+            if(c){ this.aplicarContaAoMe(email, c.nome, c.whatsapp, c.tipo); const me2 = this.meuAnunciante(); if(me2 && c.foto) me2.foto=c.foto; if(me2 && c.bio) me2.bio=c.bio; if(me2 && c.capa) me2.capa=c.capa; }
+            else { const nomeAntigo = (this.nomeUsuario||'').replace(/\./g,' '); if(nomeAntigo) this.aplicarContaAoMe(email, nomeAntigo, this.perfilWhatsapp, 'corretor'); }
+          } else if(senhasMap[email]){
+            this.loginErro='Senha errada. Tente de novo ou toque em "Esqueci minha senha?".'; return;
+          } else {
+            this.loginErro='Nenhuma conta com esse e-mail neste celular. Toque em "Não tenho conta • Abrir conta".'; return;
+          }
+        }
+        localStorage.setItem('chatimov_usuario_logado', '1');
+        this.usuarioEmail = email; this.usuarioLogado = true; this.loginErro='';
+        try{ const csFoto = JSON.parse(localStorage.getItem('chatimov_contas')||'{}'); if(csFoto[email] && csFoto[email].foto){ this.usuarioFoto = csFoto[email].foto; localStorage.setItem('chatimov_usuario_foto', csFoto[email].foto); } }catch(e){}
+        this.toast('✅ Logado como ' + email);
+        if(email==='pagenegocio@gmail.com'){ this.masterLogado=true; this.adminEmailDono='pagenegocio@gmail.com'; this.masterEmailInput='pagenegocio@gmail.com'; this.masterSenhaDono=senha; } else { this.masterLogado=false; }
+        this.view='admin'; this.abaAdmin = this.loginCadastro ? 'perfil' : 'imoveis';
+        this.cadastroNomeUsuario=''; this.cadastroWhatsapp=''; this.loginEmail=''; this.loginSenha='';
+        return;
+      }
+      // Banco configurado mas deu erro de verdade
       if(d1 && d1.erro){
         this.loginErro = d1.erro;
         return;
@@ -1716,6 +1758,15 @@ this.toast('🎉 Webhook Mercado Pago confirmado! Plano '+this.checkoutPlano.toU
       const nova = (this.novaSenha||'').trim();
       if(!email || !email.includes('@')){ this.msgRecuperar='Digite seu e-mail acima primeiro.'; return; }
       if(!nova || nova.length<4){ this.msgRecuperar='Crie uma nova senha com pelo menos 4 letras.'; return; }
+      // Se o banco ainda não está configurado, recupera no celular mesmo
+      if(this.apiBase && this.apiBase.includes('seu-subdominio')){
+        let sr = {}; try{ sr = JSON.parse(localStorage.getItem('chatimov_senhas')||'{}'); }catch(e){ sr={}; }
+        if(!sr[email] && localStorage.getItem('chatimov_usuario_email')!==email){ this.msgRecuperar='Nenhuma conta com esse e-mail neste celular. Abra uma conta.'; return; }
+        sr[email]=nova; localStorage.setItem('chatimov_senhas', JSON.stringify(sr));
+        localStorage.setItem('chatimov_usuario_senha', nova);
+        this.loginSenha = nova; this.msgRecuperar='✅ Nova senha definida! Agora é só fazer login.';
+        this.mostrarRecuperar=false; this.novaSenha=''; return;
+      }
       try{
         const r = await fetch(this.apiBase + '/api/auth/recuperar', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({email, novaSenha: nova})});
         const j = await r.json().catch(()=>({}));
