@@ -132,13 +132,7 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
     <div class="bg-white rounded-full flex items-center gap-2 px-3 py-2">
       <span>🔍</span>
       <input x-model="busca" placeholder="Buscar bairro, imóvel ou corretor..." class="flex-1 text-[14px] text-gray-800 outline-none placeholder:text-gray-400">
-      <div class="flex gap-2 mt-2">
-        <input x-model="cidadeFiltro" @change="carregarImoveisDoBanco()" placeholder="Filtrar cidade: Salvador, Feira..." class="flex-1 border rounded-xl px-3 py-2.5 text-[13px] outline-none">
-        <input x-model="estadoFiltro" @change="carregarImoveisDoBanco()" placeholder="UF: BA" maxlength="2" class="w-[80px] border rounded-xl px-3 py-2.5 text-[13px] uppercase outline-none">
-        <button @click="cidadeFiltro=''; estadoFiltro=''; carregarImoveisDoBanco()" class="bg-gray-100 font-bold px-3 rounded-xl text-[12px]">Limpar</button>
-      </div>
-      <p x-show="carregandoBanco" class="text-[12px] text-gray-500 mt-1">Carregando do banco...</p>
-      <p x-show="!bancoOk && bancoErro" class="text-[12px] text-red-600 font-bold mt-1" x-text="bancoErro"></p>
+
       <span x-show="busca" @click="busca=''" class="text-gray-400 cursor-pointer">✕</span>
     </div>
     <div class="flex gap-2 mt-2.5 overflow-x-auto pb-0.5">
@@ -245,7 +239,7 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
     <p class="text-[13px] text-white/85 mt-1">Comece grátis com até 15 anúncios + chatbot por anúncio. Upgrade para Prata e Ouro com Mercado Pago.</p>
     <div class="flex gap-2 mt-3"><button @click="irParaAnunciar()" class="flex-1 bg-white text-waDark font-bold py-2 rounded-full text-[13px]">Criar anúncio grátis</button><button @click="view='planos'" class="flex-1 bg-waLight text-white font-bold py-2 rounded-full text-[13px]">Ver Planos</button></div>
   </div>
-  <p class="text-center text-[11px] text-gray-400 px-4 pb-2">ChatImov • Cloudflare Pages + D1 + R2 • Pagamentos via Mercado Pago • Feito para mobile</p>
+  <p class="text-center text-[11px] text-gray-400 px-4 pb-2">ChatImov • Seu próximo lar começa numa conversa • Feito para mobile</p>
 </section>
 
 <!-- ================= PERFIL / CATÁLOGO ================= -->
@@ -445,7 +439,7 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
         <input x-show="loginCadastro" x-model="cadastroNomeUsuario" placeholder="Ex: João Corretor" class="w-full border rounded-xl px-3 py-3 mt-1 text-[14px] outline-none focus:border-waGreen">
         <label class="text-[12px] font-bold block mt-3">E-mail</label>
         <input x-model="loginEmail" type="email" placeholder="Ex: seuemail@gmail.com" class="w-full border rounded-xl px-3 py-3 mt-1 text-[14px] outline-none focus:border-waGreen">
-        <p class="text-[11px] text-gray-400 mt-1">🔒 Seu e-mail é só para entrar. Não aparece no perfil, nem para outros usuários. Se você é o dono, configure o banco uma vez: <button @click="let u=prompt('Cole a URL do Worker (ex: https://chatimov-api.seu-nome.workers.dev)', apiBase); if(u){ localStorage.setItem('chatimov_api_url', u.trim()); apiBase=u.trim(); carregarImoveisDoBanco(); toast('✅ Banco configurado!'); }" class="underline font-bold text-waGreen">Configurar banco</button> <span x-show="bancoOk" class="text-emerald-600 font-bold">• Banco conectado ✅</span><span x-show="!bancoOk && bancoErro" class="text-red-600 font-bold" x-text="'• ' + bancoErro"></span></p>
+        <p class="text-[11px] text-gray-400 mt-1">🔒 Seu e-mail é só para entrar. Não aparece no perfil, nem para outros usuários.</p>
         <label class="text-[12px] font-bold block mt-3">Senha</label>
         <input x-model="loginSenha" type="password" placeholder="Sua senha" class="w-full border rounded-xl px-3 py-3 mt-1 text-[14px] outline-none focus:border-waGreen">
         <button x-show="!loginCadastro" @click="mostrarRecuperar=!mostrarRecuperar" class="text-[12px] font-bold text-waGreen mt-1.5">Esqueci minha senha? Recuperar senha</button>
@@ -575,7 +569,7 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
       </div>
       <textarea x-model="novo.descricao" placeholder="Descrição completa do imóvel..." rows="3" class="w-full border rounded-xl px-3 py-2.5 text-[14px]"></textarea>
       <button @click="publicarImovel()" class="w-full bg-waGreen text-white font-bold py-3 rounded-full">🚀 Publicar anúncio (FIFO)</button>
-      <p class="text-[11px] text-gray-400 text-center">No deploy real, a foto sobe para o R2 via Worker e a URL salva no D1.</p>
+      <p class="text-[11px] text-gray-400 text-center">Sua foto fica salva com seu anúncio.</p>
     </div>
 
     <!-- Leads que caíram na conta do corretor -->
@@ -757,7 +751,7 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
     <ul class="text-[13px] space-y-1.5 mt-3 font-medium"><li>✓ Tudo do Prata +</li><li>✓ 📸 Fotos ilimitadas por anúncio</li><li>✓ SEO Avançado — Palavras-chave, título e descrição para Google</li><li>✓ Integração com portais externos (VivaReal, Zap, OLX)</li><li>✓ Perfil completo com capa + máxima personalização</li><li>✓ Prioridade no feed (selo OURO)</li></ul>
     <button @click="iniciarCheckout('ouro')" class="w-full mt-3 bg-black text-white py-3 rounded-full font-extrabold">⭐ Assinar Ouro • Mercado Pago</button>
   </div>
-  <div class="bg-blue-50 border border-blue-100 rounded-2xl p-3 text-[12px] text-blue-800"><b>Como funciona o pagamento?</b><br>1. Você clica em Assinar → 2. Escolhe Pix ou Cartão no Mercado Pago → 3. Webhook confirma o pagamento → 4. D1 atualiza seu plano de <b>free → prata/ouro</b> e libera métricas, capa e SEO na hora.</div>
+  <div class="bg-blue-50 border border-blue-100 rounded-2xl p-3 text-[12px] text-blue-800"><b>Como funciona o pagamento?</b><br>1. Você clica em Assinar → 2. Escolhe Pix ou Cartão no Mercado Pago → 3. Pagamento confirmado → 4. Seu plano atualiza de <b>free → prata/ouro</b> e libera métricas, capa e SEO na hora.</div>
 </section>
 
 <!-- ================= CHECKOUT MERCADO PAGO ================= -->
@@ -773,8 +767,8 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
     <div x-show="metodo==='pix'" class="mt-3 bg-white border rounded-xl p-3 text-center"><div class="w-32 h-32 mx-auto bg-gray-900 rounded-lg flex items-center justify-center text-white text-[10px] text-center p-2">QR CODE PIX<br>Mercado Pago<br><span x-text="checkoutPlano"></span></div><p class="text-[12px] text-gray-500 mt-2">Escaneie no app do seu banco ou copie o código abaixo</p><p class="text-[11px] bg-gray-100 rounded-lg p-2 mt-1 break-all">00020126...MP-CHATIMOV-<span x-text="checkoutPlano"></span>-PIX</p></div>
     <div x-show="metodo==='cartao'" class="mt-3 space-y-2"><input placeholder="Número do cartão • 4111 1111 1111 1111" class="w-full border rounded-xl px-3 py-2.5"><div class="grid grid-cols-2 gap-2"><input placeholder="Validade MM/AA" class="border rounded-xl px-3 py-2.5"><input placeholder="CVV" class="border rounded-xl px-3 py-2.5"></div><input placeholder="Nome no cartão" class="w-full border rounded-xl px-3 py-2.5"></div>
     <button @click="confirmarPagamento()" :disabled="pagando" class="w-full mt-4 bg-[#009EE3] text-white font-extrabold py-3.5 rounded-full disabled:opacity-60"><span x-show="!pagando">Pagar <span x-text="checkoutPlano==='prata'?'R$ 29,90':'R$ 89,90'"></span> com Mercado Pago</span><span x-show="pagando">Processando pagamento... ⏳</span></button>
-    <p class="text-[11px] text-gray-400 text-center mt-2">Demo: ao confirmar, simulamos o webhook do Mercado Pago → D1 atualiza o plano.</p>
-    <div x-show="pagamentoOk" class="mt-3 bg-emerald-50 border border-emerald-200 rounded-xl p-3 text-center"><p class="text-2xl">✅</p><p class="font-bold text-emerald-800">Pagamento aprovado!</p><p class="text-[12px] text-emerald-700">Webhook recebido • D1 atualizado: free → <span x-text="checkoutPlano"></span> • Métricas, capa e SEO liberados.</p><button @click="view='admin'; abaAdmin='metricas'; pagamentoOk=false" class="mt-2 bg-waDark text-white px-4 py-2 rounded-full text-[13px] font-bold">Ir para meu painel →</button></div>
+    <p class="text-[11px] text-gray-400 text-center mt-2">Demo: ao confirmar, simulamos a confirmação do pagamento.</p>
+    <div x-show="pagamentoOk" class="mt-3 bg-emerald-50 border border-emerald-200 rounded-xl p-3 text-center"><p class="text-2xl">✅</p><p class="font-bold text-emerald-800">Pagamento aprovado!</p><p class="text-[12px] text-emerald-700">Pagamento confirmado • Plano atualizado: free → <span x-text="checkoutPlano"></span> • Métricas, capa e SEO liberados.</p><button @click="view='admin'; abaAdmin='metricas'; pagamentoOk=false" class="mt-2 bg-waDark text-white px-4 py-2 rounded-full text-[13px] font-bold">Ir para meu painel →</button></div>
   </div>
 </section>
 
@@ -850,7 +844,7 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
 <script>
 function chatImov(){
 return {
-view:'home', chamadaAtiva:false, salaChamada:'', linkChamada:'', visitanteId:'', promptInstalar:null, baixando:false, corretorOcupado:false, corretorOcupadoSala:null, peer:null, sinalUltimoId:0, chamadaTocando:null, _pollSinal:null, _pollPendentes:null, musicaToque:'seu-audio', _toqueCtx:null, _toqueTimer:null, _toqueOsc:null, apiBase: (localStorage.getItem('chatimov_api_url') || 'https://chatimov-api.seu-subdominio.workers.dev'), bancoOk:false, bancoErro:'', carregandoBanco:false, cidadeFiltro:'', estadoFiltro:'', cadastroCidade:'', cadastroEstado:'', gravandoAudio:false, tempoAudio:'00:00', _audioTimer:null, _audioSeg:0, _mediaRecorder:null, _audioChunks:[], tipoChamada:'audio', chamadaStatus:'Chamando...', tempoChamada:'00:00', mutado:false, cameraLigada:true, _callTimer:null, _callStream:null, _callSeg:0, abaAdmin:'imoveis', busca:'', filtro:'', textoChat:'', digitando:false, mostrarAnexo:false, baixarAuto:true, mostrarFlutuanteWhatsApp:false, novoUsuarioNome:'', novoUsuarioWhats:'', novoUsuarioSlug:'', _arquivoRecebendo:null, _arquivoChunks:[], _arquivoRecebido:0, _salaArquivo:'',
+view:'home', chamadaAtiva:false, salaChamada:'', linkChamada:'', visitanteId:'', promptInstalar:null, baixando:false, corretorOcupado:false, corretorOcupadoSala:null, peer:null, sinalUltimoId:0, chamadaTocando:null, _pollSinal:null, _pollPendentes:null, musicaToque:'seu-audio', _toqueCtx:null, _toqueTimer:null, _toqueOsc:null, apiBase: 'https://chatimov-api.seu-subdominio.workers.dev', bancoOk:false, bancoErro:'', carregandoBanco:false, cidadeFiltro:'', estadoFiltro:'', cadastroCidade:'', cadastroEstado:'', gravandoAudio:false, tempoAudio:'00:00', _audioTimer:null, _audioSeg:0, _mediaRecorder:null, _audioChunks:[], tipoChamada:'audio', chamadaStatus:'Chamando...', tempoChamada:'00:00', mutado:false, cameraLigada:true, _callTimer:null, _callStream:null, _callSeg:0, abaAdmin:'imoveis', busca:'', filtro:'', textoChat:'', digitando:false, mostrarAnexo:false, baixarAuto:true, mostrarFlutuanteWhatsApp:false, novoUsuarioNome:'', novoUsuarioWhats:'', novoUsuarioSlug:'', _arquivoRecebendo:null, _arquivoChunks:[], _arquivoRecebido:0, _salaArquivo:'',
 meuPlano:'free', botImovelId:'me-1',
     // ===== LOGIN DO USUÁRIO (corretor) + FOTO DE PERFIL =====
     usuarioLogado: (localStorage.getItem('chatimov_usuario_logado')==='1'),
@@ -1217,7 +1211,7 @@ registrarMetrica(id,tipo){ /* POST /api/metricas {imovel_id, tipo} -> D1 metrica
 async publicarImovel(){
 if(!this.novo.titulo||!this.novo.preco||!this.novo.bairro){this.toast('Preencha título, preço e bairro');return}
 if(!this.usuarioEmail){ this.toast('Faça login para anunciar.'); this.view='login'; return; }
-if(!this.apiBase || this.apiBase.includes('seu-subdominio')){ this.toast('Banco não configurado. Toque em Configurar banco.'); return; }
+if(!this.apiBase || this.apiBase.includes('seu-subdominio')){ this.toast('Ops, tente de novo em um instante.'); return; }
 if(this.meuPlano==='free'&&this.meusImoveis('me').length>=15){this.toast('Limite Free: 15 anúncios. Faça upgrade para ilimitado.'); this.view='planos'; return}
 let id='me-'+Date.now();
 this.imoveis.push({id,anunciante_id:this.idDoMeuAnunciante(),titulo:this.novo.titulo,preco:Number(this.novo.preco),tipo:this.novo.tipo,bairro:this.novo.bairro,cidade:(this.novo.cidade||this.perfilCidade||'São Paulo') + ' - ' + (this.novo.estado||this.perfilEstado||'SP'),quartos:Number(this.novo.quartos)||2,banheiros:1,area:Number(this.novo.area)||60,foto:(this.novoFotos.length ? this.novoFotos[0] : 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800&q=80'),fotos:this.novoFotos.length ? this.novoFotos.slice() : ['1'],descricao:this.novo.descricao,criado:new Date().toISOString().slice(0,10),regras:[{pergunta:'Agendar visita',resposta:'Claro! Me fala qual dia e horário prefere que já confirmo.'},{pergunta:'Valor da entrada',resposta:'Posso simular entrada e financiamento para você agora.'}]});
@@ -1618,10 +1612,10 @@ this.toast('🎉 Webhook Mercado Pago confirmado! Plano '+this.checkoutPlano.toU
     async carregarImoveisDoBanco(){
       try{
         this.carregandoBanco = true;
-        if(!this.apiBase || this.apiBase.includes('seu-subdominio')){ this.bancoOk=false; this.bancoErro='Banco não configurado. Cole a URL do Worker em Configurar banco.'; return; }
+        if(!this.apiBase || this.apiBase.includes('seu-subdominio')){ this.bancoOk=false; this.bancoErro=''; return; }
         const params = new URLSearchParams();
-        if(this.cidadeFiltro) params.set('cidade', this.cidadeFiltro);
-        if(this.estadoFiltro) params.set('estado', this.estadoFiltro);
+        // A busca linda já filtra cidade: se digitar 'Salvador', busca no banco por Salvador
+        if(this.busca) params.set('busca', this.busca);
         const lista = await this.apiFetch('/api/imoveis' + (params.toString() ? ('?' + params.toString()) : ''));
         if(Array.isArray(lista) && lista.length>0){
           const novos = lista.map(im=>({id:'d1-'+im.id, anunciante_id:'d1-'+im.anunciante_id, d1_id: im.id, d1_anunciante_id: im.anunciante_id, titulo: im.titulo, preco: im.preco, tipo: im.tipo, bairro: im.bairro, cidade: (im.cidade||'') + (im.estado ? ' - '+im.estado : ''), quartos: im.quartos, banheiros: im.banheiros, area: im.area, foto: (JSON.parse(im.fotos_json||'[]')[0] || 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800&q=80'), fotos: JSON.parse(im.fotos_json||'[]'), descricao: im.descricao||'', criado: (im.criado_em||'').slice(0,10), regras:[]}));
@@ -1636,7 +1630,7 @@ this.toast('🎉 Webhook Mercado Pago confirmado! Plano '+this.checkoutPlano.toU
         } else if(Array.isArray(lista)){
           this.bancoOk = true; this.bancoErro = '';
         }
-      }catch(e){ this.bancoOk=false; this.bancoErro='Banco fora do ar: ' + e.message; }
+      }catch(e){ this.bancoOk=false; this.bancoErro=''; }
       finally{ this.carregandoBanco=false; }
     },
     async carregarLeadsDoBanco(){
@@ -1650,14 +1644,14 @@ this.toast('🎉 Webhook Mercado Pago confirmado! Plano '+this.checkoutPlano.toU
     },
     async tentarLoginD1(email, senha, isCadastro, nome, whatsapp, tipo){
       try{
-        if(!this.apiBase || this.apiBase.includes('seu-subdominio')) return {erro: 'Banco não configurado. Toque em "Configurar banco" e cole a URL do Worker.'};
+        if(!this.apiBase || this.apiBase.includes('seu-subdominio')) return {erro: 'Ops, tente de novo em um instante.'};
         const url = isCadastro ? (this.apiBase + '/api/auth/cadastro') : (this.apiBase + '/api/auth/login');
         const body = isCadastro ? {email, senha, nome: nome||'', whatsapp: whatsapp||'', tipo: tipo||'corretor', cidade: this.cadastroCidade||'', estado: this.cadastroEstado||''} : {email, senha};
         const r = await fetch(url, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
         const j = await r.json().catch(()=>({}));
-        if(!r.ok || !j.ok) return {erro: j.erro || 'Erro no banco'};
+        if(!r.ok || !j.ok) return {erro: j.erro || 'Ops, tente de novo em um instante.'};
         return {anunciante: j.anunciante};
-      }catch(e){ return {erro: 'Banco fora do ar. Verifique a URL do Worker e tente de novo. (' + e.message + ')'}; }
+      }catch(e){ return {erro: 'Ops, tente de novo em um instante.'}; }
     },
     async syncPerfilD1(){
       // Salva perfil no D1 sem travar a tela (fire-and-forget)
@@ -1707,7 +1701,7 @@ this.toast('🎉 Webhook Mercado Pago confirmado! Plano '+this.checkoutPlano.toU
         this.loginErro = d1.erro;
         return;
       }
-      this.loginErro = 'Banco não respondeu. Verifique a URL do Worker em "Configurar banco".';
+      this.loginErro = 'Ops, tente de novo em um instante.';
       return;
     },
     sairUsuario(){
@@ -1728,7 +1722,7 @@ this.toast('🎉 Webhook Mercado Pago confirmado! Plano '+this.checkoutPlano.toU
         if(!r.ok || !j.ok){ this.msgRecuperar = j.erro || 'Erro no banco.'; return; }
         this.loginSenha = nova; this.msgRecuperar='✅ Nova senha definida no banco! Agora é só fazer login.';
         this.mostrarRecuperar=false; this.novaSenha='';
-      }catch(e){ this.msgRecuperar='Banco fora do ar: ' + e.message; }
+      }catch(e){ this.msgRecuperar='Ops, tente de novo em um instante.'; }
     },
     async onFotoPerfilChange(e){
       const file = e.target.files && e.target.files[0];
