@@ -154,11 +154,11 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
         </div>
         <!-- TOPO BONITO: LIGAR + VÍDEO grandes, coloridos, igual WhatsApp - NÃO é o cinza feio pequeno -->
         <div class="flex items-center gap-2 shrink-0">
-          <button @click="iniciarChamada('audio')" title="Ligar - Chamada de voz" style="background:#ffffff;color:#075E54;box-shadow:0 3px 12px rgba(0,0,0,.35);border:2px solid #25D366;" class="flex items-center gap-1.5 font-extrabold text-[12px] pl-1.5 pr-3 py-2.5 rounded-full active:scale-95 transition">
+          <button @click="document.getElementById('telaChamada').style.display='flex'; iniciarChamada('audio')" title="Ligar - Chamada de voz" style="background:#ffffff;color:#075E54;box-shadow:0 3px 12px rgba(0,0,0,.35);border:2px solid #25D366;" class="flex items-center gap-1.5 font-extrabold text-[12px] pl-1.5 pr-3 py-2.5 rounded-full active:scale-95 transition">
             <span style="background:#25D366;" class="w-[28px] h-[28px] rounded-full flex items-center justify-center text-[16px] leading-none">📞</span>
             LIGAR
           </button>
-          <button @click="iniciarChamada('video')" title="Chamada de vídeo" style="background:#2563EB;color:#ffffff;box-shadow:0 3px 12px rgba(0,0,0,.35);border:2px solid #ffffff;" class="flex items-center gap-1.5 font-extrabold text-[12px] pl-1.5 pr-3 py-2.5 rounded-full active:scale-95 transition">
+          <button @click="document.getElementById('telaChamada').style.display='flex'; iniciarChamada('video')" title="Chamada de vídeo" style="background:#2563EB;color:#ffffff;box-shadow:0 3px 12px rgba(0,0,0,.35);border:2px solid #ffffff;" class="flex items-center gap-1.5 font-extrabold text-[12px] pl-1.5 pr-3 py-2.5 rounded-full active:scale-95 transition">
             <span style="background:#ffffff;" class="w-[28px] h-[28px] rounded-full flex items-center justify-center text-[16px] leading-none">📹</span>
             VÍDEO
           </button>
@@ -794,7 +794,7 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
 <audio id="toqueChamadaAudio" src="toque-chamada.oga" loop preload="auto" style="display:none"></audio>
 <!-- ================= MODAL DE CHAMADA - SIMPLES COMO ANTES ================= -->
 <!-- Só foto/nome, vídeo se for vídeo, e 3 botões embaixo. Sem card de música, sem copiar link, sem card de sala. -->
-<div x-show="chamadaAtiva" x-cloak class="absolute inset-0 z-[100] bg-[#0b141a] flex flex-col text-white">
+<div id="telaChamada" class="absolute inset-0 z-[100] bg-[#0b141a] flex flex-col text-white" style="display:none">
   <div class="shrink-0 flex items-center justify-between px-4 py-3">
     <div class="flex items-center gap-3">
       <img :src="anuncianteDo(imovelAtual)?.foto" class="w-11 h-11 rounded-full object-cover border-2 border-white/30">
@@ -1208,7 +1208,7 @@ this.toast('🎉 Webhook Mercado Pago confirmado! Plano '+this.checkoutPlano.toU
 },
 
     async iniciarChamada(tipo){
-       // ABRE A TELA NA HORA - antes de qualquer fetch, para nao travar
+       try{document.getElementById('telaChamada').style.display='flex';}catch(e){} // ABRE A TELA NA HORA - antes de qualquer fetch, para nao travar
        if(!this.visitanteId){ this.visitanteId = localStorage.getItem('chatimov_visitante') || ('v-' + Math.random().toString(36).slice(2,8)); localStorage.setItem('chatimov_visitante', this.visitanteId); }
        const an = this.anuncianteDo(this.imovelAtual);
        const codigo = Math.random().toString(36).slice(2,6);
@@ -1289,7 +1289,7 @@ this.toast('🎉 Webhook Mercado Pago confirmado! Plano '+this.checkoutPlano.toU
       }, 900);
     },
     async aceitarChamada(){
-      if(!this.chamadaTocando) return;
+      try{document.getElementById('telaChamada').style.display='flex';}catch(e){} if(!this.chamadaTocando) return;
       const info = this.chamadaTocando;
       this.salaChamada = info.sala;
       this.tipoChamada = info.tipo;
@@ -1582,7 +1582,7 @@ this.toast('🎉 Webhook Mercado Pago confirmado! Plano '+this.checkoutPlano.toU
       setTimeout(()=>{ this.baixando=false; }, 2500);
     },
     async encerrarChamada(){
-      this.pararToque();
+      try{document.getElementById('telaChamada').style.display='none';}catch(e){} this.pararToque();
       clearInterval(this._callTimer); clearInterval(this._pollSinal);
       if(this.salaChamada) await this.enviarSinalChamada(this.salaChamada, 'fim');
       if(this.salaChamada){ try{ await fetch(this.apiBase + '/api/salas/atender', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({sala:this.salaChamada, status:'encerrada'})}); }catch(e){} }
