@@ -431,20 +431,20 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
         <!-- ABRIR CONTA: Nome de usuário + E-mail + Senha -->
         <div x-show="loginCadastro" class="bg-emerald-50 border border-emerald-100 rounded-xl p-3 mb-1">
           <p class="font-bold text-[13px]">Abrir conta — é rápido:</p>
-          <p class="text-[12px] text-gray-600 mt-0.5">1. Nome de usuário • 2. E-mail • 3. Senha. Depois você completa seu perfil.</p>
+          <p class="text-[12px] text-gray-600 mt-0.5">1. E-mail • 2. Nome • 3. Senha. Depois você completa seu perfil.</p>
         </div>
-        <label x-show="loginCadastro" class="text-[12px] font-bold block">Nome de usuário</label>
-        <input x-show="loginCadastro" x-model="cadastroNomeUsuario" placeholder="Ex: joao.corretor" class="w-full border rounded-xl px-3 py-3 mt-1 text-[14px] outline-none focus:border-waGreen">
-        <label class="text-[12px] font-bold block mt-3">Seu e-mail (não aparece para ninguém)</label>
+        <label class="text-[12px] font-bold block">E-mail</label>
         <input x-model="loginEmail" type="email" placeholder="Ex: seuemail@gmail.com" class="w-full border rounded-xl px-3 py-3 mt-1 text-[14px] outline-none focus:border-waGreen">
         <p class="text-[11px] text-gray-400 mt-1">🔒 Seu e-mail é só para entrar. Não aparece no perfil, nem para outros usuários.</p>
+        <label x-show="loginCadastro" class="text-[12px] font-bold block mt-3">Nome</label>
+        <input x-show="loginCadastro" x-model="cadastroNomeUsuario" placeholder="Ex: joao.corretor" class="w-full border rounded-xl px-3 py-3 mt-1 text-[14px] outline-none focus:border-waGreen">
         <label class="text-[12px] font-bold block mt-3">Senha</label>
         <input x-model="loginSenha" type="password" placeholder="Sua senha" class="w-full border rounded-xl px-3 py-3 mt-1 text-[14px] outline-none focus:border-waGreen">
         <p x-show="loginErro" class="text-[13px] font-bold text-red-600 bg-red-50 rounded-xl p-2.5 mt-3" x-text="loginErro"></p>
-        <button @click="entrarUsuario()" class="w-full bg-waDark text-white font-bold py-3 rounded-full mt-4" x-text="loginCadastro ? '✅ Abrir minha conta' : '👤 Entrar'"></button>
-        <button @click="loginCadastro=!loginCadastro" class="w-full bg-gray-100 text-gray-700 font-bold py-2.5 rounded-full mt-2 text-[13px]" x-text="loginCadastro ? 'Já tenho conta • Entrar' : 'Não tenho conta • Cadastrar'"></button>
+        <button @click="entrarUsuario()" class="w-full bg-waDark text-white font-bold py-3 rounded-full mt-4" x-text="loginCadastro ? 'Abrir conta' : 'Fazer login'"></button>
+        <button @click="loginCadastro=!loginCadastro" class="w-full bg-gray-100 text-gray-700 font-bold py-2.5 rounded-full mt-2 text-[13px]" x-text="loginCadastro ? 'Já tenho conta • Fazer login' : 'Não tenho conta • Abrir conta'"></button>
         <p x-show="loginCadastro" class="text-[12px] text-gray-500 text-center mt-2">Ao abrir conta, você vai para preencher seu perfil: foto, WhatsApp, descrição e site.</p>
-        <p class="text-[11px] text-gray-400 text-center mt-3">Seu e-mail fica salvo só no seu celular. O dono tem um painel separado (Painel Master).</p>
+        <p class="text-[11px] text-gray-400 text-center mt-3">Seu e-mail fica salvo só no seu celular.</p>
       </div>
       <!-- COMPLETAR PERFIL: aparece quando abre conta -->
       <div x-show="usuarioLogado" class="bg-white rounded-2xl p-5 shadow-sm mt-3 text-left">
