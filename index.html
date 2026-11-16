@@ -468,7 +468,7 @@ Upload via Worker: POST /api/upload (multipart -> R2.put + retorna URL pública)
         <button @click="entrarUsuario()" class="w-full bg-waDark text-white font-bold py-3 rounded-full mt-4" x-text="loginCadastro ? 'Abrir conta' : 'Fazer login'"></button>
         <button @click="loginCadastro=!loginCadastro" class="w-full bg-gray-100 text-gray-700 font-bold py-2.5 rounded-full mt-2 text-[13px]" x-text="loginCadastro ? 'Já tenho conta • Fazer login' : 'Não tenho conta • Abrir conta'"></button>
         <p x-show="loginCadastro" class="text-[12px] text-gray-500 text-center mt-2">Ao abrir conta, você vai para preencher seu perfil: foto, WhatsApp, descrição e site.</p>
-        <p class="text-[11px] text-gray-400 text-center mt-3">Sua conta fica salva no banco, vale em qualquer celular.</p>
+        <p class="text-[11px] text-gray-400 text-center mt-3">Sua conta fica salva neste celular.</p>
         <button @click="view='master'" class="w-full text-[11px] text-gray-400 text-center mt-1 underline">Admin Principal</button>
       </div>
       <!-- COMPLETAR PERFIL: aparece quando abre conta -->
@@ -1669,76 +1669,43 @@ this.toast('🎉 Webhook Mercado Pago confirmado! Plano '+this.checkoutPlano.toU
       if(this.loginCadastro && !(this.cadastroWhatsapp||'').trim()){ this.loginErro='Coloque seu WhatsApp.'; return; }
       if(!email || !email.includes('@')){ this.loginErro='Digite seu e-mail certinho, com @.'; return; }
       if(!senha || senha.length<4){ this.loginErro='Senha com pelo menos 4 letras.'; return; }
-      // D1 PRIMEIRO: 1 e-mail = 1 perfil no banco. Se o Worker responder, usa o D1 e não o localStorage.
-      const d1 = await this.tentarLoginD1(email, senha, !!this.loginCadastro, this.cadastroNomeUsuario||'', this.cadastroWhatsapp||'', this.cadastroTipo||'corretor');
-      if(d1 && d1.anunciante){
-        const an = d1.anunciante;
-        // Salva também no localStorage para funcionar offline
-        let smD1={}; try{ smD1=JSON.parse(localStorage.getItem('chatimov_senhas')||'{}'); }catch(e){ smD1={}; }
-        smD1[email]=senha; localStorage.setItem('chatimov_senhas', JSON.stringify(smD1));
-        localStorage.setItem('chatimov_usuario_email', email); localStorage.setItem('chatimov_usuario_senha', senha); localStorage.setItem('chatimov_usuario_logado','1');
-        // Garante que o perfil no localStorage seja o DO D1, não o do outro e-mail
-        let csD1={}; try{ csD1=JSON.parse(localStorage.getItem('chatimov_contas')||'{}'); }catch(e){ csD1={}; }
-        csD1[email]={nome: an.nome, slug: an.slug, slugUser: (an.slug||'').replace(/-/g,'.'), whatsapp: an.whatsapp||'', tipo: an.tipo||'corretor', foto: an.foto_perfil||'', bio: an.bio||'', capa: an.capa_url||'', plano: an.plano||'free', link1:'', link2:'', links:[]};
-        localStorage.setItem('chatimov_contas', JSON.stringify(csD1));
-        this.usuarioEmail=email; this.usuarioLogado=true; this.loginErro=''; this.meuPlano=an.plano||'free';
-        this.aplicarContaAoMe(email, an.nome, an.whatsapp, an.tipo||'corretor', false);
-        this.toast('✅ Logado como ' + email + ' (D1)');
-        if(email==='pagenegocio@gmail.com'){ this.masterLogado=true; this.adminEmailDono='pagenegocio@gmail.com'; this.masterEmailInput='pagenegocio@gmail.com'; this.masterSenhaDono=senha; } else { this.masterLogado=false; }
-        this.view='admin'; this.abaAdmin = this.loginCadastro ? 'perfil' : 'imoveis';
-        this.cadastroNomeUsuario=''; this.cadastroWhatsapp=''; this.loginEmail=''; this.loginSenha='';
-        return;
-      }
-      // Se o D1 disser "não existe", não trava - tenta no celular também.
-      // Porque você pode ter criado a conta no celular antes do banco ficar pronto.
-      // SIMPLES E PRÁTICO: tenta o banco, se o banco falhar por qualquer motivo, usa o celular.
-      // Assim você nunca fica trancado pra fora. 1 e-mail = 1 perfil, sempre.
-      if(true){
-        // MODO SEM BANCO - funciona agora, no seu celular, sem Cloudflare
-        let senhasMap = {};
-        try{ senhasMap = JSON.parse(localStorage.getItem('chatimov_senhas')||'{}'); }catch(e){ senhasMap={}; }
-        const emailSalvo = localStorage.getItem('chatimov_usuario_email');
-        const senhaSalva = localStorage.getItem('chatimov_usuario_senha');
-        if(emailSalvo && senhaSalva && !senhasMap[emailSalvo]) senhasMap[emailSalvo]=senhaSalva;
-        if(this.loginCadastro){
-          if(senhasMap[email]){ this.loginErro='Essa conta já existe. Toque em "Já tenho conta • Fazer login".'; return; }
+      // SIMPLES: 1 e-mail = 1 perfil, salvo no celular. Sem banco, sem Worker, sem travar.
+      let senhasMap = {};
+      try{ senhasMap = JSON.parse(localStorage.getItem('chatimov_senhas')||'{}'); }catch(e){ senhasMap={}; }
+      const emailSalvo = localStorage.getItem('chatimov_usuario_email');
+      const senhaSalva = localStorage.getItem('chatimov_usuario_senha');
+      if(emailSalvo && senhaSalva && !senhasMap[emailSalvo]) senhasMap[emailSalvo]=senhaSalva;
+      if(this.loginCadastro){
+        if(senhasMap[email]){ this.loginErro='Essa conta já existe. Toque em "Já tenho conta • Fazer login".'; return; }
+        senhasMap[email]=senha; localStorage.setItem('chatimov_senhas', JSON.stringify(senhasMap));
+        localStorage.setItem('chatimov_usuario_email', email);
+        localStorage.setItem('chatimov_usuario_senha', senha);
+        if(this.cadastroNomeUsuario){ const nomeU = this.cadastroNomeUsuario.trim().toLowerCase().replace(/\s+/g,'.'); localStorage.setItem('chatimov_nome_usuario', nomeU); this.nomeUsuario = nomeU; }
+        if(this.cadastroWhatsapp){ localStorage.setItem('chatimov_whatsapp', this.cadastroWhatsapp.trim()); this.perfilWhatsapp = this.cadastroWhatsapp.trim(); }
+        if(this.cadastroTipo){ localStorage.setItem('chatimov_tipo_conta', this.cadastroTipo); }
+        this.aplicarContaAoMe(email, this.cadastroNomeUsuario, this.cadastroWhatsapp, this.cadastroTipo, true);
+      } else {
+        if(senhasMap[email] && senhasMap[email]===senha){
           senhasMap[email]=senha; localStorage.setItem('chatimov_senhas', JSON.stringify(senhasMap));
           localStorage.setItem('chatimov_usuario_email', email);
           localStorage.setItem('chatimov_usuario_senha', senha);
-          if(this.cadastroNomeUsuario){ const nomeU = this.cadastroNomeUsuario.trim().toLowerCase().replace(/\s+/g,'.'); localStorage.setItem('chatimov_nome_usuario', nomeU); this.nomeUsuario = nomeU; }
-          if(this.cadastroWhatsapp){ localStorage.setItem('chatimov_whatsapp', this.cadastroWhatsapp.trim()); this.perfilWhatsapp = this.cadastroWhatsapp.trim(); }
-          if(this.cadastroTipo){ localStorage.setItem('chatimov_tipo_conta', this.cadastroTipo); }
-          this.aplicarContaAoMe(email, this.cadastroNomeUsuario, this.cadastroWhatsapp, this.cadastroTipo, true);
+          let contas = {}; try{ contas = JSON.parse(localStorage.getItem('chatimov_contas')||'{}'); }catch(e){ contas={}; }
+          const c = contas[email];
+          if(c){ this.aplicarContaAoMe(email, c.nome, c.whatsapp, c.tipo); const me2 = this.meuAnunciante(); if(me2 && c.foto) me2.foto=c.foto; if(me2 && c.bio) me2.bio=c.bio; if(me2 && c.capa) me2.capa=c.capa; }
+          else { const nomeAntigo = (this.nomeUsuario||'').replace(/\./g,' '); if(nomeAntigo) this.aplicarContaAoMe(email, nomeAntigo, this.perfilWhatsapp, 'corretor'); }
+        } else if(senhasMap[email]){
+          this.loginErro='Senha errada. Tente de novo ou toque em "Esqueci minha senha?".'; return;
         } else {
-          if(senhasMap[email] && senhasMap[email]===senha){
-            senhasMap[email]=senha; localStorage.setItem('chatimov_senhas', JSON.stringify(senhasMap));
-            localStorage.setItem('chatimov_usuario_email', email);
-            localStorage.setItem('chatimov_usuario_senha', senha);
-            let contas = {}; try{ contas = JSON.parse(localStorage.getItem('chatimov_contas')||'{}'); }catch(e){ contas={}; }
-            const c = contas[email];
-            if(c){ this.aplicarContaAoMe(email, c.nome, c.whatsapp, c.tipo); const me2 = this.meuAnunciante(); if(me2 && c.foto) me2.foto=c.foto; if(me2 && c.bio) me2.bio=c.bio; if(me2 && c.capa) me2.capa=c.capa; }
-            else { const nomeAntigo = (this.nomeUsuario||'').replace(/\./g,' '); if(nomeAntigo) this.aplicarContaAoMe(email, nomeAntigo, this.perfilWhatsapp, 'corretor'); }
-          } else if(senhasMap[email]){
-            this.loginErro='Senha errada. Tente de novo ou toque em "Esqueci minha senha?".'; return;
-          } else {
-            this.loginErro='Nenhuma conta com esse e-mail neste celular. Toque em "Não tenho conta • Abrir conta".'; return;
-          }
+          this.loginErro='Nenhuma conta com esse e-mail aqui. Toque em "Não tenho conta • Abrir conta".'; return;
         }
-        localStorage.setItem('chatimov_usuario_logado', '1');
-        this.usuarioEmail = email; this.usuarioLogado = true; this.loginErro='';
-        try{ const csFoto = JSON.parse(localStorage.getItem('chatimov_contas')||'{}'); if(csFoto[email] && csFoto[email].foto){ this.usuarioFoto = csFoto[email].foto; localStorage.setItem('chatimov_usuario_foto', csFoto[email].foto); } }catch(e){}
-        this.toast('✅ Logado como ' + email);
-        if(email==='pagenegocio@gmail.com'){ this.masterLogado=true; this.adminEmailDono='pagenegocio@gmail.com'; this.masterEmailInput='pagenegocio@gmail.com'; this.masterSenhaDono=senha; } else { this.masterLogado=false; }
-        this.view='admin'; this.abaAdmin = this.loginCadastro ? 'perfil' : 'imoveis';
-        this.cadastroNomeUsuario=''; this.cadastroWhatsapp=''; this.loginEmail=''; this.loginSenha='';
-        return;
       }
-      // Banco configurado mas deu erro de verdade
-      if(d1 && d1.erro){
-        this.loginErro = d1.erro;
-        return;
-      }
-      this.loginErro = 'Ops, tente de novo em um instante.';
+      localStorage.setItem('chatimov_usuario_logado', '1');
+      this.usuarioEmail = email; this.usuarioLogado = true; this.loginErro='';
+      try{ const csFoto = JSON.parse(localStorage.getItem('chatimov_contas')||'{}'); if(csFoto[email] && csFoto[email].foto){ this.usuarioFoto = csFoto[email].foto; localStorage.setItem('chatimov_usuario_foto', csFoto[email].foto); } }catch(e){}
+      this.toast('✅ Logado como ' + email);
+      if(email==='pagenegocio@gmail.com'){ this.masterLogado=true; this.adminEmailDono='pagenegocio@gmail.com'; this.masterEmailInput='pagenegocio@gmail.com'; this.masterSenhaDono=senha; } else { this.masterLogado=false; }
+      this.view='admin'; this.abaAdmin = this.loginCadastro ? 'perfil' : 'imoveis';
+      this.cadastroNomeUsuario=''; this.cadastroWhatsapp=''; this.loginEmail=''; this.loginSenha='';
       return;
     },
     sairUsuario(){
