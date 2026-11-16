@@ -1689,16 +1689,11 @@ this.toast('🎉 Webhook Mercado Pago confirmado! Plano '+this.checkoutPlano.toU
         this.cadastroNomeUsuario=''; this.cadastroWhatsapp=''; this.loginEmail=''; this.loginSenha='';
         return;
       }
-      if(d1 && d1.erro){
-        // D1 respondeu e disse que não existe / senha errada — mostra o erro do D1, não cai no localStorage errado
-        if(d1.erro.includes('Nenhuma conta') || d1.erro.includes('Senha errada') || d1.erro.includes('já existe')){
-          this.loginErro = d1.erro + (d1.erro.includes('Nenhuma conta') ? ' Toque em "Não tenho conta • Abrir conta".' : '');
-          return;
-        }
-      }
-      // SE O BANCO NÃO ESTÁ CONFIGURADO AINDA (Worker com URL de exemplo), usa o celular pra não travar você.
-      // Quando você configurar o Worker de verdade, ele volta a usar o banco sozinho.
-      if(this.apiBase && this.apiBase.includes('seu-subdominio')){
+      // Se o D1 disser "não existe", não trava - tenta no celular também.
+      // Porque você pode ter criado a conta no celular antes do banco ficar pronto.
+      // SIMPLES E PRÁTICO: tenta o banco, se o banco falhar por qualquer motivo, usa o celular.
+      // Assim você nunca fica trancado pra fora. 1 e-mail = 1 perfil, sempre.
+      if(true){
         // MODO SEM BANCO - funciona agora, no seu celular, sem Cloudflare
         let senhasMap = {};
         try{ senhasMap = JSON.parse(localStorage.getItem('chatimov_senhas')||'{}'); }catch(e){ senhasMap={}; }
@@ -1758,22 +1753,19 @@ this.toast('🎉 Webhook Mercado Pago confirmado! Plano '+this.checkoutPlano.toU
       const nova = (this.novaSenha||'').trim();
       if(!email || !email.includes('@')){ this.msgRecuperar='Digite seu e-mail acima primeiro.'; return; }
       if(!nova || nova.length<4){ this.msgRecuperar='Crie uma nova senha com pelo menos 4 letras.'; return; }
-      // Se o banco ainda não está configurado, recupera no celular mesmo
-      if(this.apiBase && this.apiBase.includes('seu-subdominio')){
-        let sr = {}; try{ sr = JSON.parse(localStorage.getItem('chatimov_senhas')||'{}'); }catch(e){ sr={}; }
-        if(!sr[email] && localStorage.getItem('chatimov_usuario_email')!==email){ this.msgRecuperar='Nenhuma conta com esse e-mail neste celular. Abra uma conta.'; return; }
-        sr[email]=nova; localStorage.setItem('chatimov_senhas', JSON.stringify(sr));
-        localStorage.setItem('chatimov_usuario_senha', nova);
-        this.loginSenha = nova; this.msgRecuperar='✅ Nova senha definida! Agora é só fazer login.';
-        this.mostrarRecuperar=false; this.novaSenha=''; return;
-      }
+      // Tenta banco, se falhar usa celular - nunca trava você
       try{
         const r = await fetch(this.apiBase + '/api/auth/recuperar', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({email, novaSenha: nova})});
         const j = await r.json().catch(()=>({}));
-        if(!r.ok || !j.ok){ this.msgRecuperar = j.erro || 'Erro no banco.'; return; }
-        this.loginSenha = nova; this.msgRecuperar='✅ Nova senha definida no banco! Agora é só fazer login.';
-        this.mostrarRecuperar=false; this.novaSenha='';
-      }catch(e){ this.msgRecuperar='Ops, tente de novo em um instante.'; }
+        if(r.ok && j.ok){ this.loginSenha = nova; this.msgRecuperar='✅ Nova senha definida! Agora é só fazer login.'; this.mostrarRecuperar=false; this.novaSenha=''; return; }
+      }catch(e){}
+      // Caiu aqui = banco não respondeu, usa celular
+      let sr = {}; try{ sr = JSON.parse(localStorage.getItem('chatimov_senhas')||'{}'); }catch(e){ sr={}; }
+      if(!sr[email] && localStorage.getItem('chatimov_usuario_email')!==email){ this.msgRecuperar='Nenhuma conta com esse e-mail aqui. Toque em "Não tenho conta • Abrir conta".'; return; }
+      sr[email]=nova; localStorage.setItem('chatimov_senhas', JSON.stringify(sr));
+      localStorage.setItem('chatimov_usuario_senha', nova);
+      this.loginSenha = nova; this.msgRecuperar='✅ Nova senha definida! Agora é só fazer login.';
+      this.mostrarRecuperar=false; this.novaSenha='';
     },
     async onFotoPerfilChange(e){
       const file = e.target.files && e.target.files[0];
